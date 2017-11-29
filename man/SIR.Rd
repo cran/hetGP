@@ -26,16 +26,16 @@ Epidemiology problem, initial and rescaled to [0,1]^2 versions.
 }
 \examples{
 ## SIR test problem illustration
-ngrid <- 11
+ngrid <- 10 # increase
 xgrid <- seq(0, 1, length.out = ngrid)
 Xgrid <- as.matrix(expand.grid(xgrid, xgrid))
 
-nrep <- 5
+nrep <- 5 # increase
 X <- Xgrid[rep(1:nrow(Xgrid), nrep),]
 Y <- apply(X, 1, sirEval)
 dataSIR <- find_reps(X, Y)
 filled.contour(xgrid, xgrid, matrix(lapply(dataSIR$Zlist, sd), ngrid),
-               xlab = "Susceptibles", ylab = "Infecteds")
+               xlab = "Susceptibles", ylab = "Infecteds", color.palette = terrain.colors)
 
 }
 \references{

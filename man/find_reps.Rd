@@ -12,7 +12,7 @@ find_reps(X, Z, return.Zlist = TRUE, rescale = FALSE, normalize = FALSE,
 
 \item{Z}{vector of observations at \code{X}}
 
-\item{return.Zlist}{should \code{Zlist} be returned?}
+\item{return.Zlist}{to return \code{Zlist}, see below}
 
 \item{rescale}{if \code{TRUE}, the inputs are rescaled to the unit hypercube}
 
@@ -28,7 +28,7 @@ A list with the following elements that can be passed to the main fitting functi
 \item \code{Z0} vector of averaged observations at \code{X0},
 \item \code{mult} number of replicates at \code{X0},
 \item \code{Z} vector with all observations, sorted according to \code{X0},
-\item \code{Zlist} optional list, each element correspond to observations at a design in \code{X0},
+\item \code{Zlist} optional list, each element corresponds to observations at a design in \code{X0},
 \item \code{inputBounds} optional matrix, to rescale back to the original input space,
 \item \code{outputStats} optional vector, with mean and variance of the original outputs.
 }

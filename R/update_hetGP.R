@@ -274,7 +274,10 @@ update.hetGP <- function(object, Xnew, Znew, ginit = 1e-2, lower = NULL, upper =
     
     if(is.null(upper)) upper <- object$used_args$upper
     if(is.null(lower)) lower <- object$used_args$lower
-    if(is.null(noiseControl)) noiseControl <- object$used_args$noiseControl
+    if(is.null(noiseControl)){
+      noiseControl <- object$used_args$noiseControl
+      noiseControl$lowerDelta <- noiseControl$upperDelta <- NULL ## must be given to noiseControl in update
+    } 
     if(is.null(settings)) settings <- object$used_args$settings
     if(is.null(known)) known <- object$used_args$known
     

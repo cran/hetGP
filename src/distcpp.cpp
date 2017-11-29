@@ -185,26 +185,3 @@ NumericMatrix partial_d_dist_dX1_i1_i2_X2(NumericMatrix X1, NumericMatrix X2, in
   return s;
 }
 
-
-// // You can include R code blocks in C++ files processed with sourceCpp
-// // (useful for testing and development). The R code will be automatically
-// // run after the compilation.
-// //
-// //
-// /*** R
-// n <- 10000
-// d <- 10
-// P <- matrix(rnorm(n*d), n, d)
-//
-// n2 <- 500
-// P2 <- matrix(rnorm(n2*d), n2, d)
-//
-// theta <- runif(10)
-//
-// library(microbenchmark)
-// microbenchmark(distance(P), distance_cpp(P))
-// microbenchmark(distance(P, P2), distance_cpp(P, P2))
-// microbenchmark(distance(P %*% diag(1/sqrt(theta))), distance_cpp(P, m = theta))
-// microbenchmark(distance(P, P2), distance_cpp(P, P2))
-// microbenchmark(distance(P %*% diag(1/sqrt(theta)), P2 %*% diag(1/sqrt(theta))), distance_cpp(P, P2, theta))
-// */

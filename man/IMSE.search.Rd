@@ -16,13 +16,13 @@ IMSE.search(model, replicate = FALSE, Xcand = NULL,
 \item{Xcand}{optional set of of candidates for discrete search}
 
 \item{control}{list in case \code{Xcand == NULL}, with elements \code{multi.start},
-to perform a multi-start optimization is conducted based on \code{\link[stats]{optim}}, with \code{maxit} iterations each.
+to perform a multi-start optimization based on \code{\link[stats]{optim}}, with \code{maxit} iterations each.
 Also, \code{tol_dist} defines the minimum distance to an existing design for a new point to be added, otherwise the closest existing design is chosen.
-In a similar fashion, \code{tol_dist} is the minimum relative change of IMSPE for adding a new design.}
+In a similar fashion, \code{tol_dist} is the minimum relative change of IMSE for adding a new design.}
 
 \item{Wijs}{optional previously computed matrix of Wijs, see \code{\link[hetGP]{Wij}}}
 
-\item{seed}{optional seed for the generation of designs}
+\item{seed}{optional seed for the generation of designs with \code{\link[DiceDesign]{maximinSA_LHS}}}
 }
 \value{
 list with \code{par}, \code{value} elements, and additional slot \code{new} (boolean if it is or not a new design) and \code{id} giving the index of the duplicated design.

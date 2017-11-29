@@ -19,8 +19,8 @@ update_horizon(model, current_horizon = NULL, previous_ratio = NULL,
 \item{Wijs}{optional previously computed matrix of Wijs, see \code{\link[hetGP]{Wij}}}
 }
 \value{
-randomly selected horizon for next iteration if no \code{target} is provided
-otherwise the update horizon value.
+randomly selected horizon for next iteration (adpative) if no \code{target} is provided, 
+otherwise returns the update horizon value.
 }
 \description{
 Adapt the look-ahead horizon depending on the replicate allocation or a target ratio

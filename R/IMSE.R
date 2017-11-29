@@ -20,7 +20,7 @@ IMSPE <- function(X, theta = NULL, Lambda = NULL, mult = NULL, covtype = NULL, n
 
 ##' Compute the integrated mean square prediction error after adding a new design
 ##' @title Sequential IMSPE criterion
-##' @param x matrix for the new design
+##' @param x matrix for the new design (size 1 x d)
 ##' @param Wijs optional previously computed matrix of Wijs, to avoid recomputing it; see \code{\link[hetGP]{Wij}}
 ##' @param model \code{homGP} or \code{hetGP} model, including inverse matrices
 ##' @param id instead of providing \code{x}, one can provide the index of a considered existing design 
@@ -49,7 +49,7 @@ IMSPE <- function(X, theta = NULL, Lambda = NULL, mult = NULL, covtype = NULL, n
 ##' xgrid <- matrix(seq(0,1, length.out = ngrid), ncol = 1)
 ##' 
 ##' ## Precalculations
-##' Wijs <- hetGP:::Wij(mu1 = model$X0, theta = model$theta, type = model$covtype)
+##' Wijs <- Wij(mu1 = model$X0, theta = model$theta, type = model$covtype)
 ##' 
 ## ' nref <- 2000
 ## ' # library(DiceDesign)
@@ -101,7 +101,7 @@ IMSPE <- function(X, theta = NULL, Lambda = NULL, mult = NULL, covtype = NULL, n
 ##' xgrid <- seq(0,1, length.out = ngrid)
 ##' Xgrid <- as.matrix(expand.grid(xgrid, xgrid))
 ##' ## Precalculations
-##' Wijs <- hetGP:::Wij(mu1 = model$X0, theta = model$theta, type = model$covtype)
+##' Wijs <- Wij(mu1 = model$X0, theta = model$theta, type = model$covtype)
 ##' t0 <- Sys.time()
 ##' 
 ##' IMSE_grid <- apply(Xgrid, 1, crit_IMSE, Wijs = Wijs, model = model)
@@ -179,7 +179,7 @@ c2 <- function(x, sigma, w, type){
 }
 
 ##' Derivative of crit_IMSE
-##' @param x matrix for the new design
+##' @param x matrix for the new design (size 1 x d)
 ##' @param model \code{homGP} or \code{hetGP} model
 ##' @param Wijs optional previously computed matrix of Wijs, see \code{\link[hetGP]{Wij}}
 ##' @return Derivative of the sequential IMSPE with respect to \code{x}
@@ -259,11 +259,11 @@ deriv_crit_IMSE <- function(x, model, Wijs = NULL){
 ##' @param replicate if \code{TRUE}, search only on existing designs
 ##' @param Xcand optional set of of candidates for discrete search
 ##' @param control list in case \code{Xcand == NULL}, with elements \code{multi.start},
-##' to perform a multi-start optimization is conducted based on \code{\link[stats]{optim}}, with \code{maxit} iterations each.
+##' to perform a multi-start optimization based on \code{\link[stats]{optim}}, with \code{maxit} iterations each.
 ##' Also, \code{tol_dist} defines the minimum distance to an existing design for a new point to be added, otherwise the closest existing design is chosen.
-##' In a similar fashion, \code{tol_dist} is the minimum relative change of IMSPE for adding a new design.
+##' In a similar fashion, \code{tol_dist} is the minimum relative change of IMSE for adding a new design.
 ##' @param Wijs optional previously computed matrix of Wijs, see \code{\link[hetGP]{Wij}}
-##' @param seed optional seed for the generation of designs
+##' @param seed optional seed for the generation of designs with \code{\link[DiceDesign]{maximinSA_LHS}}
 ##' @importFrom DiceDesign lhsDesign maximinSA_LHS
 ##' @return list with \code{par}, \code{value} elements, and additional slot \code{new} (boolean if it is or not a new design) and \code{id} giving the index of the duplicated design. 
 ##' @export
@@ -436,7 +436,7 @@ IMSE.search <- function(model, replicate = FALSE, Xcand = NULL,
 ##' @export 
 ##' @examples
 ##' ###############################################################################
-##' ## Bi-variate exa,ple
+##' ## Bi-variate example
 ##' ###############################################################################
 ##' 
 ##' nvar <- 2 
@@ -477,7 +477,7 @@ IMSE.search <- function(model, replicate = FALSE, Xcand = NULL,
 ##'   points(newX, col = "red", pch = 20)
 ##'   
 ##'   ## Precalculations
-##'   Wijs <- hetGP:::Wij(mu1 = model$X0, theta = model$theta, type = model$covtype)
+##'   Wijs <- Wij(mu1 = model$X0, theta = model$theta, type = model$covtype)
 ##'   
 ##'   IMSE_grid <- apply(Xgrid, 1, crit_IMSE, Wijs = Wijs, model = model)
 ##'   filled.contour(x = xgrid, y = xgrid, matrix(IMSE_grid, ngrid),
@@ -585,11 +585,11 @@ IMSE_nsteps_ahead <- function(model, h = 2, Xcand = NULL, control = list(multi.s
 }
 
 
-##' Allocation of replicates on existing design location, based on (29) from (Ankenman et al, 2010)
+##' Allocation of replicates on existing design locations, based on (29) from (Ankenman et al, 2010)
 ##' @title Allocation of replicates on existing designs
 ##' @param model \code{hetGP} model
 ##' @param N total budget of replication to allocate
-##' @param Wijs optional previously computed matrix of Wijs, see \code{\link[hetGP]{Wij}}
+##' @param Wijs optional previously computed matrix of \code{Wijs}, see \code{\link[hetGP]{Wij}}
 ##' @param use.Ki should \code{Ki} from \code{model} be used? 
 ##' Using the inverse of C (covariance matrix only, without noise, using \code{\link[MASS]{ginv}}) is also possible
 ##' @return vector with approximated best number of replicates per design
@@ -617,6 +617,7 @@ IMSE_nsteps_ahead <- function(model, h = 2, Xcand = NULL, control = list(multi.s
 ##' model <- mleHetGP(X = list(X0 = data_m$X0, Z0 = data_m$Z0, mult = data_m$mult),
 ##'                   Z = Z, lower = rep(0.1, nvar), upper = rep(50, nvar),
 ##'                   covtype = "Matern5_2")
+##' ## Compute best allocation                  
 ##' A <- allocate_mult(model, N = 1000)
 ##' 
 ##' plot(X, Z, ylim = c(-160, 90), ylab = 'acceleration', xlab = "time")
@@ -665,8 +666,8 @@ allocate_mult <- function(model, N, Wijs = NULL, use.Ki = FALSE){
 ##' @param previous_ratio ratio before adding the previous new design
 ##' @param target scalar in ]0,1] for desired n/N
 ##' @param Wijs optional previously computed matrix of Wijs, see \code{\link[hetGP]{Wij}}
-##' @return randomly selected horizon for next iteration if no \code{target} is provided
-##' otherwise the update horizon value.
+##' @return randomly selected horizon for next iteration (adpative) if no \code{target} is provided, 
+##' otherwise returns the update horizon value.
 ##' @details 
 ##' If \code{target} is provided, along with \code{previous_ratio} and \code{current_horizon}:
 ##' \itemize{

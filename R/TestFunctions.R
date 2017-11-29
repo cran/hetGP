@@ -7,16 +7,16 @@
 ##' @export
 ##' @examples 
 ##' ## SIR test problem illustration
-##' ngrid <- 11
+##' ngrid <- 10 # increase
 ##' xgrid <- seq(0, 1, length.out = ngrid)
 ##' Xgrid <- as.matrix(expand.grid(xgrid, xgrid))
 ##' 
-##' nrep <- 5
+##' nrep <- 5 # increase
 ##' X <- Xgrid[rep(1:nrow(Xgrid), nrep),]
 ##' Y <- apply(X, 1, sirEval)
 ##' dataSIR <- find_reps(X, Y)
 ##' filled.contour(xgrid, xgrid, matrix(lapply(dataSIR$Zlist, sd), ngrid),
-##'                xlab = "Susceptibles", ylab = "Infecteds")
+##'                xlab = "Susceptibles", ylab = "Infecteds", color.palette = terrain.colors)
 ##'
 sirEval <- function(x){
   return(sirSimulate(S0 = x[1] * 600 + 1200, I0 = 200 * x[2], M = 2000, beta = 0.5, imm = 0)$totI/800)

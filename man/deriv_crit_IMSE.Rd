@@ -7,7 +7,7 @@
 deriv_crit_IMSE(x, model, Wijs = NULL)
 }
 \arguments{
-\item{x}{matrix for the new design}
+\item{x}{matrix for the new design (size 1 x d)}
 
 \item{model}{\code{homGP} or \code{hetGP} model}
 

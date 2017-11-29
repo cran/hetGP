@@ -39,7 +39,7 @@ The decision is made between:
 }
 \examples{
 ###############################################################################
-## Bi-variate exa,ple
+## Bi-variate example
 ###############################################################################
 
 nvar <- 2 
@@ -80,7 +80,7 @@ for(i in 1:nsteps){
   points(newX, col = "red", pch = 20)
   
   ## Precalculations
-  Wijs <- hetGP:::Wij(mu1 = model$X0, theta = model$theta, type = model$covtype)
+  Wijs <- Wij(mu1 = model$X0, theta = model$theta, type = model$covtype)
   
   IMSE_grid <- apply(Xgrid, 1, crit_IMSE, Wijs = Wijs, model = model)
   filled.contour(x = xgrid, y = xgrid, matrix(IMSE_grid, ngrid),

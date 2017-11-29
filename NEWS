@@ -1,0 +1,7 @@
+## hetGP 1.0.1
+
+## change / GPareto 1.0.0
+  * add Student-t modeling (equivalent of mleHetGP and mleHomGP, with predict functions)
+  * various typos and bugs corrections
+  * now works on Solaris
+  

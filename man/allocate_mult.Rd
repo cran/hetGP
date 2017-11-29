@@ -11,7 +11,7 @@ allocate_mult(model, N, Wijs = NULL, use.Ki = FALSE)
 
 \item{N}{total budget of replication to allocate}
 
-\item{Wijs}{optional previously computed matrix of Wijs, see \code{\link[hetGP]{Wij}}}
+\item{Wijs}{optional previously computed matrix of \code{Wijs}, see \code{\link[hetGP]{Wij}}}
 
 \item{use.Ki}{should \code{Ki} from \code{model} be used? 
 Using the inverse of C (covariance matrix only, without noise, using \code{\link[MASS]{ginv}}) is also possible}
@@ -20,7 +20,7 @@ Using the inverse of C (covariance matrix only, without noise, using \code{\link
 vector with approximated best number of replicates per design
 }
 \description{
-Allocation of replicates on existing design location, based on (29) from (Ankenman et al, 2010)
+Allocation of replicates on existing design locations, based on (29) from (Ankenman et al, 2010)
 }
 \examples{
 ##------------------------------------------------------------
@@ -44,6 +44,7 @@ plot(rep(data_m$X0, data_m$mult), data_m$Z, ylim = c(-160, 90),
 model <- mleHetGP(X = list(X0 = data_m$X0, Z0 = data_m$Z0, mult = data_m$mult),
                   Z = Z, lower = rep(0.1, nvar), upper = rep(50, nvar),
                   covtype = "Matern5_2")
+## Compute best allocation                  
 A <- allocate_mult(model, N = 1000)
 
 plot(X, Z, ylim = c(-160, 90), ylab = 'acceleration', xlab = "time")

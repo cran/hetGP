@@ -20,7 +20,7 @@ NumericMatrix matern5_2_1args(NumericMatrix X1){
   for(int i = 1; i < nr; i++, ptrX1++){
     for(int j = 0; j < i; j++, ptrs++, ptrr++){
       for(int k = 0; k < nc; k++){
-        tmp = sqrt(5) * std::abs(*ptrX1 - *ptrX2);
+        tmp = sqrt(5.) * std::abs(*ptrX1 - *ptrX2);
         *ptrs *= (1 + tmp + tmp * tmp /3.);
         *ptrr -= tmp;
         ptrX1 += nr;
@@ -70,7 +70,7 @@ NumericMatrix d_matern5_2_1args_theta_k_iso(NumericMatrix X1, double theta){
     for(int j = 0; j < i; j++, ptrs++){
       for(int k = 0; k < nc; k++){
         tmp = std::abs(*ptrX1 - *ptrX2) / theta;
-        *ptrs -= ((10./3. - 5.) * tmp - 5 * sqrt(5)/3. * tmp * tmp) / (1 + sqrt(5) * tmp + 5./3. * tmp * tmp) * tmp/theta;
+        *ptrs -= ((10./3. - 5.) * tmp - 5 * sqrt(5.)/3. * tmp * tmp) / (1 + sqrt(5.) * tmp + 5./3. * tmp * tmp) * tmp/theta;
         ptrX1 += nr;
         ptrX2 += nr;
       }
@@ -103,7 +103,7 @@ NumericMatrix d_matern5_2_1args_kthetag(NumericMatrix X1, double kt){
     for(int j = 0; j < i; j++, ptrs++){
       for(int k = 0; k < nc; k++){
         tmp = std::abs(*ptrX1 - *ptrX2) / kt;
-        *ptrs -= ((10./3. - 5.) * tmp - 5 * sqrt(5)/3. * tmp * tmp) / (1 + sqrt(5) * tmp + 5./3. * tmp * tmp) * tmp/kt;
+        *ptrs -= ((10./3. - 5.) * tmp - 5 * sqrt(5.)/3. * tmp * tmp) / (1 + sqrt(5.) * tmp + 5./3. * tmp * tmp) * tmp/kt;
         ptrX1 += nr;
         ptrX2 += nr;
       }
@@ -140,7 +140,7 @@ NumericMatrix matern5_2_2args(NumericMatrix X1, NumericMatrix X2){
   for(int i = 0; i < nr2; i++){
     for(int j = 0; j < nr1; j++, ptrs++, ptrr++){
       for(int k = 0; k < dim; k++){
-        tmp = sqrt(5) * std::abs(*ptrX1 - *ptrX2);
+        tmp = sqrt(5.) * std::abs(*ptrX1 - *ptrX2);
         *ptrs *= (1 + tmp + tmp * tmp / 3.);
         *ptrr -= tmp;
         ptrX1 += nr1;
@@ -184,7 +184,7 @@ NumericMatrix d_matern5_2_2args_theta_k_iso(NumericMatrix X1, NumericMatrix X2, 
     for(int j = 0; j < nr1; j++, ptrs++){
       for(int k = 0; k < dim; k++){
         tmp = std::abs(*ptrX1 - *ptrX2) / theta;
-        *ptrs -= ((10./3. - 5.) * tmp - 5 * sqrt(5)/3. * tmp * tmp) / (1 + sqrt(5) * tmp + 5./3. * tmp * tmp) * tmp / theta;
+        *ptrs -= ((10./3. - 5.) * tmp - 5 * sqrt(5.)/3. * tmp * tmp) / (1 + sqrt(5.) * tmp + 5./3. * tmp * tmp) * tmp / theta;
         ptrX1 += nr1;
         ptrX2 += nr2;
       }
@@ -213,7 +213,7 @@ NumericMatrix d_matern5_2_2args_kthetag(NumericMatrix X1, NumericMatrix X2, doub
     for(int j = 0; j < nr1; j++, ptrs++){
       for(int k = 0; k < dim; k++){
         tmp = std::abs(*ptrX1 - *ptrX2) / kt;
-        *ptrs -= ((10./3. - 5.) * tmp - 5 * sqrt(5)/3. * tmp * tmp) / (1 + sqrt(5) * tmp + 5./3. * tmp * tmp) * tmp/kt;
+        *ptrs -= ((10./3. - 5.) * tmp - 5 * sqrt(5.)/3. * tmp * tmp) / (1 + sqrt(5.) * tmp + 5./3. * tmp * tmp) * tmp/kt;
         ptrX1 += nr1;
         ptrX2 += nr2;
       }
@@ -294,7 +294,7 @@ NumericMatrix matern3_2_1args(NumericMatrix X1){
   for(int i = 1; i < nr; i++, ptrX1++){
     for(int j = 0; j < i; j++, ptrs++, ptrr++){
       for(int k = 0; k < nc; k++){
-        tmp = sqrt(3) * std::abs(*ptrX1 - *ptrX2);
+        tmp = sqrt(3.) * std::abs(*ptrX1 - *ptrX2);
         *ptrs *= (1 + tmp);
         *ptrr -= tmp;
         ptrX1 += nr;
@@ -344,7 +344,7 @@ NumericMatrix d_matern3_2_1args_theta_k_iso(NumericMatrix X1, double theta){
     for(int j = 0; j < i; j++, ptrs++){
       for(int k = 0; k < nc; k++){
         tmp = std::abs(*ptrX1 - *ptrX2) / theta;
-        *ptrs -= 3*tmp / (1 + sqrt(3) * tmp) * tmp / theta;
+        *ptrs -= 3*tmp / (1 + sqrt(3.) * tmp) * tmp / theta;
         ptrX1 += nr;
         ptrX2 += nr;
       }
@@ -377,7 +377,7 @@ NumericMatrix d_matern3_2_1args_kthetag(NumericMatrix X1, double kt){
     for(int j = 0; j < i; j++, ptrs++){
       for(int k = 0; k < nc; k++){
         tmp = std::abs(*ptrX1 - *ptrX2) / kt;
-        *ptrs -= 3*tmp / (1 + sqrt(3) * tmp) * tmp/kt;
+        *ptrs -= 3*tmp / (1 + sqrt(3.) * tmp) * tmp/kt;
         ptrX1 += nr;
         ptrX2 += nr;
       }
@@ -414,7 +414,7 @@ NumericMatrix matern3_2_2args(NumericMatrix X1, NumericMatrix X2){
   for(int i = 0; i < nr2; i++){
     for(int j = 0; j < nr1; j++, ptrs++, ptrr++){
       for(int k = 0; k < dim; k++){
-        tmp = sqrt(3) * std::abs(*ptrX1 - *ptrX2);
+        tmp = sqrt(3.) * std::abs(*ptrX1 - *ptrX2);
         *ptrs *= (1 + tmp);
         *ptrr -= tmp;
         ptrX1 += nr1;
@@ -458,7 +458,7 @@ NumericMatrix d_matern3_2_2args_theta_k_iso(NumericMatrix X1, NumericMatrix X2, 
     for(int j = 0; j < nr1; j++, ptrs++){
       for(int k = 0; k < dim; k++){
         tmp = std::abs(*ptrX1 - *ptrX2) / theta;
-        *ptrs -= 3*tmp / (1 + sqrt(3) * tmp) * tmp / theta;
+        *ptrs -= 3*tmp / (1 + sqrt(3.) * tmp) * tmp / theta;
         ptrX1 += nr1;
         ptrX2 += nr2;
       }
@@ -487,7 +487,7 @@ NumericMatrix d_matern3_2_2args_kthetag(NumericMatrix X1, NumericMatrix X2, doub
     for(int j = 0; j < nr1; j++, ptrs++){
       for(int k = 0; k < dim; k++){
         tmp = std::abs(*ptrX1 - *ptrX2) / kt;
-        *ptrs -= 3*tmp / (1 + sqrt(3) * tmp) * tmp/kt;
+        *ptrs -= 3*tmp / (1 + sqrt(3.) * tmp) * tmp/kt;
         ptrX1 += nr1;
         ptrX2 += nr2;
       }

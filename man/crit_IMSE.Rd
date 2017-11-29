@@ -7,7 +7,7 @@
 crit_IMSE(x, model, id = NULL, Wijs = NULL)
 }
 \arguments{
-\item{x}{matrix for the new design}
+\item{x}{matrix for the new design (size 1 x d)}
 
 \item{model}{\code{homGP} or \code{hetGP} model, including inverse matrices}
 
@@ -43,7 +43,7 @@ ngrid <- 501
 xgrid <- matrix(seq(0,1, length.out = ngrid), ncol = 1)
 
 ## Precalculations
-Wijs <- hetGP:::Wij(mu1 = model$X0, theta = model$theta, type = model$covtype)
+Wijs <- Wij(mu1 = model$X0, theta = model$theta, type = model$covtype)
 
 
 t0 <- Sys.time()
@@ -79,7 +79,7 @@ ngrid <- 51
 xgrid <- seq(0,1, length.out = ngrid)
 Xgrid <- as.matrix(expand.grid(xgrid, xgrid))
 ## Precalculations
-Wijs <- hetGP:::Wij(mu1 = model$X0, theta = model$theta, type = model$covtype)
+Wijs <- Wij(mu1 = model$X0, theta = model$theta, type = model$covtype)
 t0 <- Sys.time()
 
 IMSE_grid <- apply(Xgrid, 1, crit_IMSE, Wijs = Wijs, model = model)

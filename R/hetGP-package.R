@@ -9,14 +9,14 @@
 ##' @docType package
 ##' @name hetGP-package
 ##' @references 
-##' M. Binois, Robert B. Gramacy, M. Ludkovski (2016+), Practical heteroskedastic Gaussian process modeling for large simulation experiments, arXiv preprint arXiv:1611.05902. \cr \cr
+##' M. Binois, Robert B. Gramacy, M. Ludkovski (2017+), Practical heteroskedastic Gaussian process modeling for large simulation experiments, arXiv preprint arXiv:1611.05902. \cr \cr
 ##' M. Binois, J. Huang, R. B. Gramacy, M. Ludkovski (2017+), Replication or exploration? Sequential design for stochastic simulation experiments
 ##' @details 
 ##' Important functions: \cr
 ##' \code{\link[hetGP]{mleHetGP}} as the main function to build a model. \cr
 ##' \code{\link[hetGP]{mleHomGP}} the equivalent for homoskedastic modeling. \cr
 ##' \code{\link[hetGP]{crit_IMSE}} for adding a new design based on the Integrated Mean Square Prediction Error. \cr
-##' \code{\link[hetGP]{IMSE_nsteps_ahead}} for searching the based design based on a lookahead heuristic to add replication, of which a simplified version is
+##' \code{\link[hetGP]{IMSE_nsteps_ahead}} for augmenting a design based on a lookahead heuristic to add replication, of which a simplified version is
 ##' \code{\link[hetGP]{IMSE.search}}. 
 ##' @note 
 ##' The authors are grateful for support from National Science Foundation grant DMS-1521702 and DMS-1521743.
@@ -66,75 +66,100 @@
 ##' 
 ##' 
 ##' ##------------------------------------------------------------
-##' ## Example 2: 2D Heteroskedastic GP modeling
+##' ## Example 2: Sequential design
 ##' ##------------------------------------------------------------
-##' set.seed(1)
-##' nvar <- 2
-##'   
-##' ## Branin redefined in [0,1]^2
-##' branin <- function(x){
-##'   if(is.null(nrow(x)))
-##'     x <- matrix(x, nrow = 1)
-##'     x1 <- x[,1] * 15 - 5
-##'     x2 <- x[,2] * 15
-##'     (x2 - 5/(4 * pi^2) * (x1^2) + 5/pi * x1 - 6)^2 + 10 * (1 - 1/(8 * pi)) * cos(x1) + 10
+##' \dontrun{
+##' library(DiceDesign)
+##'
+##' ## Design configuration / Parameter settings
+##' N_tot <- 500 # total number of points
+##' n_init <- 10 # number of unique designs
+##'
+##' ## HetGP options
+##' nvar <- 1 # number of variables
+##' lower <- rep(0.001, nvar)
+##' upper <- rep(1, nvar)
+##'
+##' ### Problem definition
+##'
+##' ## Mean function
+##' forrester <- function(x){
+##'  return(((x*6-2)^2)*sin((x*6-2)*2))
 ##' }
-##' 
+##'
 ##' ## Noise field via standard deviation
-##' noiseFun <- function(x){
-##'   if(is.null(nrow(x)))
-##'     x <- matrix(x, nrow = 1)
-##'   return(1/5*(3*(2 + 2*sin(x[,1]*pi)*cos(x[,2]*3*pi) + 5*rowSums(x^2))))
+##' noiseFun <- function(x, coef = 1.1, scale = 1){
+##'  if(is.null(nrow(x)))
+##'    x <- matrix(x, nrow = 1)
+##'  return(scale*(coef + sin(x * 2 * pi)))
 ##' }
-##' 
-##' ## data generating function combining mean and noise fields
+##'
+##' ### Test function defined in [0,1]
 ##' ftest <- function(x){
-##'   return(branin(x) + rnorm(nrow(x), mean = 0, sd = noiseFun(x)))
+##'  if(is.null(nrow(x)))
+##'    x <- matrix(x, ncol = 1)
+##'  return(forrester(x) + rnorm(nrow(x), mean = 0, sd = noiseFun(x)))
 ##' }
-##' 
-##' ## Grid of predictive locations
+##'
+##' ## Predictive grid
 ##' ngrid <- 51
-##' xgrid <- matrix(seq(0, 1, length.out = ngrid), ncol = 1) 
-##' Xgrid <- as.matrix(expand.grid(xgrid, xgrid))
-##' 
-##' ## Unique (randomly chosen) design locations
-##' n <- 50
-##' Xu <- matrix(runif(n * 2), n)
-##' 
-##' ## Select replication sites randomly
-##' X <- Xu[sample(1:n, 20*n, replace = TRUE),]
-##' 
-##' ## obtain training data response at design locations X
-##' Z <- ftest(X)
-##' 
-##' ## Formating of data for model creation (find replicated observations) 
-##' prdata <- find_reps(X, Z)
+##' xgrid <- seq(0,1, length.out = ngrid)
+##' Xgrid <- matrix(xgrid, ncol = 1)
 ##'
-##' ## Model fitting
-##' model <- mleHetGP(X = list(X0 = prdata$X0, Z0 = prdata$Z0, mult = prdata$mult), Z = prdata$Z,
-##'                   lower = rep(0.01, nvar), upper = rep(10, nvar),
-##'                   covtype = "Matern5_2")
+##' par(mar = c(3,3,2,3)+0.1)
+##' plot(xgrid, forrester(xgrid), type = 'l', lwd = 1, col = "blue", lty = 3,
+##'     xlab = '', ylab = '', ylim = c(-8,16))
 ##'
-##' ## a quick view into the data stored in the "hetGP"-class object
-##' summary(model)                  
-##'              
-##' ## prediction from the fit on the grid     
-##' predictions <- predict(x = Xgrid, object =  model)
-##' 
-##' ## Visualization of the predictive surface
-##' par(mfrow = c(2, 2))
-##' contour(x = xgrid,  y = xgrid, z = matrix(branin(Xgrid), ngrid), 
-##'   main = "Branin function", nlevels = 20)
-##' points(X, col = 'blue', pch = 20)
-##' contour(x = xgrid,  y = xgrid, z = matrix(predictions$mean, ngrid), 
-##'   main = "Predicted mean", nlevels = 20)
-##' points(X, col = 'blue', pch = 20)
-##' contour(x = xgrid,  y = xgrid, z = matrix(noiseFun(Xgrid), ngrid), 
-##'   main = "Noise standard deviation function", nlevels = 20)
-##' points(X, col = 'blue', pch = 20)
-##' contour(x = xgrid,  y= xgrid, z = matrix(sqrt(predictions$nugs), ngrid), 
-##'   main = "Predicted noise values", nlevels = 20)
-##' points(X, col = 'blue', pch = 20)
-##' par(mfrow = c(1, 1))
-##'   
+##' set.seed(42)
+##'
+##' # Initial design
+##' X <- maximinSA_LHS(lhsDesign(n_init, nvar, seed = 42)$design)$design
+##' Z <- apply(X, 1, ftest)
+##'
+##' points(X, Z)
+##'
+##' model <- model_init <- mleHetGP(X = X, Z = Z, lower = lower, upper = upper)
+##'
+##' for(ii in 1:(N_tot - n_init)){
+##'  ##Precalculations
+##'  Wijs <- hetGP:::Wij(mu1 = model$X0, theta = model$theta, type = model$covtype)
+##'  
+##'  ## Adapt the horizon based on the training rmspe/score
+##'    current_horizon <- update_horizon(model = model, Wijs = Wijs)
+##'
+##'  if(current_horizon == -1){
+##'    opt <- IMSE.search(model = model, Wijs = Wijs)
+##'  }else{
+##'    opt <- IMSE_nsteps_ahead(model = model, h = current_horizon, Wijs = Wijs)
+##'  }
+##'  
+##'  Xnew <- opt$par
+##'  Znew <- apply(Xnew, 1, ftest)
+##'  X <- rbind(X, Xnew)
+##'  Z <- c(Z, Znew)
+##'  points(Xnew, Znew)
+##'  
+##'  ## Update of the model
+##'  model <- update(object = model, Xnew = Xnew, Znew = Znew, lower = lower, upper = upper)
+##'  if(ii %% 25 == 0 || ii == (N_tot - n_init)){
+##'    model_test <- mleHetGP(X = list(X0 = model$X0, Z0 = model$Z0, mult = model$mult), Z = model$Z,
+##'                         lower = lower, upper = upper, maxit = 1000)
+##'    model <- compareGP(model, model_test)
+##'  }
+##'}
+##' ### Plot result
+##' preds <- predict(x = Xgrid, model)
+##' lines(Xgrid, preds$mean, col = 'red', lwd = 2)
+##' lines(Xgrid, qnorm(0.05, preds$mean, sqrt(preds$sd2)), col = 2, lty = 2)
+##' lines(Xgrid, qnorm(0.95, preds$mean, sqrt(preds$sd2)), col = 2, lty = 2)
+##' lines(Xgrid, qnorm(0.05, preds$mean, sqrt(preds$sd2 + preds$nugs)), col = 3, lty = 2)
+##' lines(Xgrid, qnorm(0.95, preds$mean, sqrt(preds$sd2 + preds$nugs)), col = 3, lty = 2)
+##' par(new = TRUE)
+##' plot(NA,NA, xlim = c(0, 1), ylim = c(0,max(model$mult)), axes = FALSE, ylab = "", xlab = "")
+##' segments(x0 = model$X, x1 = model$X, y0 = rep(0, nrow(model$X)), y1 = model$mult, col = 'grey')
+##' axis(side = 4)
+##' mtext(side = 4, line = 2, expression(a[i]), cex = 0.8)
+##' mtext(side = 2, line = 2, expression(f(x)), cex = 0.8)
+##' mtext(side = 1, line = 2, 'x', cex = 0.8)
+##' }
 NULL

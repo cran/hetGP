@@ -2,7 +2,7 @@
 % Please edit documentation in R/hetGP.R
 \name{predict.homGP}
 \alias{predict.homGP}
-\title{Gaussian process predictions using a homogeneous noise GP object (of class \code{homGP})}
+\title{Gaussian process predictions using a homoskedastic noise GP object (of class \code{homGP})}
 \usage{
 \method{predict}{homGP}(object, x, xprime = NULL, ...)
 }
@@ -25,7 +25,7 @@ list with elements
 }
 }
 \description{
-Gaussian process predictions using a homogeneous noise GP object (of class \code{homGP})
+Gaussian process predictions using a homoskedastic noise GP object (of class \code{homGP})
 }
 \details{
 The full predictive variance corresponds to the sum of \code{sd2} and \code{nugs}. See \code{\link[hetGP]{mleHomGP}} for examples.

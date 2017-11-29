@@ -6,10 +6,10 @@
 ################################################################################
 
 ################################################################################
-## Part I: Homogeneous noise
+## Part I: Homoskedastic noise
 ################################################################################
 
-## Model: noisy observations with unknown homogeneous noise
+## Model: noisy observations with unknown homoskedastic noise
 ## K = nu^2 * (C + g * I)
 # X0 unique designs matrix
 # Z0 averaged observations at X0
@@ -27,7 +27,7 @@ logLikHom <- function(X0, Z0, Z, mult, theta, g, beta0 = NULL, covtype = "Gaussi
   Ki <- chol(add_diag(cov_gen(X1 = X0, theta = theta, type = covtype), eps + g / mult))
   ldetKi <- - 2 * sum(log(diag(Ki))) # log determinant from Cholesky
   Ki <- chol2inv(Ki)
-
+  
   if(is.null(beta0))
     beta0 <- drop(colSums(Ki) %*% Z0 / sum(Ki))
   
@@ -39,7 +39,7 @@ logLikHom <- function(X0, Z0, Z, mult, theta, g, beta0 = NULL, covtype = "Gaussi
 }
 
 # derivative of log-likelihood for logLikHom with respect to theta with all observations (Gaussian kernel)
-## Model: noisy observations with unknown homogeneous noise
+## Model: noisy observations with unknown homoskedastic noise
 ## K = nu^2 * (C + g * I)
 # X0  design matrix (no replicates)
 # Z0 averaged observations
@@ -55,7 +55,7 @@ dlogLikHom <- function(X0, Z0, Z, mult, theta, g, beta0 = NULL, covtype = "Gauss
   
   C <- cov_gen(X1 = X0, theta = theta, type = covtype)
   Ki <- chol2inv(chol(C + diag(eps + g / mult)))
-
+  
   if(is.null(beta0))
     beta0 <- drop(colSums(Ki) %*% Z0 / sum(Ki))
   
@@ -81,7 +81,7 @@ dlogLikHom <- function(X0, Z0, Z, mult, theta, g, beta0 = NULL, covtype = "Gauss
       }
     } 
   }
-
+  
   # Second component derivative with respect to g
   if("g" %in% components)
     tmp2 <- k/2 * ((crossprod(Z, Z) - crossprod(Z0 * mult, Z0))/g^2 + sum(KiZ0^2/mult)) / ((crossprod(Z, Z) - crossprod(Z0 * mult, Z0))/g + psi) - (k - n)/ (2*g) - 1/2 * sum(diag(Ki)/mult)
@@ -89,9 +89,9 @@ dlogLikHom <- function(X0, Z0, Z, mult, theta, g, beta0 = NULL, covtype = "Gauss
   return(c(tmp1, tmp2))
 }
 
-##' Gaussian process regression under homogeneous noise based on maximum likelihood estimation of the 
+##' Gaussian process regression under homoskedastic noise based on maximum likelihood estimation of the 
 ##' hyperparameters. This function is enhanced to deal with replicated observations.
-##' @title Gaussian process modeling with homogeneous noise
+##' @title Gaussian process modeling with homoskedastic noise
 ##' @param X matrix of all designs, one per row, or list with elements:
 ##' \itemize{
 ##'   \item \code{X0} matrix of unique design locations, one point per row
@@ -137,9 +137,10 @@ dlogLikHom <- function(X0, Z0, Z, mult, theta, g, beta0 = NULL, covtype = "Gauss
 ##' 
 ##' It is generally recommended to use \code{\link[hetGP]{find_reps}} to pre-process the data, to rescale the inputs to the unit cube and to normalize the outputs.
 ##' 
-##' @seealso \code{\link[hetGP]{predict.homGP}} for predictions, \code{\link[hetGP]{update.homGP}} for updating an existing model. A \code{summary} function is available as well.
+##' @seealso \code{\link[hetGP]{predict.homGP}} for predictions, \code{\link[hetGP]{update.homGP}} for updating an existing model. 
+##' A \code{summary} function is available as well. \code{\link[hetGP]{mleHomTP}} provide a Student-t equivalent.
 ##' @references 
-##' M. Binois, Robert B. Gramacy, M. Ludkovski (2016+), Practical heteroskedastic Gaussian process modeling for large simulation experiments, arXiv preprint arXiv:1611.05902.
+##' M. Binois, Robert B. Gramacy, M. Ludkovski (2017+), Practical heteroskedastic Gaussian process modeling for large simulation experiments, arXiv preprint arXiv:1611.05902.
 ##' @export
 ##' @examples
 ##' ##------------------------------------------------------------
@@ -198,7 +199,7 @@ mleHomGP <- function(X, Z, lower, upper, known = NULL,
   g_max <- noiseControl$g_bounds[2]
   
   beta0 <- known$beta0
-                       
+  
   N <- length(Z)
   n <- nrow(X0)
   
@@ -307,7 +308,7 @@ print.summary.homGP <- function(x, ...){
   cat("N = ", length(x$Z), " n = ", length(x$Z0), " d = ", ncol(x$X0), "\n")
   cat(x$covtype, " covariance lengthscale values: ", x$theta, "\n")
   
-  cat("Homogeneous nugget value: ", x$g, "\n")
+  cat("Homoskedastic nugget value: ", x$g, "\n")
   
   cat("Variance/scale hyperparameter: ", x$nu2_hat, "\n")
   
@@ -330,7 +331,7 @@ print.homGP <- function(x, ...){
   
 }
 
-##' Gaussian process predictions using a homogeneous noise GP object (of class \code{homGP})
+##' Gaussian process predictions using a homoskedastic noise GP object (of class \code{homGP})
 ##' @param x matrix of designs locations to predict at (one point per row)
 ##' @param object an object of class \code{homGP}; e.g., as returned by \code{\link[hetGP]{mleHomGP}}
 ##' @param xprime optional second matrix of predictive locations to obtain the predictive covariance matrix between \code{x} and \code{xprime}
@@ -417,8 +418,8 @@ predict.homGP <- function(object, x, xprime = NULL, ...){
 ## ' @param penalty should a penalty term on Delta be used?
 ## ' @export
 logLikHet <- function(X0, Z0, Z, mult, Delta, theta, g, k_theta_g = NULL, theta_g = NULL, logN = FALSE, SiNK = FALSE,
-                                        beta0 = NULL, pX = NULL, eps = sqrt(.Machine$double.eps), covtype = "Gaussian", SiNK_eps = 1e-4,
-                                        penalty = T, hardpenalty = T){
+                      beta0 = NULL, pX = NULL, eps = sqrt(.Machine$double.eps), covtype = "Gaussian", SiNK_eps = 1e-4,
+                      penalty = T, hardpenalty = T){
   n <- nrow(X0)
   N <- length(Z)
 
@@ -462,19 +463,19 @@ logLikHet <- function(X0, Z0, Z, mult, Delta, theta, g, k_theta_g = NULL, theta_
     Lambda <- exp(Lambda)
   }
   else{
-     Lambda[Lambda <= 0] <- eps
+    Lambda[Lambda <= 0] <- eps
   }
-
+  
   LambdaN <- rep(Lambda, times = mult)
   
   # Temporarily store Cholesky transform of K in Ki
   Ki <- chol(add_diag(cov_gen(X1 = X0, theta = theta, type = covtype), Lambda/mult + eps))
   ldetKi <- - 2 * sum(log(diag(Ki))) # log determinant from Cholesky
   Ki <- chol2inv(Ki)
-
+  
   if(is.null(beta0))
     beta0 <- drop(colSums(Ki) %*% Z0 / sum(Ki))
-
+  
   psi_0 <- drop(crossprod(Z0 - beta0, Ki) %*% (Z0 - beta0))
   
   psi <- 1/N * (crossprod((Z - beta0)/LambdaN, Z - beta0) - crossprod((Z0 - beta0) * mult/Lambda, Z0 - beta0) + psi_0)
@@ -521,8 +522,8 @@ logLikHet <- function(X0, Z0, Z, mult, Delta, theta, g, k_theta_g = NULL, theta_
 ## ' @param penalty should a penalty term on Delta be used?
 ## ' @export
 dlogLikHet <- function(X0, Z0, Z, mult, Delta, theta, g, k_theta_g = NULL, theta_g = NULL, beta0 = NULL, pX = NULL,
-                                         logN = TRUE, SiNK = FALSE, components = NULL, eps = sqrt(.Machine$double.eps), covtype = "Gaussian", SiNK_eps = 1e-4,
-                                         penalty = T, hardpenalty = T){
+                       logN = TRUE, SiNK = FALSE, components = NULL, eps = sqrt(.Machine$double.eps), covtype = "Gaussian", SiNK_eps = 1e-4,
+                       penalty = T, hardpenalty = T){
   
   ## Verifications
   if(is.null(k_theta_g) && is.null(theta_g))
@@ -570,7 +571,7 @@ dlogLikHet <- function(X0, Z0, Z, mult, Delta, theta, g, k_theta_g = NULL, theta
   
   ## Precomputations for reuse
   KgiD <- Kgi %*% (Delta - nmean)
-
+  
   if(penalty){
     nu2_hat_var <- drop(crossprod(KgiD, (Delta - nmean)))/length(Delta) 
     # To prevent numerical issues when Delta = nmean, giving a positive penalty (or if the penalty is positive)
@@ -594,16 +595,16 @@ dlogLikHet <- function(X0, Z0, Z, mult, Delta, theta, g, k_theta_g = NULL, theta
   LambdaN <- rep(Lambda, times = mult)
   
   C <- cov_gen(X1 = X0, theta = theta, type = covtype)
-
+  
   Ki <- chol2inv(chol(C + diag(Lambda/mult + eps)))
-
+  
   if(is.null(beta0))
     beta0 <- drop(colSums(Ki) %*% Z0 / sum(Ki))
-
+  
   ## Precomputations for reuse
   KiZ0 <- Ki %*% (Z0 - beta0)
   rsM <- rowSums(M)
-
+  
   psi_0 <- drop(crossprod(KiZ0, Z0 - beta0))
   
   psi <- drop((crossprod((Z - beta0)/LambdaN, Z - beta0) - crossprod((Z0 - beta0) * mult/Lambda, Z0 - beta0)) + psi_0)
@@ -619,7 +620,7 @@ dlogLikHet <- function(X0, Z0, Z, mult, Delta, theta, g, k_theta_g = NULL, theta
       }else{
         dC_dthetak <- partial_cov_gen(X1 = X0[, i, drop = FALSE], theta = theta[i], arg = "theta_k", type = covtype) * C # partial derivative of C with respect to theta
       }
-     
+      
       if("k_theta_g" %in% components){
         
         if(is.null(pX)){
@@ -647,7 +648,7 @@ dlogLikHet <- function(X0, Z0, Z, mult, Delta, theta, g, k_theta_g = NULL, theta
             dCg_dthetak <- partial_cov_gen(X1 = pX[, i, drop = FALSE], theta = k_theta_g * theta[i], arg = "theta_k", type = covtype) * k_theta_g * Cg # partial derivative of Cg with respect to theta[i]
             dkg_dthetak <- partial_cov_gen(X1 = X0[, i, drop = FALSE], X2 = pX[, i, drop = FALSE], theta = k_theta_g * theta[i], arg = "theta_k", type = covtype) * k_theta_g * kg # partial derivative of kg with respect to theta[i]
           }
-                    
+          
           # Derivative Lambda / theta_k (first part)
           if(SiNK == FALSE)
             dLdtk <- dkg_dthetak %*% KgiD - M %*% (dCg_dthetak %*% KgiD)
@@ -659,7 +660,7 @@ dlogLikHet <- function(X0, Z0, Z, mult, Delta, theta, g, k_theta_g = NULL, theta
             dLdtk <- (d_irho_dtheta_k * kg + rhox * (dkg_dthetak - (M) %*% dCg_dthetak)) %*% KgiD
           }
         }
-
+        
         
         # (second part)
         dLdtk <- dLdtk - (1 - rsM) * drop(rSKgi %*% dCg_dthetak %*% (Kgi %*% Delta) * sKgi - rSKgi %*% Delta * (rSKgi %*% dCg_dthetak %*% rSKgi))/sKgi^2
@@ -722,7 +723,7 @@ dlogLikHet <- function(X0, Z0, Z, mult, Delta, theta, g, k_theta_g = NULL, theta
           (1 - rsM) * drop(rSKgi %*% dCg_dk %*% (Kgi %*% Delta) * sKgi - rSKgi %*% Delta * (rSKgi %*% dCg_dk %*% rSKgi))/sKgi^2
       }
     }
-
+    
     dLogL_dkthetag <- crossprod(dLogL_dkthetag, dLogLdLambda) ## chain rule
   }
   
@@ -738,7 +739,7 @@ dlogLikHet <- function(X0, Z0, Z, mult, Delta, theta, g, k_theta_g = NULL, theta
         }else{
           dCg_dthetagk <- partial_cov_gen(X1 = X0[, i, drop = FALSE], theta = theta_g[i], arg = "theta_k", type = covtype) * Cg # partial derivative of Cg with respect to theta
         }
-       
+        
         if(SiNK){
           d_irho_dtheta_gk <- -1/2 * (fast_diag(M, t(kg)))^(-3/2) * (fast_diag(dCg_dthetagk, Kgitkg) - fast_diag(M, dCg_dthetagk %*% Kgitkg) + fast_diag(M, t(dCg_dthetagk)))
           dLogL_dthetag[i] <- crossprod((d_irho_dtheta_gk * kg + rhox * (dCg_dthetagk - M %*% dCg_dthetagk)) %*% KgiD -
@@ -755,7 +756,7 @@ dlogLikHet <- function(X0, Z0, Z, mult, Delta, theta, g, k_theta_g = NULL, theta
           dCg_dthetagk <- partial_cov_gen(X1 = pX[, i, drop = FALSE], theta = theta_g[i], arg = "theta_k", type = covtype) * Cg # partial derivative of Cg with respect to theta
           dkg_dthetagk <- partial_cov_gen(X1 = X0[, i, drop = FALSE], X2 = pX[, i, drop = FALSE], theta = theta_g[i], arg = "theta_k", type = covtype) * kg # partial derivative of Cg with respect to theta
         }
-
+        
         if(SiNK){
           d_irho_dtheta_gk <- -1/2 * (fast_diag(M, t(kg)))^(-3/2) * (fast_diag(dkg_dthetagk, Kgitkg) - fast_diag(M, dCg_dthetagk %*% Kgitkg) + fast_diag(M, t(dkg_dthetagk)))
           dLogL_dthetag[i] <- crossprod((d_irho_dtheta_gk * kg + rhox * (dkg_dthetagk - M %*% dCg_dthetagk)) %*% KgiD -
@@ -765,7 +766,7 @@ dlogLikHet <- function(X0, Z0, Z, mult, Delta, theta, g, k_theta_g = NULL, theta
                                           (1 - rsM) * drop(rSKgi %*% dCg_dthetagk %*% (Kgi %*% Delta) * sKgi - rSKgi %*% Delta * (rSKgi %*% dCg_dthetagk %*% rSKgi))/sKgi^2, dLogLdLambda) #chain rule
         }
       }
-
+      
       # Penalty term
       if(penalty) dLogL_dthetag[i] <- dLogL_dthetag[i] + 1/2 * crossprod(KgiD, dCg_dthetagk) %*% KgiD/nu2_hat_var - fast_trace(Kgi, dCg_dthetagk)/2 
     }
@@ -835,10 +836,10 @@ dlogLikHet <- function(X0, Z0, Z, mult, Delta, theta, g, k_theta_g = NULL, theta
 ##' @title Likelihood-based comparison of models
 ##' @param model1,model2 \code{hetGP} or \code{homGP} models
 ##' @return Best model based on the likelihood, first one in case of a tie
-##' @note If comparing homoskedastic and heteroskedastic models, the un-penalised likelihood is used for the later, see e.g., (Binois et al. 2016+)
+##' @note If comparing homoskedastic and heteroskedastic models, the un-penalised likelihood is used for the later, see e.g., (Binois et al. 2017+).
 ##' @export
 ##' @references
-##' M. Binois, Robert B. Gramacy, M. Ludkovski (2016+), Practical heteroskedastic Gaussian process modeling for large simulation experiments, arXiv preprint arXiv:1611.05902.
+##' M. Binois, Robert B. Gramacy, M. Ludkovski (2017+), Practical heteroskedastic Gaussian process modeling for large simulation experiments, arXiv preprint arXiv:1611.05902.
 compareGP <- function(model1, model2){
   
   if(class(model1) == "hetGP") ll1 <- model1$ll_non_pen
@@ -846,7 +847,7 @@ compareGP <- function(model1, model2){
   
   if(class(model2) == "hetGP") ll2 <- model2$ll_non_pen
   else ll2 <- model2$ll
-
+  
   if(ll1 >= ll2) return(model1)
   return(model2)
 }
@@ -884,8 +885,8 @@ compareGP <- function(model1, model2){
 ##'   \item \code{logN}, when \code{TRUE} (default), the log-noise process is modeled.
 ##'   \item \code{initStrategy} one of \code{'simple'}, \code{'residuals'} (default) and \code{'smoothed'} to obtain starting values for \code{Delta}, see Details
 ##'   \item \code{penalty} when \code{TRUE}, the penalized version of the likelihood is used (i.e., the sum of the log-likelihoods of the mean and variance processes, see References).
-##'   \item \code{hardpenalty} is \code{TRUE}, the log-likelihood from the noise GP is taken into account only if negative.
-##'   \item \code{checkHom} when \code{TRUE}, if the log-likelihood with a homogeneous model is better, then return it.
+##'   \item \code{hardpenalty} is \code{TRUE}, the log-likelihood from the noise GP is taken into account only if negative (default if \code{maxit > 1000}).
+##'   \item \code{checkHom} when \code{TRUE}, if the log-likelihood with a homoskedastic model is better, then return it.
 ##'   \item \code{trace} optional scalar (default to \code{0}). If positive, tracing information on the fitting process.
 ##' If \code{1}, information is given about the result of the heterogeneous model optimization.
 ##' Level \code{2} gives more details. Level {3} additionaly displays all details about initialization of hyperparameters.
@@ -903,7 +904,7 @@ compareGP <- function(model1, model2){
 ##' \item \code{k_theta_g} constant used for link mean and noise processes lengthscales, when \code{settings$linkThetas == 'joint'}
 ##' \item \code{theta_g} either one value (isotropic) or a vector (anistropic) for lengthscale parameter(s) of the noise process, when \code{settings$linkThetas != 'joint'}
 ##' \item \code{g} scalar nugget of the noise process
-##' \item \code{g_H} scalar homogeneous nugget for the initialisation with a \code{\link[hetGP]{mleHomGP}}. See Details.
+##' \item \code{g_H} scalar homoskedastic nugget for the initialisation with a \code{\link[hetGP]{mleHomGP}}. See Details.
 ## '\item pX matrix of fixed pseudo inputs locations of the noise process corresponding to Delta
 ##' }
 ##' @param covtype covariance kernel type, either \code{'Gaussian'}, \code{'Matern5_2'} or \code{'Matern3_2'}, see \code{\link[hetGP]{cov_gen}}
@@ -914,7 +915,7 @@ compareGP <- function(model1, model2){
 ##' The global covariance matrix of the model is parameterized as \code{K = nu2_hat * (C + Lambda * diag(1/mult))},
 ##' with \code{C} the correlation matrix between unique designs, depending on the family of kernel used (see \code{\link[hetGP]{cov_gen}} for available choices) and values of lengthscale parameters.
 ##' \code{nu2_hat} is the plugin estimator of the variance of the process.
-##' \code{Lambda} is the prediction on the noise level given by a second (homogenous) GP: \cr
+##' \code{Lambda} is the prediction on the noise level given by a second (homoskedastic) GP: \cr
 ##' \deqn{\Lambda = C_g(C_g + \mathrm{diag}(g/\mathrm{mult}))^{-1} \Delta} \cr
 ##' with \code{C_g} the correlation matrix between unique designs for this second GP, with lengthscales hyperparameters \code{theta_g} and nugget \code{g}
 ##' and \code{Delta} the variance level at \code{X0} that are estimated.
@@ -925,24 +926,24 @@ compareGP <- function(model1, model2){
 ##' \itemize{
 ##' \item using \code{k_theta_g} (\code{settings$linkThetas == 'joint'}), supposed to be greater than one by default. 
 ##' In this case lengthscales of the noise process are multiples of those of the mean process.
-##' \item if \code{settings$linkThetas == 'constr'}, then the lower bound on \code{theta_g} correspond to estimated values of an homogeneous GP fit.
+##' \item if \code{settings$linkThetas == 'constr'}, then the lower bound on \code{theta_g} correspond to estimated values of an homoskedastic GP fit.
 ##' \item else lengthscales between the mean and noise process are independent (both either anisotropic or not).
 ##' }
 ##'
 ##' When no starting nor fixed parameter values are provided with \code{init} or \code{known}, 
-##' the initialization process consists of fitting first an homogeneous model of the data, called \code{modHom}.
+##' the initialization process consists of fitting first an homoskedastic model of the data, called \code{modHom}.
 ##' Unless provided with \code{init$theta}, initial lengthscales are taken at the middle of the range determined with \code{lower} and \code{upper},
 ##' while \code{init$g_H} may be use to pass an initial nugget value.
 ##' The resulting lengthscales provide initial values for \code{theta} (or update them if given in \code{init}). \cr \cr
-##' If necessary, a second homogeneous model, \code{modNugs}, is fitted to the empirical residual variance between the prediction
+##' If necessary, a second homoskedastic model, \code{modNugs}, is fitted to the empirical residual variance between the prediction
 ##'  given by \code{modHom} at \code{X0} and \code{Z} (up to \code{modHom$nu2_hat}).
-##' Note that when specifying \code{settings$linkThetas == 'joint'}, then this second homogeneous model has fixed lengthscale parameters.
+##' Note that when specifying \code{settings$linkThetas == 'joint'}, then this second homoskedastic model has fixed lengthscale parameters.
 ##' Starting values for \code{theta_g} and \code{g} are extracted from \code{modNugs}.\cr \cr
 ##' Finally, three initialization schemes for \code{Delta} are available with \code{settings$initStrategy}: 
 ##' \itemize{
 ##' \item for \code{settings$initStrategy == 'simple'}, \code{Delta} is simply initialized to the estimated \code{g} value of \code{modHom}. 
 ##' Note that this procedure may fail when \code{settings$penalty == TRUE}.
-##' \item for \code{settings$initStrategy == 'residuals'}, \code{Delta} is initialized to the estimated residual variance from the homogeneous mean prediction.
+##' \item for \code{settings$initStrategy == 'residuals'}, \code{Delta} is initialized to the estimated residual variance from the homoskedastic mean prediction.
 ##' \item for \code{settings$initStrategy == 'smoothed'}, \code{Delta} takes the values predicted by \code{modNugs} at \code{X0}.
 ##' }
 ##'
@@ -976,8 +977,10 @@ compareGP <- function(model1, model2){
 ##'}
 ##' @seealso \code{\link[hetGP]{predict.hetGP}} for predictions, \code{\link[hetGP]{update.hetGP}} for updating an existing model.
 ##' A \code{summary} function is available as well.
+##' \code{\link[hetGP]{mleHetTP}} provide a Student-t equivalent.
 ##' @references 
-##' M. Binois, Robert B. Gramacy, M. Ludkovski (2016+), Practical heteroskedastic Gaussian process modeling for large simulation experiments, arXiv preprint arXiv:1611.05902.
+##' M. Binois, Robert B. Gramacy, M. Ludkovski (2017+), Practical heteroskedastic Gaussian process modeling for large simulation experiments,
+##' arXiv preprint arXiv:1611.05902.
 ##' @export
 ##' @importFrom stats optim var
 ##' @import methods
@@ -1066,7 +1069,7 @@ compareGP <- function(model1, model2){
 ##' prdata <- find_reps(X, Z, rescale = FALSE, normalize = FALSE)
 ##'
 ##' ## Model fitting
-##' model <- mleHetGP(X = list(X0 = prdata$X0, Z0 = prdata$Z0, mult = prdata$mult), Z = prdata$Z, ,
+##' model <- mleHetGP(X = list(X0 = prdata$X0, Z0 = prdata$Z0, mult = prdata$mult), Z = prdata$Z,
 ##'                   lower = rep(0.01, nvar), upper = rep(10, nvar),
 ##'                   covtype = "Matern5_2")
 ##'
@@ -1083,19 +1086,19 @@ compareGP <- function(model1, model2){
 ##' points(X, col = 'blue', pch = 20)
 ##' contour(x = xgrid,  y = xgrid, z = matrix(predictions$mean, ngrid), 
 ##'   main = "Predicted mean", nlevels = 20)
-##' points(X, col = 'blue', pch = 20)
+##' points(Xu, col = 'blue', pch = 20)
 ##' contour(x = xgrid,  y = xgrid, z = matrix(noiseFun(Xgrid), ngrid), 
 ##'   main = "Noise standard deviation function", nlevels = 20)
-##' points(X, col = 'blue', pch = 20)
+##' points(Xu, col = 'blue', pch = 20)
 ##' contour(x = xgrid,  y= xgrid, z = matrix(sqrt(predictions$nugs), ngrid), 
 ##'   main = "Predicted noise values", nlevels = 20)
-##' points(X, col = 'blue', pch = 20)
+##' points(Xu, col = 'blue', pch = 20)
 ##' par(mfrow = c(1, 1))
 ##
 mleHetGP <- function(X, Z, lower, upper,
                      noiseControl = list(k_theta_g_bounds = c(1, 100), g_max = 1e2, g_bounds = c(1e-6, 1)),
                      settings = list(linkThetas = 'joint', logN = TRUE, initStrategy = 'residuals', checkHom = TRUE,
-                                     penalty = TRUE, hardpenalty = FALSE, trace = 0, return.matrices = TRUE), 
+                                     penalty = TRUE, trace = 0, return.matrices = TRUE), 
                      covtype = c("Gaussian", "Matern5_2", "Matern3_2"), maxit = 100, known = NULL, init = NULL, eps = sqrt(.Machine$double.eps)){
   
   if(typeof(X)=="list"){
@@ -1122,7 +1125,7 @@ mleHetGP <- function(X, Z, lower, upper,
   
   jointThetas <- constrThetas <- FALSE
   if(!is.null(known$theta_g)) settings$linkThetas <- FALSE
-
+  
   if(is.null(settings$linkThetas)){
     jointThetas <- TRUE
   }else{
@@ -1150,9 +1153,13 @@ mleHetGP <- function(X, Z, lower, upper,
   if(!is.null(settings$penalty))
     penalty <- settings$penalty
   
-  hardpenalty <- FALSE
-  if(!is.null(settings$hardpenalty))
+  
+  if(!is.null(settings$hardpenalty)){
     hardpenalty <- settings$hardpenalty
+  }else{
+    if(maxit < 1000) hardpenalty <- FALSE else hardpenalty <- TRUE
+  }
+  
   
   if(is.null(settings$checkHom))
     settings$checkHom <- TRUE
@@ -1181,7 +1188,7 @@ mleHetGP <- function(X, Z, lower, upper,
       init$k_theta_g <- known$k_theta_g
     }
   }
-
+  
   if(!jointThetas && is.null(known$theta_g)){
     components <- c(components, list("theta_g"))
   }else{
@@ -1238,13 +1245,13 @@ mleHetGP <- function(X, Z, lower, upper,
   ### Automatic Initialisation
   modHom <- modNugs <- NULL
   if(is.null(init[["theta"]]) || is.null(init$Delta)){
-    ## A) Homogeneous mean process
+    ## A) homoskedastic mean process
     
     if(!is.null(known$g_H)){
       g_init <- NULL
     }else{
       g_init <- init$g_H
-      ## Initial value for g of the homogeneous process: based on the mean variance at replicates compared to the variance of Z0
+      ## Initial value for g of the homoskedastic process: based on the mean variance at replicates compared to the variance of Z0
       if(any(mult > 5)){
         mean_var_replicates <- mean((fast_tUY2(mult, (Z - rep(Z0, times = mult))^2)/mult)[which(mult > 5)])
         
@@ -1264,7 +1271,7 @@ mleHetGP <- function(X, Z, lower, upper,
           noiseControl$g_min <- eps
         
       }
-
+      
     }
     
     if(is.null(init[["theta"]]))
@@ -1427,7 +1434,7 @@ mleHetGP <- function(X, Z, lower, upper,
       pX <- matrix(par[idx:length(par)], ncol = ncol(X0))
     
     return(logLikHet(X0 = X0, Z0 = Z0, Z = Z, mult = mult, Delta = Delta, theta = theta, g = g, k_theta_g = k_theta_g, theta_g = theta_g,
-                                       logN = logN, SiNK = SiNK, beta0 = beta0, pX = pX, covtype = covtype, eps = eps, SiNK_eps = SiNK_eps, penalty = penalty, hardpenalty = hardpenalty))
+                     logN = logN, SiNK = SiNK, beta0 = beta0, pX = pX, covtype = covtype, eps = eps, SiNK_eps = SiNK_eps, penalty = penalty, hardpenalty = hardpenalty))
   }
   
   
@@ -1471,8 +1478,8 @@ mleHetGP <- function(X, Z, lower, upper,
     # grad(fn, x = par, X0 = X0, Z0 = Z0, Z = Z, mult = mult, logN = logN, SiNK = SiNK, method.args=list(r = 6))
     
     return(dlogLikHet(X0 = X0, Z0 = Z0, Z = Z, mult = mult, Delta = Delta, theta = theta, g = g, k_theta_g = k_theta_g, theta_g = theta_g,
-                                        logN = logN, SiNK = SiNK, beta0 = beta0, pX = pX, components = components, covtype = covtype, eps = eps, SiNK_eps = SiNK_eps,
-                                        penalty = penalty, hardpenalty = hardpenalty))
+                      logN = logN, SiNK = SiNK, beta0 = beta0, pX = pX, components = components, covtype = covtype, eps = eps, SiNK_eps = SiNK_eps,
+                      penalty = penalty, hardpenalty = hardpenalty))
     
   }
   
@@ -1500,7 +1507,7 @@ mleHetGP <- function(X, Z, lower, upper,
     }
     
     if(length(noiseControl$lowerDelta) == 1){
-      lowerDelta <- rep(noiseControl$lowerDelta, n)
+      noiseControl$lowerDelta <- rep(noiseControl$lowerDelta, n)
     }
     
     if(is.null(noiseControl$g_max)) noiseControl$g_max <- 1e2 
@@ -1514,19 +1521,19 @@ mleHetGP <- function(X, Z, lower, upper,
     }
     
     if(length(noiseControl$upperDelta) == 1){
-      upperDelta <- rep(noiseControl$upperDelta, n)
+      noiseControl$upperDelta <- rep(noiseControl$upperDelta, n)
     }
     
     ## For now, only the values at pX are kept
     ## It could be possible to fit a pseudo-input GP to all of Delta
     if("pX" %in% components){
       init$Delta <- init$Delta[idcs_pX]
-      lowerDelta <- noiseControl$lowerDelta[idcs_pX]
-      upperDelta <- noiseControl$upperDelta[idcs_pX]
+      noiseControl$lowerDelta <- noiseControl$lowerDelta[idcs_pX]
+      noiseControl$upperDelta <- noiseControl$upperDelta[idcs_pX]
     }
     
-    lowerOpt <- c(lowerOpt, lowerDelta)
-    upperOpt <- c(upperOpt, upperDelta)
+    lowerOpt <- c(lowerOpt, noiseControl$lowerDelta)
+    upperOpt <- c(upperOpt, noiseControl$upperDelta)
     parinit <- c(parinit, init$Delta)
     
     if(trace > 2) cat("Delta: ", init$Delta, "\n")
@@ -1633,15 +1640,15 @@ mleHetGP <- function(X, Z, lower, upper,
   
   if(penalty){
     ll_non_pen <- logLikHet(X0 = X0, Z0 = Z0, Z = Z, mult = mult, Delta = mle_par$Delta, theta = mle_par$theta, g = mle_par$g, k_theta_g = mle_par$k_theta_g, theta_g = mle_par$theta_g,
-                                           logN = logN, SiNK = SiNK, beta0 = mle_par$beta0, pX = mle_par$pX, covtype = covtype, eps = eps, SiNK_eps = SiNK_eps, penalty = FALSE)
+                            logN = logN, SiNK = SiNK, beta0 = mle_par$beta0, pX = mle_par$pX, covtype = covtype, eps = eps, SiNK_eps = SiNK_eps, penalty = FALSE)
   }else{
     ll_non_pen <- out$value
   }
   if(!is.null(modHom)){
     if(modHom$ll >= ll_non_pen){
-      if(trace >= 0) cat("Homogeneous model has higher log-likelihood: ", modHom$ll, " compared to ", ll_non_pen, "\n")
+      if(trace >= 0) cat("Homoskedastic model has higher log-likelihood: ", modHom$ll, " compared to ", ll_non_pen, "\n")
       if(settings$checkHom){
-        if(trace >= 0) cat("Return homogeneous model \n")
+        if(trace >= 0) cat("Return homoskedastic model \n")
         return(modHom)
       }
     }
@@ -1677,7 +1684,7 @@ mleHetGP <- function(X, Z, lower, upper,
       M <- kg %*% (Kgi %*% (mle_par$Delta - nmean))
     }
   }
-
+  
   
   Lambda <- drop(nmean + M)
   
@@ -1685,13 +1692,13 @@ mleHetGP <- function(X, Z, lower, upper,
     Lambda <- exp(Lambda)
   }
   else{
-     Lambda[Lambda <= 0] <- eps
+    Lambda[Lambda <= 0] <- eps
   }
-
+  
   LambdaN <- rep(Lambda, times = mult)
   
   Ki <- chol2inv(chol(add_diag(cov_gen(X1 = X0, theta = mle_par$theta, type = covtype), Lambda/mult + eps))) 
-
+  
   if(is.null(known$beta0))
     mle_par$beta0 <- drop(colSums(Ki) %*% Z0 / sum(Ki))
   
@@ -1752,7 +1759,7 @@ predict.hetGP <- function(object, x, noise.var = FALSE, xprime = NULL, nugs.only
     }else{
       Cg <- cov_gen(X1 = object$pX, theta = object$theta_g, type = object$covtype)
     }
-   
+    
     object$Kgi <- chol2inv(chol(add_diag(Cg, object$eps + object$g/object$mult)))
   }
   
@@ -1767,7 +1774,7 @@ predict.hetGP <- function(object, x, noise.var = FALSE, xprime = NULL, nugs.only
   
   if(object$SiNK){
     M <-  1/rho_AN(xx = x, X0 = object$pX, theta_g = object$theta_g, g = object$g,
-                        type = object$covtype, SiNK_eps = object$SiNK_eps, eps = object$eps, mult = object$mult) * kg %*% (object$Kgi %*% (object$Delta - object$nmean))
+                   type = object$covtype, SiNK_eps = object$SiNK_eps, eps = object$eps, mult = object$mult) * kg %*% (object$Kgi %*% (object$Delta - object$nmean))
   }else{
     M <- kg %*% (object$Kgi %*% (object$Delta - object$nmean))
   }
@@ -1883,7 +1890,7 @@ print.hetGP <- function(x, ...){
 ##' @title Data preprocessing 
 ##' @param X matrix of design locations, one point per row
 ##' @param Z vector of observations at \code{X}
-##' @param return.Zlist should \code{Zlist} be returned?
+##' @param return.Zlist to return \code{Zlist}, see below
 ##' @param rescale if \code{TRUE}, the inputs are rescaled to the unit hypercube
 ##' @param normalize if \code{TRUE}, the outputs are centered and normalized
 ##' @param inputBounds optional matrix of known boundaries in original input space, of size 2 times \code{ncol(X)}. 
@@ -1894,7 +1901,7 @@ print.hetGP <- function(x, ...){
 ##' \item \code{Z0} vector of averaged observations at \code{X0},
 ##' \item \code{mult} number of replicates at \code{X0},
 ##' \item \code{Z} vector with all observations, sorted according to \code{X0},
-##' \item \code{Zlist} optional list, each element correspond to observations at a design in \code{X0},
+##' \item \code{Zlist} optional list, each element corresponds to observations at a design in \code{X0},
 ##' \item \code{inputBounds} optional matrix, to rescale back to the original input space,
 ##' \item \code{outputStats} optional vector, with mean and variance of the original outputs.
 ##' }
