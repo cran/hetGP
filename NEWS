@@ -1,6 +1,16 @@
+## hetGP 1.0.2
+
+## change / hetGP 1.0.1
+  * homTP/heTP update methods
+  * option settings$return.hom to return or not modHom models with hetGP and hetTP
+  * new functions to export/import hetGP objects, including a robust re-computation of inverse covariance matrices
+  * accordingly, predict now only threshold negative predictive variances occuring due to numerical instability with Cholesky inverse
+  * better initialization with mleHetTP
+  * improved warnings and error handling
+
 ## hetGP 1.0.1
 
-## change / GPareto 1.0.0
+## change / hetGP 1.0.0
   * add Student-t modeling (equivalent of mleHetGP and mleHomGP, with predict functions)
   * various typos and bugs corrections
   * now works on Solaris

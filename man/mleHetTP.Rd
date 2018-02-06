@@ -9,9 +9,9 @@ mleHetTP(X, Z, lower, upper, noiseControl = list(k_theta_g_bounds = c(1, 100),
   sigma2_bounds = c(sqrt(.Machine$double.eps), 10000)),
   settings = list(linkThetas = "joint", logN = TRUE, initStrategy =
   "residuals", checkHom = TRUE, penalty = TRUE, hardpenalty = FALSE, trace = 0,
-  return.matrices = TRUE), covtype = c("Gaussian", "Matern5_2", "Matern3_2"),
-  maxit = 100, known = list(beta0 = 0), init = list(nu = 3),
-  eps = sqrt(.Machine$double.eps))
+  return.matrices = TRUE, return.hom = FALSE), covtype = c("Gaussian",
+  "Matern5_2", "Matern3_2"), maxit = 100, known = list(beta0 = 0),
+  init = list(nu = 3), eps = sqrt(.Machine$double.eps))
 }
 \arguments{
 \item{X}{matrix of all designs, one per row, or list with elements:
@@ -212,7 +212,7 @@ xgrid <- matrix(seq(0, 1, length.out = ngrid), ncol = 1)
 Xgrid <- as.matrix(expand.grid(xgrid, xgrid))
 
 ## Unique (randomly chosen) design locations
-n <- 50
+n <- 100
 Xu <- matrix(runif(n * 2), n)
 
 ## Select replication sites randomly

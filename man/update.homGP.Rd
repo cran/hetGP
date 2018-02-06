@@ -47,19 +47,19 @@ mult <- sample(1:10, n)
 X <- rep(X, mult)
 Z <- sin(X) + rnorm(length(X), sd = noisefun(X))
 
-testpoints <- matrix(seq(0, 2*pi, length = 10*n), ncol = 1)
+testpts <- matrix(seq(0, 2*pi, length = 10*n), ncol = 1)
 model <- model_init <- mleHomGP(X = X, Z = Z,
                                 lower = rep(0.1, nvar), upper = rep(50, nvar))
-preds <- predict(x = testpoints, object = model_init) 
+preds <- predict(x = testpts, object = model_init) 
 plot(X, Z)
-lines(testpoints, preds$mean, col = "red")
+lines(testpts, preds$mean, col = "red")
 
 
 nsteps <- 10
 for(i in 1:nsteps){
   newIds <- sort(sample(1:(10*n), 10))
   
-  newX <- testpoints[newIds, drop = FALSE] 
+  newX <- testpts[newIds, drop = FALSE] 
   newZ <- sin(newX) + rnorm(length(newX), sd = noisefun(newX))
   points(newX, newZ, col = "blue", pch = 20)
   model <- update(object = model, newX, newZ)
@@ -68,27 +68,27 @@ for(i in 1:nsteps){
   plot(X, Z)
   print(model$nit_opt)
 }
-preds_fin <- predict(x = testpoints, object = model) 
-lines(testpoints, preds_fin$mean, col = "blue")
-lines(testpoints, qnorm(0.05, preds_fin$mean, sqrt(preds_fin$sd2)), col = "blue", lty = 2)
-lines(testpoints, qnorm(0.95, preds_fin$mean, sqrt(preds_fin$sd2)), col = "blue", lty = 2)
-lines(testpoints, qnorm(0.05, preds_fin$mean, sqrt(preds_fin$sd2 + preds_fin$nugs)),
+p_fin <- predict(x = testpts, object = model) 
+lines(testpts, p_fin$mean, col = "blue")
+lines(testpts, qnorm(0.05, p_fin$mean, sqrt(p_fin$sd2)), col = "blue", lty = 2)
+lines(testpts, qnorm(0.95, p_fin$mean, sqrt(p_fin$sd2)), col = "blue", lty = 2)
+lines(testpts, qnorm(0.05, p_fin$mean, sqrt(p_fin$sd2 + p_fin$nugs)),
       col = "blue", lty = 3)
-lines(testpoints, qnorm(0.95, preds_fin$mean, sqrt(preds_fin$sd2 + preds_fin$nugs)),
+lines(testpts, qnorm(0.95, p_fin$mean, sqrt(p_fin$sd2 + p_fin$nugs)),
       col = "blue", lty = 3)
 
 model_direct <-  mleHomGP(X = X, Z = Z, lower = rep(0.1, nvar), upper = rep(50, nvar))
-preds_direct <- predict(x = testpoints, object = model_direct)
+p_dir <- predict(x = testpts, object = model_direct)
 print(model_direct$nit_opt)
-lines(testpoints, preds_direct$mean, col = "green")
-lines(testpoints, qnorm(0.05, preds_direct$mean, sqrt(preds_direct$sd2)), col = "green", lty = 2)
-lines(testpoints, qnorm(0.95, preds_direct$mean, sqrt(preds_direct$sd2)), col = "green", lty = 2)
-lines(testpoints, qnorm(0.05, preds_direct$mean, sqrt(preds_direct$sd2 + preds_direct$nugs)),
+lines(testpts, p_dir$mean, col = "green")
+lines(testpts, qnorm(0.05, p_dir$mean, sqrt(p_dir$sd2)), col = "green", lty = 2)
+lines(testpts, qnorm(0.95, p_dir$mean, sqrt(p_dir$sd2)), col = "green", lty = 2)
+lines(testpts, qnorm(0.05, p_dir$mean, sqrt(p_dir$sd2 + p_dir$nugs)),
       col = "green", lty = 3)
-lines(testpoints, qnorm(0.95, preds_direct$mean, sqrt(preds_direct$sd2 + preds_direct$nugs)),
+lines(testpts, qnorm(0.95, p_dir$mean, sqrt(p_dir$sd2 + p_dir$nugs)),
       col = "green", lty = 3)
 
-lines(testpoints, sin(testpoints), col = "red", lty = 2)
+lines(testpts, sin(testpts), col = "red", lty = 2)
 
 ## Compare outputs
 summary(model_init)

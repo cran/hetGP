@@ -183,7 +183,7 @@ mleHomGP <- function(X, Z, lower, upper, known = NULL,
     X0 <- X$X0
     Z0 <- X$Z0
     mult <- X$mult
-    if(sum(mult) != length(Z)) print("Length(Z) should be equal to sum(mult)")
+    if(sum(mult) != length(Z)) stop("Length(Z) should be equal to sum(mult)")
   }else{
     elem <- find_reps(X, Z, return.Zlist = F)
     X0 <- elem$X0
@@ -204,7 +204,7 @@ mleHomGP <- function(X, Z, lower, upper, known = NULL,
   n <- nrow(X0)
   
   if(is.null(n))
-    print("X0 should be a matrix. \n")
+    stop("X0 should be a matrix. \n")
   
   if(is.null(known[["theta"]]) && is.null(init$theta)) init$theta <- 0.5 * (upper + lower)
   if(is.null(known$g) && is.null(init$g)) init$g <- 0.5
@@ -367,14 +367,16 @@ predict.homGP <- function(object, x, xprime = NULL, ...){
   
   ## In case of numerical errors, some sd2 values may become negative
   if(any(sd2 < 0)){
-    object$Ki <- ginv(add_diag(cov_gen(X1 = object$X0, theta = object$theta, type = object$covtype), object$g/object$mult + object$eps))/object$nu2_hat
-    mean <- as.vector(object$beta0 + kx %*% (object$Ki %*% (object$Z0 - object$beta0)))
-    
-    if(object$trendtype == 'SK'){
-      sd2 <- as.vector(object$nu2_hat - fast_diag(kx, tcrossprod(object$Ki, kx)))
-    }else{
-      sd2 <- as.vector(object$nu2_hat - fast_diag(kx, tcrossprod(object$Ki, kx)) + (1 - tcrossprod(rowSums(object$Ki), kx))^2/sum(object$Ki))
-    }
+    # object$Ki <- ginv(add_diag(cov_gen(X1 = object$X0, theta = object$theta, type = object$covtype), object$g/object$mult + object$eps))/object$nu2_hat
+    # mean <- as.vector(object$beta0 + kx %*% (object$Ki %*% (object$Z0 - object$beta0)))
+    # 
+    # if(object$trendtype == 'SK'){
+    #   sd2 <- as.vector(object$nu2_hat - fast_diag(kx, tcrossprod(object$Ki, kx)))
+    # }else{
+    #   sd2 <- as.vector(object$nu2_hat - fast_diag(kx, tcrossprod(object$Ki, kx)) + (1 - tcrossprod(rowSums(object$Ki), kx))^2/sum(object$Ki))
+    # }
+    sd2 <- pmax(0, sd2)
+    warning("Numerical errors caused some negative predictive variances to be thresholded to zero. Consider using ginv via rebuild.homGP")
   }
   
   if(!is.null(xprime)){
@@ -391,6 +393,74 @@ predict.homGP <- function(object, x, xprime = NULL, ...){
   return(list(mean = mean, sd2 = sd2, nugs = nugs, cov = cov))
 }
 
+if(!isGeneric("rebuild")) {
+  setGeneric(name = "rebuild",
+             def = function(object, ...) standardGeneric("rebuild")
+  )
+}
+
+##' Functions to make \code{hetGP} objects lighter before exporting them, and to reverse this after import.
+##' The \code{rebuild} function may also be used to obtain more robust inverse of covariance matrices using \code{\link[MASS]{ginv}}.
+##' @title Import and export of hetGP objects
+##' @param object \code{homGP} or \code{homTP} model without slot \code{Ki} (inverse covariance matrix),
+##'  or \code{hetGP} or \code{hetTP} model without slot \code{Ki} or \code{Kgi}
+##' @param robust if \code{TRUE} \code{\link[MASS]{ginv}} is used for matrix inversion, otherwise it is done via Cholesky.
+## ' @param ... not used
+##' @export
+##' @return \code{object} with additional or removed slots.
+##' @rdname ExpImp
+##' @examples 
+##' set.seed(32)
+##' ## motorcycle data
+##' library(MASS)
+##' X <- matrix(mcycle$times, ncol = 1)
+##' Z <- mcycle$accel
+##' ## Model fitting
+##' model <- mleHetGP(X = X, Z = Z, lower = 0.1, upper = 50)
+##' 
+##' # Check size
+##' object.size(model)
+##' 
+##' # Remove internal elements, e.g., to save it
+##' model <- strip(model)
+##' 
+##' # Check new size
+##' object.size(model)
+##' 
+##' # Now rebuild model, and use ginv instead
+##' model <- rebuild(model, robust = TRUE)
+##' object.size(model)
+##' 
+rebuild <- function (object, robust) {
+  UseMethod("rebuild", object)
+}
+
+## ' Rebuild inverse covariance matrix of \code{homGP} (e.g., if exported without \code{Ki})
+## ' @param object \code{homGP} model without slot \code{Ki} (inverse covariance matrix)
+## ' @param robust if \code{TRUE} \code{\link[MASS]{ginv}} is used for matrix inversion, otherwise it is done via Cholesky.
+##' @method rebuild homGP
+##' @rdname ExpImp
+##' @export
+rebuild.homGP <- function(object, robust = FALSE){
+  if(robust){
+    object$Ki <- ginv(add_diag(cov_gen(X1 = object$X0, theta = object$theta, type = object$covtype), object$g/object$mult + object$eps))/object$nu2_hat
+  }else{
+    object$Ki <- chol2inv(chol(add_diag(cov_gen(X1 = object$X0, theta = object$theta, type = object$covtype), object$g/object$mult + object$eps)))
+  }
+  
+  return(object)
+}
+
+##' @export
+##' @rdname ExpImp
+strip <- function (object) {
+  # UseMethod("strip", object)
+  if(!is.null(object$Ki)) object$Ki <- NULL
+  if(!is.null(object$Ki)) object$Kgi <- NULL
+  if(!is.null(object$Ki)) object$modHom <- NULL
+  if(!is.null(object$Ki)) object$modNugs <- NULL
+  return(object)
+}
 
 
 ###############################################################################
@@ -422,7 +492,7 @@ logLikHet <- function(X0, Z0, Z, mult, Delta, theta, g, k_theta_g = NULL, theta_
                       penalty = T, hardpenalty = T){
   n <- nrow(X0)
   N <- length(Z)
-
+  
   if(is.null(theta_g))
     theta_g <- k_theta_g * theta
   
@@ -890,7 +960,8 @@ compareGP <- function(model1, model2){
 ##'   \item \code{trace} optional scalar (default to \code{0}). If positive, tracing information on the fitting process.
 ##' If \code{1}, information is given about the result of the heterogeneous model optimization.
 ##' Level \code{2} gives more details. Level {3} additionaly displays all details about initialization of hyperparameters.
-##' \item \code{return.matrices} boolean too include the inverse covariance matrix in the object for further use (e.g., prediction).   
+##' \item \code{return.matrices} boolean to include the inverse covariance matrix in the object for further use (e.g., prediction).
+##' \item \code{return.hom} boolean to include homoskedastic GP models used for initialization (i.e., \code{modHom} and \code{modNugs}).   
 ##' }
 ##' @param eps jitter used in the inversion of the covariance matrix for numerical stability
 ##' @param init,known optional lists of starting values for mle optimization or that should not be optimized over, respectively.
@@ -1098,14 +1169,14 @@ compareGP <- function(model1, model2){
 mleHetGP <- function(X, Z, lower, upper,
                      noiseControl = list(k_theta_g_bounds = c(1, 100), g_max = 1e2, g_bounds = c(1e-6, 1)),
                      settings = list(linkThetas = 'joint', logN = TRUE, initStrategy = 'residuals', checkHom = TRUE,
-                                     penalty = TRUE, trace = 0, return.matrices = TRUE), 
+                                     penalty = TRUE, trace = 0, return.matrices = TRUE, return.hom = FALSE), 
                      covtype = c("Gaussian", "Matern5_2", "Matern3_2"), maxit = 100, known = NULL, init = NULL, eps = sqrt(.Machine$double.eps)){
   
   if(typeof(X)=="list"){
     X0 <- X$X0
     Z0 <- X$Z0
     mult <- X$mult
-    if(sum(mult) != length(Z)) print("Length(Z) should be equal to sum(mult)")
+    if(sum(mult) != length(Z)) stop("Length(Z) should be equal to sum(mult)")
   }else{
     elem <- find_reps(X, Z, return.Zlist = F)
     X0 <- elem$X0
@@ -1119,7 +1190,7 @@ mleHetGP <- function(X, Z, lower, upper,
   n <- nrow(X0)
   
   if(is.null(n))
-    print("X0 should be a matrix. \n")
+    stop("X0 should be a matrix. \n")
   
   covtype <- match.arg(covtype)
   
@@ -1142,6 +1213,9 @@ mleHetGP <- function(X, Z, lower, upper,
   
   if(is.null(settings$return.matrices))
     settings$return.matrices <- TRUE
+  
+  if(is.null(settings$return.hom))
+    settings$return.hom <- FALSE
   
   if(jointThetas && is.null(noiseControl$k_theta_g_bounds))
     noiseControl$k_theta_g_bounds <- c(1, 100)
@@ -1214,7 +1288,7 @@ mleHetGP <- function(X, Z, lower, upper,
   
   if(penalty && "pX" %in% components){
     penalty <- FALSE
-    print("Penalty not available with pseudo-inputs for now")
+    warning("Penalty not available with pseudo-inputs for now")
   }
   
   trendtype <- 'OK'
@@ -1709,7 +1783,7 @@ mleHetGP <- function(X, Z, lower, upper,
   res <- list(theta = mle_par$theta, Delta = mle_par$Delta, nu2_hat = as.numeric(nu2), beta0 = mle_par$beta0,
               k_theta_g = mle_par$k_theta_g, theta_g = mle_par$theta_g, g = mle_par$g, nmean = nmean, Lambda = Lambda,
               ll = out$value, ll_non_pen = ll_non_pen, nit_opt = out$counts, logN = logN, SiNK = SiNK, covtype = covtype, pX = mle_par$pX, msg = out$message,
-              X0 = X0, Z0 = Z0, Z = Z, mult = mult, modHom = modHom, modNugs = modNugs, trendtype = trendtype, eps = eps,
+              X0 = X0, Z0 = Z0, Z = Z, mult = mult, trendtype = trendtype, eps = eps,
               nu2_hat_var = nu2_hat_var, call = match.call(),
               used_args = list(noiseControl = noiseControl, settings = settings, lower = lower, upper = upper, known = known))
   if(SiNK){
@@ -1718,6 +1792,10 @@ mleHetGP <- function(X, Z, lower, upper,
   
   if(settings$return.matrices){
     res <- c(res, list(Ki = Ki, Kgi = Kgi))
+  }
+  
+  if(settings$return.hom){
+    res <- c(res, list(modHom = modHom, modNugs = modNugs))
   }
   
   class(res) <- "hetGP"
@@ -1807,13 +1885,15 @@ predict.hetGP <- function(object, x, noise.var = FALSE, xprime = NULL, nugs.only
   
   ## In case of numerical errors, some sd2 values may become negative
   if(any(sd2 < 0)){
-    object$Ki <- ginv(add_diag(cov_gen(X1 = object$X0, theta = object$theta, type = object$covtype), object$Lambda/object$mult + object$eps))
-    
-    if(object$trendtype == 'SK'){
-      sd2 <- object$nu2_hat * drop(1 - fast_diag(kx, tcrossprod(object$Ki, kx)))
-    }else{
-      sd2 <- object$nu2_hat * drop(1 - fast_diag(kx, tcrossprod(object$Ki, kx)) + (1 - tcrossprod(rowSums(object$Ki), kx))^2/sum(object$Ki))
-    }
+    # object$Ki <- ginv(add_diag(cov_gen(X1 = object$X0, theta = object$theta, type = object$covtype), object$Lambda/object$mult + object$eps))
+    # 
+    # if(object$trendtype == 'SK'){
+    #   sd2 <- object$nu2_hat * drop(1 - fast_diag(kx, tcrossprod(object$Ki, kx)))
+    # }else{
+    #   sd2 <- object$nu2_hat * drop(1 - fast_diag(kx, tcrossprod(object$Ki, kx)) + (1 - tcrossprod(rowSums(object$Ki), kx))^2/sum(object$Ki))
+    # }
+    sd2 <- pmax(0, sd2)
+    warning("Numerical errors caused some negative predictive variances to be thresholded to zero. Consider using ginv via rebuild.hetGP")
   }
   
   if(!is.null(xprime)){
@@ -1879,6 +1959,33 @@ print.hetGP <- function(x, ...){
   print(x$call)
   # str(x) instead?
   print(lapply(x, class))
+}
+
+
+## ' Rebuild inverse covariance matrices of \code{hetGP} (e.g., if exported without inverse matrices \code{Kgi} and/or \code{Ki})
+## ' @param object \code{hetGP} model without slots \code{Ki} and/or \code{Kgi} (inverse covariance matrices)
+## ' @param robust if \code{TRUE} \code{\link[MASS]{ginv}} is used for matrix inversion, otherwise it is done via Cholesky.
+##' @method rebuild hetGP
+##' @rdname ExpImp
+##' @export
+rebuild.hetGP <- function(object, robust = FALSE){
+  
+  if(is.null(object$pX)){
+    Cg <- cov_gen(X1 = object$X0, theta = object$theta_g, type = object$covtype)
+  }else{
+    Cg <- cov_gen(X1 = object$pX, theta = object$theta_g, type = object$covtype)
+  }
+  
+  if(robust){
+    object$Kgi <- ginv(add_diag(Cg, object$eps + object$g/object$mult))
+    
+    object$Ki <- ginv(add_diag(cov_gen(X1 = object$X0, theta = object$theta, type = object$covtype), object$Lambda/object$mult + object$eps))
+  }else{
+    object$Kgi <- chol2inv(chol(add_diag(Cg, object$eps + object$g/object$mult)))
+    
+    object$Ki <- chol2inv(chol(add_diag(cov_gen(X1 = object$X0, theta = object$theta, type = object$covtype), object$Lambda/object$mult + object$eps)))
+  }
+  return(object)
 }
 
 

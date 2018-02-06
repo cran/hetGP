@@ -62,6 +62,18 @@ sirSimulate <- function(S0 = 1990, I0 = 10, M = S0 + I0, beta = 0.75, gamma = 0.
   return(list(maxI = maxI, totT = curT[count], totI = S0-curS[count],S=curS,I=curI,R=M-curS-curI,T=curT))
 }
 
+##' 1d test function
+##' @param x scalar or matrix (size n x 1) in [0,1]
+##' @export
+##' @references 
+##' A. Forrester, A. Sobester, A. Keane (2008), Engineering design via surrogate modelling: a practical guide, John Wiley & Sons
+##' @examples 
+##' plot(f1d)
+f1d <- function(x){
+  if(is.null(x)) x <- matrix(x, ncol = 1)
+  return(((x*6-2)^2)*sin((x*6-2)*2))
+} 
+
 
 ##' Portfolio value at risk test problem
 ##' @title Portfolio simulation

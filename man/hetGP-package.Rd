@@ -37,8 +37,9 @@ nvar <- 1
 plot(X, Z, ylim = c(-160, 90), ylab = 'acceleration', xlab = "time")
 
 ## Model fitting
+settings <- list(return.hom = TRUE) # To keep homoskedastic model used for training
 model <- mleHetGP(X = X, Z = Z, lower = rep(0.1, nvar), upper = rep(50, nvar),
-                  covtype = "Matern5_2")
+                  covtype = "Matern5_2", settings = settings)
 
 ## A quick view of the fit                  
 summary(model)

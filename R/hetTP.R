@@ -1,3 +1,4 @@
+#  dmt(Z, mean = rep(0,133), S = (nu - 2)/nu*(model$sigma2 * cov_gen(X, theta = model$theta) + diag(model$g, 133)), log = T)
 loglik_HomTP <- function(X0, Z0, Z, mult, theta, g, nu, sigma2, beta0 = 0, covtype = "Gaussian", eps = sqrt(.Machine$double.eps)){
   n <- nrow(X0)
   N <- length(Z)
@@ -169,10 +170,10 @@ dlogLikHomTP <- function(X0, Z0, Z, mult, theta, g, nu, sigma2, beta0 = 0, covty
 ##'   col = 3, lty = 2)
 ##' @export
 mleHomTP <- function(X, Z, lower, upper, known = list(beta0 = 0),
-                     noiseControl = list(g_bounds = c(sqrt(.Machine$double.eps), 1e2),
+                     noiseControl = list(g_bounds = c(sqrt(.Machine$double.eps), 1e4),
                                          nu_bounds = c(2 + 1e-3, 30),
                                          sigma2_bounds = c(sqrt(.Machine$double.eps), 1e4)),
-                     init = list(nu = 3, sigma2 = 1), covtype = c("Gaussian", "Matern5_2", "Matern3_2"), maxit = 100,
+                     init = list(nu = 3), covtype = c("Gaussian", "Matern5_2", "Matern3_2"), maxit = 100,
                      eps = sqrt(.Machine$double.eps),
                      settings = list(return.Ki = TRUE)){
   
@@ -180,7 +181,7 @@ mleHomTP <- function(X, Z, lower, upper, known = list(beta0 = 0),
     X0 <- X$X0
     Z0 <- X$Z0
     mult <- X$mult
-    if(sum(mult) != length(Z)) print("Length(Z) should be equal to sum(mult)")
+    if(sum(mult) != length(Z)) stop("Length(Z) should be equal to sum(mult)")
   }else{
     elem <- find_reps(X, Z, return.Zlist = F)
     X0 <- elem$X0
@@ -190,7 +191,7 @@ mleHomTP <- function(X, Z, lower, upper, known = list(beta0 = 0),
   }
   
   if(is.null(settings$return.Ki)) settings$return.Ki <- TRUE
-  if(is.null(noiseControl$g_bounds)) noiseControl$g_bounds <- c(sqrt(.Machine$double.eps), 1e2)
+  if(is.null(noiseControl$g_bounds)) noiseControl$g_bounds <- c(sqrt(.Machine$double.eps), 1e4)
   if(is.null(noiseControl$sigma2_bounds)) noiseControl$sigma2_bounds <- c(sqrt(.Machine$double.eps), 1e4)
   if(is.null(noiseControl$nu_bounds)) noiseControl$nu_bounds <- c(2 + 1e-3, 30)
   
@@ -201,12 +202,14 @@ mleHomTP <- function(X, Z, lower, upper, known = list(beta0 = 0),
   n <- nrow(X0)
   
   if(is.null(n))
-    print("X0 should be a matrix. \n")
+    stop("X0 should be a matrix. \n")
   
   if(is.null(known[["theta"]]) && is.null(init$theta)) init$theta <- 0.5 * (upper + lower)
-  if(is.null(known$g) && is.null(init$g)) init$g <- 0.5
+  if(is.null(known$g) && is.null(init$g)){
+    if(any(mult > 2)) init$g <- mean((fast_tUY2(mult, (Z - rep(Z0, times = mult))^2)/mult)[which(mult > 2)]) else init$g <- 0.5
+  } 
   if(is.null(known$nu) && is.null(init$nu)) init$nu <- 3
-  if(is.null(known$sigma2) && is.null(init$sigma2)) init$sigma2 <- 1
+  if(is.null(known$sigma2) && is.null(init$sigma2)) init$sigma2 <- var(Z0)
   
   covtype <- match.arg(covtype)
   
@@ -425,15 +428,12 @@ predict.homTP <- function(object, x, xprime = NULL, ...){
   
   ## In case of numerical errors, some sd2 values may become negative
   if(any(sd2 < 0)){
-    object$Ki <- ginv(add_diag(cov_gen(X1 = object$X, theta = object$theta, type = object$covtype), rep(object$g + object$eps, n1)))/object$sigma2
-    mean <- as.vector(object$beta0 + kx %*% (object$Ki %*% (object$Z0 - object$beta0)))
-    
-    # if(object$trendtype == 'SK'){
-    sd2 <- (object$nu + object$psi - 2) / (object$nu + n1 - 2) * as.vector(object$sigma2 - fast_diag(kx, tcrossprod(object$Ki, kx)))
-    
-    # }else{
-    # sd2 <- as.vector(object$nu2_hat - fast_diag(kx, tcrossprod(object$Ki, kx)) + (1 - tcrossprod(rowSums(object$Ki), kx))^2/sum(object$Ki))
-    # }
+    # object$Ki <- ginv(add_diag(cov_gen(X1 = object$X, theta = object$theta, type = object$covtype), rep(object$g + object$eps, nrow(object$X0))))/object$sigma2
+    # mean <- as.vector(object$beta0 + kx %*% (object$Ki %*% (object$Z0 - object$beta0)))
+    # 
+    # sd2 <- (object$nu + object$psi - 2) / (object$nu + n1 - 2) * as.vector(object$sigma2 - fast_diag(kx, tcrossprod(object$Ki, kx)))
+    sd2 <- pmax(0, sd2)
+    warning("Numerical errors caused some negative predictive variances to be thresholded to zero. Consider using ginv via rebuild.homTP")
   }
   
   if(!is.null(xprime)){
@@ -451,6 +451,28 @@ predict.homTP <- function(object, x, xprime = NULL, ...){
 }
 
 
+## ' Rebuild inverse covariance matrix of \code{homTP} (e.g., if exported without \code{Ki})
+## ' @param object \code{homTP} model without slot \code{Ki} (inverse covariance matrix)
+## ' @param robust if \code{TRUE} \code{\link[MASS]{ginv}} is used for matrix inversion, otherwise it is done via Cholesky.
+##' @rdname ExpImp
+##' @method rebuild homTP
+##' @export
+rebuild.homTP <- function(object, robust = FALSE){
+  if(robust){
+    object$Ki <- ginv(add_diag(cov_gen(X1 = object$X, theta = object$theta, type = object$covtype), rep(object$g + object$eps, nrow(object$X0))))/object$sigma2
+  }else{
+    object$Ki <- chol2inv(chol(object$sigma2 * cov_gen(X1 = object$X0, theta = object$theta, type = object$covtype) + diag(object$g/object$mult + object$eps)))
+  }
+  
+  return(object)
+}
+
+###############################################################################
+## Part II: Heterogeneous TP with all options for the fit
+###############################################################################
+
+
+# dmt(Z, mean = rep(0,length(Z)), S = (model$nu - 2)/model$nu*(model$sigma2 * cov_gen(X, theta = model$theta, type = "Matern5_2") + diag(rep(model$Lambda, times = model$mult) + 1e-8)), df = model$nu,  log = T)
 logLik_HetTP <- function(X0, Z0, Z, mult, Delta, theta, g, nu, sigma2, k_theta_g = NULL, theta_g = NULL, logN = TRUE,
                          beta0 = 0, eps = sqrt(.Machine$double.eps), covtype = "Gaussian",
                          penalty = T, hardpenalty = T){
@@ -467,7 +489,7 @@ logLik_HetTP <- function(X0, Z0, Z, mult, Delta, theta, g, nu, sigma2, k_theta_g
   nmean <- drop(rowSums(Kgi) %*% Delta / sum(Kgi)) ## ordinary kriging mean
   
   M <- Cg %*% (Kgi %*% (Delta - nmean))
-
+  
   
   Lambda <- drop(nmean + M)
   
@@ -477,7 +499,7 @@ logLik_HetTP <- function(X0, Z0, Z, mult, Delta, theta, g, nu, sigma2, k_theta_g
   else{
     Lambda[Lambda <= 0] <- eps
   }
-
+  
   LambdaN <- rep(Lambda, times = mult)
   
   Ki <- chol(add_diag(sigma2 *  cov_gen(X1 = X0, theta = theta, type = covtype), Lambda/mult + eps))
@@ -608,7 +630,7 @@ dlogLikHetTP <- function(X0, Z0, Z, mult, Delta, theta, nu, sigma2, g, k_theta_g
         
         dK_dthetak <- add_diag(sigma2 * dC_dthetak, drop(dLdtk)/mult) # dK/dtheta[k]
         dLogL_dtheta[i] <- (nu + N)/(2 * (nu + psi - 2)) * (crossprod((Z - beta0)/LambdaN * rep(dLdtk, times = mult), (Z - beta0)/LambdaN) - crossprod((Z0 - beta0)/Lambda * mult * dLdtk, (Z0 - beta0)/Lambda) +
-                                    crossprod(KiZ0, dK_dthetak) %*% KiZ0) - 1/2 * fast_trace(Ki, dK_dthetak)
+                                                              crossprod(KiZ0, dK_dthetak) %*% KiZ0) - 1/2 * fast_trace(Ki, dK_dthetak)
         dLogL_dtheta[i] <- dLogL_dtheta[i] - 1/2 * sum((mult - 1) * dLdtk/Lambda) # derivative of the sum(a_i - 1)log(lambda_i)
         
         if(penalty)
@@ -637,11 +659,11 @@ dlogLikHetTP <- function(X0, Z0, Z, mult, Delta, theta, nu, sigma2, g, k_theta_g
   
   # Derivative Lambda / k_theta_g
   if("k_theta_g" %in% components){
-      dCg_dk <- partial_cov_gen(X1 = X0, theta = theta, k_theta_g = k_theta_g, arg = "k_theta_g", type = covtype) * Cg
-      
-        dLogL_dkthetag <- dCg_dk %*% KgiD - M %*% (dCg_dk %*% KgiD) -
-          (1 - rsM) * drop(rSKgi %*% dCg_dk %*% (Kgi %*% Delta) * sKgi - rSKgi %*% Delta * (rSKgi %*% dCg_dk %*% rSKgi))/sKgi^2
-
+    dCg_dk <- partial_cov_gen(X1 = X0, theta = theta, k_theta_g = k_theta_g, arg = "k_theta_g", type = covtype) * Cg
+    
+    dLogL_dkthetag <- dCg_dk %*% KgiD - M %*% (dCg_dk %*% KgiD) -
+      (1 - rsM) * drop(rSKgi %*% dCg_dk %*% (Kgi %*% Delta) * sKgi - rSKgi %*% Delta * (rSKgi %*% dCg_dk %*% rSKgi))/sKgi^2
+    
     dLogL_dkthetag <- crossprod(dLogL_dkthetag, dLogLdLambda) ## chain rule
   }
   
@@ -650,15 +672,15 @@ dlogLikHetTP <- function(X0, Z0, Z, mult, Delta, theta, nu, sigma2, g, k_theta_g
     dLogL_dthetag <- rep(NA, length(theta_g))
     
     for(i in 1:length(theta_g)){
-
-        if(length(theta_g) == 1){
-          dCg_dthetagk <- partial_cov_gen(X1 = X0, theta = theta_g, arg = "theta_k", type = covtype) * Cg # partial derivative of Cg with respect to theta
-        }else{
-          dCg_dthetagk <- partial_cov_gen(X1 = X0[, i, drop = FALSE], theta = theta_g[i], arg = "theta_k", type = covtype) * Cg # partial derivative of Cg with respect to theta
-        }
-
-          dLogL_dthetag[i] <- crossprod(dCg_dthetagk %*% KgiD - M %*% (dCg_dthetagk %*% KgiD) -
-                                          (1 - rsM) * drop(rSKgi %*% dCg_dthetagk %*% (Kgi %*% Delta) * sKgi - rSKgi %*% Delta * (rSKgi %*% dCg_dthetagk %*% rSKgi))/sKgi^2, dLogLdLambda) #chain rule
+      
+      if(length(theta_g) == 1){
+        dCg_dthetagk <- partial_cov_gen(X1 = X0, theta = theta_g, arg = "theta_k", type = covtype) * Cg # partial derivative of Cg with respect to theta
+      }else{
+        dCg_dthetagk <- partial_cov_gen(X1 = X0[, i, drop = FALSE], theta = theta_g[i], arg = "theta_k", type = covtype) * Cg # partial derivative of Cg with respect to theta
+      }
+      
+      dLogL_dthetag[i] <- crossprod(dCg_dthetagk %*% KgiD - M %*% (dCg_dthetagk %*% KgiD) -
+                                      (1 - rsM) * drop(rSKgi %*% dCg_dthetagk %*% (Kgi %*% Delta) * sKgi - rSKgi %*% Delta * (rSKgi %*% dCg_dthetagk %*% rSKgi))/sKgi^2, dLogLdLambda) #chain rule
       # Penalty term
       if(penalty) dLogL_dthetag[i] <- dLogL_dthetag[i] + 1/2 * crossprod(KgiD, dCg_dthetagk) %*% KgiD/nu2_hat_var - fast_trace(Kgi, dCg_dthetagk)/2 
     }
@@ -672,7 +694,7 @@ dlogLikHetTP <- function(X0, Z0, Z, mult, Delta, theta, nu, sigma2, g, k_theta_g
   
   ## Derivative Lambda / g
   if("g" %in% components){
-      dLogL_dg <- crossprod(-M %*% (KgiD/mult) - (1 - rsM) * drop(Delta %*% (Kgi %*% (rSKgi/mult)) * sKgi - rSKgi %*% Delta * sum(rSKgi^2/mult))/sKgi^2, dLogLdLambda) #chain rule
+    dLogL_dg <- crossprod(-M %*% (KgiD/mult) - (1 - rsM) * drop(Delta %*% (Kgi %*% (rSKgi/mult)) * sKgi - rSKgi %*% Delta * sum(rSKgi^2/mult))/sKgi^2, dLogLdLambda) #chain rule
   }
   
   
@@ -901,7 +923,7 @@ dlogLikHetTP <- function(X0, Z0, Z, mult, Delta, theta, nu, sigma2, g, k_theta_g
 ##' Xgrid <- as.matrix(expand.grid(xgrid, xgrid))
 ##' 
 ##' ## Unique (randomly chosen) design locations
-##' n <- 50
+##' n <- 100
 ##' Xu <- matrix(runif(n * 2), n)
 ##' 
 ##' ## Select replication sites randomly
@@ -944,7 +966,7 @@ mleHetTP <- function(X, Z, lower, upper,
                      noiseControl = list(k_theta_g_bounds = c(1, 100), g_max = 1e4, g_bounds = c(1e-6, 0.1),
                                          nu_bounds = c(2 + 1e-3, 30), sigma2_bounds = c(sqrt(.Machine$double.eps), 1e4)),
                      settings = list(linkThetas = 'joint', logN = TRUE, initStrategy = 'residuals', checkHom = TRUE,
-                                     penalty = TRUE, hardpenalty = FALSE, trace = 0, return.matrices = TRUE), 
+                                     penalty = TRUE, hardpenalty = FALSE, trace = 0, return.matrices = TRUE, return.hom = FALSE), 
                      covtype = c("Gaussian", "Matern5_2", "Matern3_2"), maxit = 100, known = list(beta0 = 0),
                      init = list(nu = 3), eps = sqrt(.Machine$double.eps)){
   
@@ -953,7 +975,7 @@ mleHetTP <- function(X, Z, lower, upper,
     X0 <- X$X0
     Z0 <- X$Z0
     mult <- X$mult
-    if(sum(mult) != length(Z)) print("Length(Z) should be equal to sum(mult)")
+    if(sum(mult) != length(Z)) stop("Length(Z) should be equal to sum(mult)")
   }else{
     elem <- find_reps(X, Z, return.Zlist = F)
     X0 <- elem$X0
@@ -967,7 +989,7 @@ mleHetTP <- function(X, Z, lower, upper,
   n <- nrow(X0)
   
   if(is.null(n))
-    print("X0 should be a matrix. \n")
+    stop("X0 should be a matrix. \n")
   
   covtype <- match.arg(covtype)
   
@@ -991,6 +1013,9 @@ mleHetTP <- function(X, Z, lower, upper,
   
   if(is.null(settings$return.matrices))
     settings$return.matrices <- TRUE
+  
+  if(is.null(settings$return.hom))
+    settings$return.hom <- FALSE
   
   if(jointThetas && is.null(noiseControl$k_theta_g_bounds))
     noiseControl$k_theta_g_bounds <- c(1, 100)
@@ -1072,13 +1097,13 @@ mleHetTP <- function(X, Z, lower, upper,
   
   if(penalty && "pX" %in% components){
     penalty <- FALSE
-    print("Penalty not available with pseudo-inputs for now")
+    warning("Penalty not available with pseudo-inputs for now")
   }
   
   trendtype <- 'SK'
   if(is.null(known$beta0))  known$beta0 <- 0
   beta0 <- known$beta0
-
+  
   if(is.null(noiseControl$g_bounds)){
     noiseControl$g_bounds <- c(1e-6, 0.1)
   }
@@ -1088,7 +1113,7 @@ mleHetTP <- function(X, Z, lower, upper,
   }
   
   if(is.null(noiseControl$sigma2_bounds)){
-    noiseControl$sigma2_bounds <- c(2 + 1e-3, 30)
+    noiseControl$sigma2_bounds <- c(sqrt(.Machine$double.eps), 1e4)
   }
   
   ## Advanced option Single Nugget Kriging model for the noise process
@@ -1107,7 +1132,7 @@ mleHetTP <- function(X, Z, lower, upper,
   
   ### Automatic Initialisation
   modHom <- modNugs <- NULL
-  if(is.null(init$theta) || is.null(init$Delta)){
+  if(is.null(init$theta) || is.null(init$Delta) || is.null(init$sigma2)){
     ## A) homoskedastic mean process
     
     if(!is.null(known$g_H)){
@@ -1120,7 +1145,7 @@ mleHetTP <- function(X, Z, lower, upper,
       if(any(mult > 5)){
         mean_var_replicates <- mean((fast_tUY2(mult, (Z - rep(Z0, times = mult))^2)/mult)[which(mult > 5)])
         
-        if(is.null(g_init)) g_init <- mean_var_replicates/var(Z0) 
+        if(is.null(g_init)) g_init <- mean_var_replicates 
         if(is.null(noiseControl$g_max))
           noiseControl$g_max <- max(1e2, 100 * g_init)
         if(is.null(noiseControl$g_min))
@@ -1147,13 +1172,19 @@ mleHetTP <- function(X, Z, lower, upper,
     }else{
       rKI <- FALSE
     } 
-    modHom <- mleHomGP(X = list(X0 = X0, Z0 = Z0, mult = mult), Z = Z, lower = lower, known = list(theta = known$theta, g = known$g_H),
-                       upper = upper, init = list(theta = init$theta, g = g_init), covtype = covtype, maxit = maxit,
+    modHom <- mleHomTP(X = list(X0 = X0, Z0 = Z0, mult = mult), Z = Z, lower = lower,
+                       known = list(theta = known$theta, g = known$g_H, nu = known$nu, sigma2 = known$sigma2),
+                       init = list(theta = init$theta, g = g_init, nu = init$nu, sigma2 = init$sigma2),
+                       upper = upper, covtype = covtype, maxit = maxit,
                        noiseControl = list(g_bounds = c(noiseControl$g_min, noiseControl$g_max),
                                            nu_bounds = noiseControl$nu_bounds), eps = eps, settings = list(return.Ki = rKI))
     
-    if(is.null(known$theta))
-      init$theta <- modHom$theta
+    ## Update init values
+    if(is.null(known$theta)) init$theta <- modHom$theta
+    
+    if(is.null(known$sigma2)) init$sigma2 <- modHom$sigma2
+    
+    if(is.null(known$nu)) init$nu <- modHom$nu
     
     if(is.null(init$Delta)){
       predHom <- predict(x = X0, object = modHom)$mean
@@ -1166,6 +1197,8 @@ mleHetTP <- function(X, Z, lower, upper,
       
       nugs_est0 <- drop(fast_tUY2(mult, nugs_est))/mult # average
       
+    }else{
+      nugs_est0 <- init$Delta
     }
     
     if(constrThetas){
@@ -1212,7 +1245,7 @@ mleHetTP <- function(X, Z, lower, upper,
       
       if(is.null(init$g)){
         mean_var_replicates_nugs <- mean((fast_tUY2(mult, (nugs_est - rep(nugs_est0, times = mult))^2)/mult))
-        init$g <- mean_var_replicates_nugs / var(nugs_est0)
+        init$g <- mean_var_replicates_nugs
       }
       
       modNugs <- mleHomGP(X = list(X0 = X0, Z0 = nugs_est0, mult = mult), Z = nugs_est,
@@ -1312,9 +1345,9 @@ mleHetTP <- function(X, Z, lower, upper,
   
   gr <- function(par, X0, Z0, Z, mult, Delta = NULL, theta = NULL, g = NULL, k_theta_g = NULL, theta_g = NULL, nu = NULL, sigma2 = NULL, logN = FALSE,
                  beta0 = NULL, pX = NULL){
-
+    
     idx <- 1 # to store the first non used element of par
-
+    
     if(is.null(theta)){
       theta <- par[1:length(init$theta)]
       idx <- idx + length(init$theta)
@@ -1342,7 +1375,7 @@ mleHetTP <- function(X, Z, lower, upper,
     if(is.null(g)){
       g <- par[idx]
     }
-
+    
     # c(grad(logLikHet_Wood_Ani_snugs_pX, X0 = X0, Z0 = Z0, Z = Z, mult = mult, Delta = Delta, x = theta, g = g, k_theta_g = k_theta_g, theta_g = theta_g,
     #        logN = logN, SiNK = SiNK, beta0 = beta0, pX = pX),
     #   grad(logLikHet_Wood_Ani_snugs_pX, X0 = X0, Z0 = Z0, Z = Z, mult = mult, x = Delta, theta = theta, g = g, k_theta_g = k_theta_g, theta_g = theta_g,
@@ -1353,11 +1386,11 @@ mleHetTP <- function(X, Z, lower, upper,
     #        logN = logN, SiNK = SiNK, beta0 = beta0, pX = pX)
     # )
     # grad(fn, x = par, X0 = X0, Z0 = Z0, Z = Z, mult = mult, logN = logN, beta0 = beta0, method.args=list(r = 6))
-
+    
     return(dlogLikHetTP(X0 = X0, Z0 = Z0, Z = Z, mult = mult, Delta = Delta, theta = theta, g = g, k_theta_g = k_theta_g, theta_g = theta_g,
                         nu = nu, sigma2 = sigma2, logN = logN, beta0 = beta0, components = components, covtype = covtype, eps = eps, SiNK_eps = SiNK_eps,
                         penalty = penalty, hardpenalty = hardpenalty))
-
+    
   }
   
   ## Pre-processing for heterogeneous fit
@@ -1457,7 +1490,7 @@ mleHetTP <- function(X, Z, lower, upper,
     ## Maximization of the log-likelihood
     out <- optim(par = parinit, fn = fn, gr = gr, method = "L-BFGS-B", lower = lowerOpt, upper = upperOpt, X0 = X0, Z0 = Z0, Z = Z,
                  mult = mult, logN = logN, Delta = known$Delta, theta = known$theta, g = known$g, k_theta_g = known$k_theta_g, theta_g = known$theta_g,
-                 nu = known$nu, beta0 = known$beta0, control = list(fnscale = -1, maxit = maxit))
+                 nu = known$nu, beta0 = known$beta0, sigma2 = known$sigma2, control = list(fnscale = -1, maxit = maxit))
     
     ## Temporary
     if(trace > 0){
@@ -1608,12 +1641,16 @@ mleHetTP <- function(X, Z, lower, upper,
   res <- list(theta = mle_par$theta, Delta = mle_par$Delta, psi = as.numeric(psi), beta0 = mle_par$beta0,
               k_theta_g = mle_par$k_theta_g, theta_g = mle_par$theta_g, g = mle_par$g, nmean = nmean, Lambda = Lambda,
               ll = out$value, ll_non_pen = ll_non_pen, nit_opt = out$counts, logN = logN, SiNK = SiNK, covtype = covtype, pX = mle_par$pX, msg = out$message,
-              X0 = X0, Z0 = Z0, Z = Z, mult = mult, modHom = modHom, modNugs = modNugs, trendtype = trendtype, SiNK_eps = SiNK_eps, eps = eps,
+              X0 = X0, Z0 = Z0, Z = Z, mult = mult, trendtype = trendtype, SiNK_eps = SiNK_eps, eps = eps,
               nu2_hat_var = nu2_hat_var, call = match.call(), nu = mle_par$nu, sigma2 = mle_par$sigma2,
               used_args = list(noiseControl = noiseControl, settings = settings, lower = lower, upper = upper, known = known))
   
   if(settings$return.matrices){
     res <- c(res, list(Ki = Ki, Kgi = Kgi))
+  }
+  
+  if(settings$return.hom){
+    res <- c(res, list(modHom = modHom, modNugs = modNugs))
   }
   
   class(res) <- "hetTP"
@@ -1695,13 +1732,11 @@ predict.hetTP <- function(object, x, noise.var = FALSE, xprime = NULL, nugs.only
   
   ## In case of numerical errors, some sd2 values may become negative
   if(any(sd2 < 0)){
-    object$Ki <- ginv(add_diag(object$sigma2 * cov_gen(X1 = object$X0, theta = object$theta, type = object$covtype), object$Lambda/object$mult + object$eps))
+    # object$Ki <- ginv(add_diag(object$sigma2 * cov_gen(X1 = object$X0, theta = object$theta, type = object$covtype), object$Lambda/object$mult + object$eps))
+    # sd2 <- (object$nu + object$psi - 2) / (object$nu + n1 - 2) * drop(object$sigma2 - fast_diag(kx, tcrossprod(object$Ki, kx)))
     
-    # if(object$trendtype == 'SK'){
-    sd2 <- (object$nu + object$psi - 2) / (object$nu + n1 - 2) * drop(object$sigma2 - fast_diag(kx, tcrossprod(object$Ki, kx)))
-    # }else{
-    #   sd2 <- object$nu2_hat * drop(1 - fast_diag(kx, tcrossprod(object$Ki, kx)) + (1 - tcrossprod(rowSums(object$Ki), kx))^2/sum(object$Ki))
-    # }
+    sd2 <- pmax(0, sd2)
+    warning("Numerical errors caused some negative predictive variances to be thresholded to zero. Consider using ginv via rebuild.hetTP")
   }
   
   
@@ -1770,6 +1805,23 @@ print.hetTP <- function(x, ...){
   print(lapply(x, class))
 }
 
-
+## ' Rebuild inverse covariance matrices of \code{hetTP} (e.g., if exported without inverse matrices \code{Kgi} and/or \code{Ki})
+## ' @param object \code{hetGP} model without slots \code{Ki} and/or \code{Kgi} (inverse covariance matrices)
+## ' @param robust if \code{TRUE} \code{\link[MASS]{ginv}} is used for matrix inversion, otherwise it is done via Cholesky.
+##' @rdname ExpImp
+##' @method rebuild hetTP
+##' @export
+rebuild.hetTP <- function(object, robust = FALSE){
+  if(robust){
+    object$Kgi <- ginv(add_diag(cov_gen(X1 = object$X0, theta = object$theta_g, type = object$covtype), object$eps + object$g/object$mult))
+    
+    object$Ki <- ginv(add_diag(object$sigma2 * cov_gen(X1 = object$X0, theta = object$theta, type = object$covtype), object$Lambda/object$mult + object$eps))
+  }else{
+    object$Kgi <- chol2inv(chol(add_diag(cov_gen(X1 = object$X0, theta = object$theta_g, type = object$covtype), object$eps + object$g/object$mult)))
+    
+    object$Ki <- chol2inv(chol(add_diag(cov_gen(X1 = object$X0, theta = object$theta, type = object$covtype), object$Lambda/object$mult + object$eps)))
+  }
+  return(object)
+}
 
 
