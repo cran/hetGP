@@ -59,7 +59,7 @@ if(!isGeneric("update")) {
 ##' ## Initial fit
 ##' testpts <- matrix(seq(0, 2*pi, length = 10*n), ncol = 1)
 ##' model <- model_init <- mleHetGP(X = X, Z = Z, lower = rep(0.1, nvar), 
-##'   upper = rep(50, nvar), maxit = 1000, settings = list(hardpenalty = TRUE))
+##'   upper = rep(50, nvar), maxit = 1000)
 ##'
 ##' ## Visualizing initial predictive surface
 ##' preds <- predict(x = testpts, model_init) 
@@ -95,7 +95,7 @@ if(!isGeneric("update")) {
 ##'   col = "blue", lty = 3)
 ##' 
 ##' ## Now compare to what you would get if you did a full batch fit instead
-##' model_direct <-  mleHetGP(X = X, Z = Z, maxit = 1000, settings = list(hardpenalty = TRUE),
+##' model_direct <-  mleHetGP(X = X, Z = Z, maxit = 1000,
 ##'                           lower = rep(0.1, nvar), upper = rep(50, nvar),
 ##'                           init = list(theta = model_init$theta, k_theta_g = model_init$k_theta_g))
 ##' p_dir <- predict(x = testpts, model_direct)
@@ -138,7 +138,7 @@ if(!isGeneric("update")) {
 ## ' model_ref <- mleHetGP(X = rbind(X, Xnew), Z = c(Z, Znew), upper = model_init$theta + 1e-8, lower = model_init$theta,
 ## ' noiseControl = list(g_bounds = c(model_init$g, model_init$g + 1e-8)),
 ## ' known = list(beta = 0, theta = model_init$theta, k_theta_g = model_init$k_theta_g, g = model_init$g, theta_g = model_init$theta_g,
-## ' Delta = c(model_init$Delta, log(predict(model_init, Xnew, nugs.only = T)$nugs/model_init$nu2_hat))))
+## ' Delta = c(model_init$Delta, log(predict(model_init, Xnew, nugs.only = T)$nugs/model_init$nu_hat))))
 ## ' 
 ## ' range(model_ref$Ki - model_up$Ki)
 ## ' K_ref <- solve(cov_gen(model_up$X0, theta = model_up$theta, type = model_up$covtype) + diag(model_up$Lambda/model_up$mult + 1e-8))
@@ -184,7 +184,7 @@ update.hetGP <- function(object, Xnew, Znew, ginit = 1e-2, lower = NULL, upper =
           delta_loo <- LOO_preds_nugs(object, id_X0) ## LOO mean and variance at X0[id_X0,] (only variance is used)
           
           # empirical estimates
-          sd2h <- mean((m_new$Z[idZ[id_X0]:(idZ[id_X0] + m_new$mult[id_X0] - 1)] - predict(object, newdata$X0[i,,drop = FALSE])$mean)^2)/object$nu2_hat
+          sd2h <- mean((m_new$Z[idZ[id_X0]:(idZ[id_X0] + m_new$mult[id_X0] - 1)] - predict(object, newdata$X0[i,,drop = FALSE])$mean)^2)/object$nu_hat
           sd2sd2h <- 2*sd2h^2/m_new$mult[id_X0] #variance of the estimator of the variance
           
           if(object$logN){
@@ -213,7 +213,7 @@ update.hetGP <- function(object, Xnew, Znew, ginit = 1e-2, lower = NULL, upper =
   if(nrow(newdata$X0) > 0){
     
     if(method == 'quick'){
-      delta_new_init <- predict(x = newdata$X0, object, nugs_only = T)$nugs/object$nu2_hat
+      delta_new_init <- predict(x = newdata$X0, object, nugs_only = T)$nugs/object$nu_hat
       if(object$logN) delta_new_init <- log(delta_new_init)
     }
     
@@ -222,10 +222,10 @@ update.hetGP <- function(object, Xnew, Znew, ginit = 1e-2, lower = NULL, upper =
       pred_deltas <- predict(x = newdata$X0, object = object, noise.var = T)
       
       for(i in 1:nrow(newdata$X0)){
-        sd2h <- mean((newdata$Zlist[[i]] - predict(object, newdata$X0[i,,drop = FALSE])$mean)^2)/object$nu2_hat
+        sd2h <- mean((newdata$Zlist[[i]] - predict(object, newdata$X0[i,,drop = FALSE])$mean)^2)/object$nu_hat
         sd2sd2h <- 2*sd2h^2/newdata$mult[i] #variance of the estimator of the variance
         
-        pdelta <- pred_deltas$nugs[i]/object$nu2_hat
+        pdelta <- pred_deltas$nugs[i]/object$nu_hat
         if(object$logN){
           pdelta <- log(pdelta)
           
@@ -234,8 +234,8 @@ update.hetGP <- function(object, Xnew, Znew, ginit = 1e-2, lower = NULL, upper =
           sd2sd2h <- trigamma(newdata$mult[i]/2)
         }
         
-        newdelta_sd2 <- 1/(object$nu2_hat/pred_deltas$sd2var[i] + 1/sd2sd2h)
-        delta_new_init[i] <- (object$nu2_hat*pdelta/pred_deltas$sd2var[i] + sd2h/sd2sd2h) * newdelta_sd2
+        newdelta_sd2 <- 1/(object$nu_hat/pred_deltas$sd2var[i] + 1/sd2sd2h)
+        delta_new_init[i] <- (object$nu_hat*pdelta/pred_deltas$sd2var[i] + sd2h/sd2sd2h) * newdelta_sd2
         
       }
     }
@@ -595,8 +595,8 @@ update.homTP <- function(object, Xnew, Znew = NULL, lower = NULL, upper = NULL, 
           object$nit_opt <- 0
           object$msg <- "Not optimized \n"
           if(!any(is.na(Znew))){
-            object$psi <- (crossprod(object$Z - object$beta0, object$Z - object$beta0) - crossprod((object$Z0 - object$beta0) * object$mult, object$Z0 - object$beta0))/object$g
-            object$psi <- object$psi + drop(crossprod(object$Z0 - object$beta0, object$Ki) %*% (object$Z0 - object$beta0))
+            object$psi <- (crossprod(object$Z - object$beta0) - crossprod((object$Z0 - object$beta0) * object$mult, object$Z0 - object$beta0))/object$g
+            object$psi <- drop(object$psi) + drop(crossprod(object$Z0 - object$beta0, object$Ki) %*% (object$Z0 - object$beta0))
           } 
           
         } 
@@ -618,8 +618,8 @@ update.homTP <- function(object, Xnew, Znew = NULL, lower = NULL, upper = NULL, 
       object$mult <- c(object$mult, newdata$mult[i])
       object$Z <- c(object$Z, newdata$Zlist[[i]])
       if(!any(is.na(Znew))){
-        object$psi <- (crossprod(object$Z - object$beta0, object$Z - object$beta0) - crossprod((object$Z0 - object$beta0) * object$mult, object$Z0 - object$beta0))/object$g
-        object$psi <- object$psi + drop(crossprod(object$Z0 - object$beta0, object$Ki) %*% (object$Z0 - object$beta0))
+        object$psi <- (crossprod(object$Z - object$beta0) - crossprod((object$Z0 - object$beta0) * object$mult, object$Z0 - object$beta0))/object$g
+        object$psi <- drop(object$psi) + drop(crossprod(object$Z0 - object$beta0, object$Ki) %*% (object$Z0 - object$beta0))
       } 
     }
     
@@ -702,7 +702,7 @@ update.homTP <- function(object, Xnew, Znew = NULL, lower = NULL, upper = NULL, 
 ##' ## Initial fit
 ##' testpts <- matrix(seq(0, 2*pi, length = 10*n), ncol = 1)
 ##' model <- model_init <- mleHetTP(X = X, Z = Z, lower = rep(0.1, nvar), 
-##'   upper = rep(50, nvar), maxit = 1000, settings = list(hardpenalty = TRUE))
+##'   upper = rep(50, nvar), maxit = 1000)
 ##'
 ##' ## Visualizing initial predictive surface
 ##' preds <- predict(x = testpts, model_init) 
@@ -738,7 +738,7 @@ update.homTP <- function(object, Xnew, Znew = NULL, lower = NULL, upper = NULL, 
 ##'   col = "blue", lty = 3)
 ##' 
 ##' ## Now compare to what you would get if you did a full batch fit instead
-##' model_direct <-  mleHetTP(X = X, Z = Z, maxit = 1000, settings = list(hardpenalty = TRUE),
+##' model_direct <-  mleHetTP(X = X, Z = Z, maxit = 1000,
 ##'                           lower = rep(0.1, nvar), upper = rep(50, nvar),
 ##'                           init = list(theta = model_init$theta, k_theta_g = model_init$k_theta_g))
 ##' p_dir <- predict(x = testpts, model_direct)
@@ -808,6 +808,8 @@ update.hetTP <- function(object, Xnew, Znew, ginit = 1e-2, lower = NULL, upper =
         idZ <- cumsum(m_new$mult)
         m_new$Z <- append(m_new$Z, newdata$Zlist[[i]], after = idZ[id_X0])
         
+        m_new$mult[id_X0] <- m_new$mult[id_X0] + newdata$mult[i]
+        
         ## Inverse matrices are updated if MLE is not performed 
         if(maxit == 0){
           m_new$Ki <- update_Ki_rep(id_X0, m_new, nrep = newdata$mult[i])
@@ -818,8 +820,6 @@ update.hetTP <- function(object, Xnew, Znew, ginit = 1e-2, lower = NULL, upper =
             m_new$psi <- m_new$psi + drop(crossprod(m_new$Z0 - m_new$beta0, m_new$Ki) %*% (m_new$Z0 - m_new$beta0))
           } 
         }
-        
-        m_new$mult[id_X0] <- m_new$mult[id_X0] + newdata$mult[i]
         
         ### Update Delta value depending on the selected scheme
         
@@ -881,8 +881,8 @@ update.hetTP <- function(object, Xnew, Znew, ginit = 1e-2, lower = NULL, upper =
           sd2sd2h <- trigamma(newdata$mult[i]/2)
         }
         
-        newdelta_sd2 <- 1/(object$nu2_hat/pred_deltas$sd2var[i] + 1/sd2sd2h)
-        delta_new_init[i] <- (object$nu2_hat*pdelta/pred_deltas$sd2var[i] + sd2h/sd2sd2h) * newdelta_sd2
+        newdelta_sd2 <- 1/(object$nu_hat/pred_deltas$sd2var[i] + 1/sd2sd2h)
+        delta_new_init[i] <- (object$nu_hat*pdelta/pred_deltas$sd2var[i] + sd2h/sd2sd2h) * newdelta_sd2
         
       }
     }
@@ -971,7 +971,7 @@ update.hetTP <- function(object, Xnew, Znew, ginit = 1e-2, lower = NULL, upper =
 ## ' xnew <- matrix(runif(nvar), 1)
 ## ' Kni <- update_Ki(xnew, model, nrep = nrep)
 ## ' 
-## ' Lambdan <- c(model$Lambda, predict(model, x = xnew)$nugs/model$nu2_hat)
+## ' Lambdan <- c(model$Lambda, predict(model, x = xnew)$nugs/model$nu_hat)
 ## ' multn <- c(model$mult, nrep)
 ## ' Kn <- cov_gen(rbind(model$X0, xnew), theta = model$theta, type = model$covtype) + diag(model$eps + Lambdan/multn)
 ## ' Kni_ref <- chol2inv(chol(Kn))
@@ -986,12 +986,12 @@ update_Ki <- function(x, model, new_lambda = NULL, nrep = 1){
   }else{
     kn1 <- cov_gen(x, model$X0, theta = model$theta, type = model$covtype)
     if(is.null(new_lambda))
-      new_lambda <- predict(object = model, x = x, nugs.only = TRUE)$nugs/model$nu2_hat
+      new_lambda <- predict(object = model, x = x, nugs.only = TRUE)$nugs/model$nu_hat
     vn <- drop(1 - kn1 %*% tcrossprod(model$Ki, kn1)) + new_lambda/nrep + model$eps
   }
 
   gn <- - tcrossprod(model$Ki, kn1) / vn
-  Ki <- model$Ki + tcrossprod(gn, gn) * vn
+  Ki <- model$Ki + tcrossprod(gn) * vn
   
   return(rbind(cbind(Ki, gn), c(gn, 1/vn)))
 }
@@ -1002,7 +1002,7 @@ update_Kgi <- function(x, model, nrep = 1){
   nugsn <- model$g/nrep
   vn <- drop(1 - kn1 %*% tcrossprod(model$Kgi, kn1)) + nugsn/nrep + model$eps
   gn <- - tcrossprod(model$Kgi, kn1) / vn
-  Kgi <- model$Kgi + gn %*% t(gn) * vn
+  Kgi <- model$Kgi + tcrossprod(gn) * vn
   
   return(rbind(cbind(Kgi, gn), c(gn, 1/vn)))
 }
@@ -1011,7 +1011,6 @@ update_Kgi <- function(x, model, nrep = 1){
 ## ## 1) run example("mleHetGP", ask = FALSE)
 ## 
 ## Kni <- hetGP:::update_Ki_rep(16, model)
-## 
 ## multn <- model$mult
 ## multn[16] <- multn[16] + 1
 ## Kn <- cov_gen(model$X0, theta = model$theta, type = model$covtype) + diag(model$eps + model$Lambda/multn)
@@ -1025,7 +1024,7 @@ update_Ki_rep <- function(id, model, nrep = 1){
   }else{
     tmp <- model$Lambda[id]
   }
-  B <- tcrossprod(model$Ki[,id], model$Ki[id,]) / ((model$mult[id]*(model$mult[id] + nrep)) / (nrep*tmp) - model$Ki[id, id])
+  B <- tcrossprod(model$Ki[id,]) / ((model$mult[id]*(model$mult[id] + nrep)) / (nrep*tmp) - model$Ki[id, id])
   Ki <- model$Ki + B
   return(Ki)
 }
@@ -1033,7 +1032,7 @@ update_Ki_rep <- function(id, model, nrep = 1){
 ## update of Kgi in case model$X0[id,] is replicated nrep times
 update_Kgi_rep <- function(id, model, nrep = 1){
   tmp <- model$g
-  B <- tcrossprod(model$Kgi[,id], model$Kgi[id,]) / ((model$mult[id]*(model$mult[id] + nrep)) / (nrep*tmp) - model$Kgi[id, id])
+  B <- tcrossprod(model$Kgi[id,]) / ((model$mult[id]*(model$mult[id] + nrep)) / (nrep*tmp) - model$Kgi[id, id])
   Kgi <- model$Kgi + B
   return(Kgi)
 }
@@ -1050,8 +1049,71 @@ LOO_preds_nugs <- function(model, i){
   return(list(mean = yih, sd2 = sih))
 }
 
-
-
+##' Provide leave one out predictions, e.g., for model testing
+##' @title Leave one out predictions
+##' @param model \code{homGP} or \code{hetGP} model, TP version is not considered at this point
+##' @param ids vector of indices of the unique design point considered (default to all)
+##' @return list with mean and variance predictions at x_i assuming this point has not been evaluated
+##' @export
+##' @references
+##' O. Dubrule (1983), Cross validation of Kriging in a unique neighborhood, Mathematical Geology 15, 687--699. \cr \cr
+##' 
+##' F. Bachoc (2013), Cross Validation and Maximum Likelihood estimations of hyper-parameters of Gaussian processes 
+##' with model misspecification, Computational Statistics & Data Analysis, 55--69.
+##' 
+##' @examples
+##' set.seed(32)
+##' ## motorcycle data
+##' library(MASS)
+##' X <- matrix(mcycle$times, ncol = 1)
+##' Z <- mcycle$accel
+##' nvar <- 1
+##' plot(X, Z, ylim = c(-160, 90), ylab = 'acceleration', xlab = "time")
+##'
+##' ## Model fitting
+##' model <- mleHomGP(X = X, Z = Z, lower = rep(0.1, nvar), upper = rep(50, nvar),
+##'                   covtype = "Matern5_2", known = list(beta0 = 0))
+##' LOO_p <- LOO_preds(model)
+##'  
+##' # model minus observation(s) at x_i
+##' d_mot <- find_reps(X, Z)
+##' 
+##' LOO_ref <- matrix(NA, nrow(d_mot$X0), 2)
+##' for(i in 1:nrow(d_mot$X0)){
+##'  model_i <- mleHomGP(X = list(X0 = d_mot$X0[-i,, drop = FALSE], Z0 = d_mot$Z0[-i],
+##'                      mult = d_mot$mult[-i]), Z = unlist(d_mot$Zlist[-i]),
+##'                      lower = rep(0.1, nvar), upper = rep(50, nvar), covtype = "Matern5_2",
+##'                      known = list(theta = model$theta, k_theta_g = model$k_theta_g, g = model$g,
+##'                                   Delta = model$Delta[-i], beta0 = 0))
+##'  model_i$nu_hat <- model$nu_hat
+## ' # For hetGP, need to use the same Lambdas to get the same results  
+## '  model_i$Lambda <- model$Lambda[-i] 
+## '  model_i <- strip(model_i)
+## '  model_i <- rebuild(model_i)
+##'  p_i <- predict(model_i, d_mot$X0[i,,drop = FALSE])
+##'  LOO_ref[i,] <- c(p_i$mean, p_i$sd2)
+##' }
+##' 
+##' # Compare results
+##' 
+##' range(LOO_ref[,1] - LOO_p$mean)
+##' range(LOO_ref[,2] - LOO_p$sd2)
+LOO_preds <- function(model, ids = NULL){
+  if(is.null(ids)) ids <- 1:nrow(model$X0)
+  
+  if(model$trendtype == "OK") model$Ki <- model$Ki - matrix(rowSums(model$Ki), ncol = 1) %*% matrix(rowSums(model$Ki), nrow = 1) / sum(model$Ki)
+  
+  if(class(model) == "homGP"){
+    sds <- model$nu_hat * (1/diag(model$Ki)[ids] - model$g/model$mult[ids])
+  } 
+  
+  if(class(model) == "hetGP"){
+    sds <- model$nu_hat * (1/diag(model$Ki)[ids] - model$Lambda[ids]/model$mult[ids])
+  } 
+  
+  ys <- model$Z0[ids] - (model$Ki %*% (model$Z0 - model$beta0))[ids]/diag(model$Ki)[ids]
+  return(list(mean = ys, sd2 = sds))
+}
 
 
 

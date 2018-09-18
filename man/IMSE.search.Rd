@@ -5,8 +5,9 @@
 \title{IMSE minimization}
 \usage{
 IMSE.search(model, replicate = FALSE, Xcand = NULL,
-  control = list(tol_dist = 1e-04, tol_diff = 0.001, multi.start = 5, maxit =
-  100, maximin = TRUE, Xstart = NULL), Wijs = NULL, seed = NULL)
+  control = list(tol_dist = 1e-04, tol_diff = 0.001, multi.start = 5,
+  maxit = 100, maximin = TRUE, Xstart = NULL), Wijs = NULL,
+  seed = NULL)
 }
 \arguments{
 \item{model}{\code{homGP} or \code{hetGP} model}

@@ -5,16 +5,16 @@
 ##' @param Lambda diagonal matrix for the noise
 ##' @param mult number of replicates at each design
 ##' @param covtype either "Gaussian", "Matern3_2" or "Matern5_2"
-##' @param nu2 variance parameter
+##' @param nu variance parameter
 ##' @param eps numerical nugget
 ##' @details
 ##' One can provide directly a model of class \code{hetGP} or \code{homGP}, or provide \code{X} and all other arguments
 ##' @export
-IMSPE <- function(X, theta = NULL, Lambda = NULL, mult = NULL, covtype = NULL, nu2= NULL, eps = sqrt(.Machine$double.eps)){
+IMSPE <- function(X, theta = NULL, Lambda = NULL, mult = NULL, covtype = NULL, nu= NULL, eps = sqrt(.Machine$double.eps)){
   if(class(X) %in% c("homGP", "hetGP")){
-    return(X$nu2_hat * (1 - sum(X$Ki * Wij(mu1 = X$X0, theta = X$theta, type = X$covtype))))
+    return(X$nu_hat * (1 - sum(X$Ki * Wij(mu1 = X$X0, theta = X$theta, type = X$covtype))))
   }else{
-    return(nu2*(1 - sum(chol2inv(chol(add_diag(cov_gen(X, theta = theta, type = covtype), Lambda/mult + eps))) * Wij(mu1 = X, theta = theta, type = covtype))))
+    return(nu*(1 - sum(chol2inv(chol(add_diag(cov_gen(X, theta = theta, type = covtype), Lambda/mult + eps))) * Wij(mu1 = X, theta = theta, type = covtype))))
   }
 }
 
@@ -25,7 +25,7 @@ IMSPE <- function(X, theta = NULL, Lambda = NULL, mult = NULL, covtype = NULL, n
 ##' @param model \code{homGP} or \code{hetGP} model, including inverse matrices
 ##' @param id instead of providing \code{x}, one can provide the index of a considered existing design 
 ##' @export
-##' @details The computations are scale free, i.e., values are not multiplied by \code{nu2_hat} from \code{homGP} or \code{hetGP}.
+##' @details The computations are scale free, i.e., values are not multiplied by \code{nu_hat} from \code{homGP} or \code{hetGP}.
 ##' @seealso \code{\link[hetGP]{deriv_crit_IMSE}} for the derivative
 ##' @examples
 ##' ## One-d toy example
@@ -62,19 +62,19 @@ IMSPE <- function(X, theta = NULL, Lambda = NULL, mult = NULL, covtype = NULL, n
 ##' t1 <- Sys.time()
 ##' print(t1 - t0)
 ##' 
-## ' ## Older version with candidate points
+## ' ## Older version with candidate points (Warning: compare for fixed zero mean)
 ## ' Xref <- xgrid
 ## ' # deprecated, for testing only
-## ' IMSE_grid <- apply(xgrid, 1, hetGP:::IMSPE_grid, model = model, Xref = Xref) 
+## ' IMSE_disc_grid <- apply(xgrid, 1, hetGP:::IMSPE_grid, model = model, Xref = Xref) 
 ## ' 
 ## ' t2 <- Sys.time()
 ## ' 
 ## ' print(t2-t1)
 ## ' 
 ## ' par(mfrow = c(1,2))
-##' plot(xgrid, IMSE_grid/ngrid, xlab = "x", ylab = "crit_IMSE values")
+##' plot(xgrid, IMSE_grid * model$nu_hat, xlab = "x", ylab = "crit_IMSE values")
 ##' abline(v = designs)
-## ' plot(xgrid, IMSE_grid * model$nu2_hat)
+## ' plot(xgrid, IMSE_disc_grid / ngrid)
 ## ' abline(v = designs)
 ## ' par(mfrow = c(1,1))
 ##' 
@@ -83,7 +83,7 @@ IMSPE <- function(X, theta = NULL, Lambda = NULL, mult = NULL, covtype = NULL, n
 ##' 
 ##' nvar <- 2 
 ##' 
-##' set.seed(42)
+##' set.seed(2)
 ##' ftest <- function(x, coef = 0.1) return(sin(2*pi*sum(x)) + rnorm(1, sd = coef))
 ##' 
 ##' n <- 16 # must be a square
@@ -131,7 +131,7 @@ crit_IMSE <- function(x, model, id = NULL, Wijs = NULL){
 
   kn1 <- cov_gen(x, model$X0, theta = model$theta, type = model$covtype)
   
-  new_lambda <- predict(object = model, x = x, nugs.only = TRUE)$nugs/model$nu2_hat
+  new_lambda <- predict(object = model, x = x, nugs.only = TRUE)$nugs/model$nu_hat
   
   vn <- drop(1 - kn1 %*% tcrossprod(model$Ki, kn1)) + new_lambda + model$eps
   gn <- - tcrossprod(model$Ki, kn1) / vn
@@ -215,7 +215,7 @@ deriv_crit_IMSE <- function(x, model, Wijs = NULL){
   
   kn1 <- cov_gen(model$X0, x, theta = model$theta, type = model$covtype)
   if(class(model) == 'hetGP') kng1 <- cov_gen(model$X0, x, theta = model$theta_g, type = model$covtype)
-  new_lambda <- predict(object = model, x = x, nugs.only = TRUE)$nugs/model$nu2_hat
+  new_lambda <- predict(object = model, x = x, nugs.only = TRUE)$nugs/model$nu_hat
   k11 <- 1 + new_lambda
   
   W1 <- Wij(mu1 = model$X, mu2 = x, theta = model$theta, type = model$covtype)
@@ -615,16 +615,26 @@ IMSE_nsteps_ahead <- function(model, h = 2, Xcand = NULL, control = list(multi.s
 ##' 
 ##' ## Model fitting
 ##' model <- mleHetGP(X = list(X0 = data_m$X0, Z0 = data_m$Z0, mult = data_m$mult),
-##'                   Z = Z, lower = rep(0.1, nvar), upper = rep(50, nvar),
+##'                   Z = Z, lower = rep(0.1, nvar), upper = rep(5, nvar),
 ##'                   covtype = "Matern5_2")
 ##' ## Compute best allocation                  
 ##' A <- allocate_mult(model, N = 1000)
 ##' 
-##' plot(X, Z, ylim = c(-160, 90), ylab = 'acceleration', xlab = "time")
-##' 
 ##' ## Create a prediction grid and obtain predictions
-##' xgrid <- matrix(seq(0, 60, length.out = 301), ncol = 1) 
+##' xgrid <- matrix(seq(0, 1, length.out = 301), ncol = 1) 
 ##' predictions <- predict(x = xgrid, object =  model)
+##' 
+##' ## Display mean predictive surface
+##' lines(xgrid, predictions$mean, col = 'red', lwd = 2)
+##' ## Display 95% confidence intervals
+##' lines(xgrid, qnorm(0.05, predictions$mean, sqrt(predictions$sd2)), col = 2, lty = 2)
+##' lines(xgrid, qnorm(0.95, predictions$mean, sqrt(predictions$sd2)), col = 2, lty = 2)
+##' ## Display 95% prediction intervals
+##' lines(xgrid, qnorm(0.05, predictions$mean, sqrt(predictions$sd2 + predictions$nugs)), 
+##' col = 3, lty = 2)
+##' lines(xgrid, qnorm(0.95, predictions$mean, sqrt(predictions$sd2 + predictions$nugs)), 
+##' col = 3, lty = 2)
+##' 
 ##' par(new = TRUE)
 ##' plot(NA,NA, xlim = c(0,1), ylim = c(0,max(A)), axes = FALSE, ylab = "", xlab = "")
 ##' segments(x0 = model$X0, x1 = model$X0, 

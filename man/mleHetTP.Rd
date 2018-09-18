@@ -4,14 +4,15 @@
 \alias{mleHetTP}
 \title{Student-t process modeling with heteroskedastic noise}
 \usage{
-mleHetTP(X, Z, lower, upper, noiseControl = list(k_theta_g_bounds = c(1, 100),
-  g_max = 10000, g_bounds = c(1e-06, 0.1), nu_bounds = c(2 + 0.001, 30),
-  sigma2_bounds = c(sqrt(.Machine$double.eps), 10000)),
+mleHetTP(X, Z, lower, upper, noiseControl = list(k_theta_g_bounds = c(1,
+  100), g_max = 10000, g_bounds = c(1e-06, 0.1), nu_bounds = c(2 + 0.001,
+  30), sigma2_bounds = c(sqrt(.Machine$double.eps), 10000)),
   settings = list(linkThetas = "joint", logN = TRUE, initStrategy =
-  "residuals", checkHom = TRUE, penalty = TRUE, hardpenalty = FALSE, trace = 0,
-  return.matrices = TRUE, return.hom = FALSE), covtype = c("Gaussian",
-  "Matern5_2", "Matern3_2"), maxit = 100, known = list(beta0 = 0),
-  init = list(nu = 3), eps = sqrt(.Machine$double.eps))
+  "residuals", checkHom = TRUE, penalty = TRUE, hardpenalty = FALSE, trace
+  = 0, return.matrices = TRUE, return.hom = FALSE),
+  covtype = c("Gaussian", "Matern5_2", "Matern3_2"), maxit = 100,
+  known = list(beta0 = 0), init = list(nu = 3),
+  eps = sqrt(.Machine$double.eps))
 }
 \arguments{
 \item{X}{matrix of all designs, one per row, or list with elements:
@@ -46,7 +47,6 @@ Same as for \code{theta} if not provided.
   \item \code{logN}, when \code{TRUE} (default), the log-noise process is modeled.
   \item \code{initStrategy} one of \code{'simple'}, \code{'residuals'} (default) and \code{'smoothed'} to obtain starting values for \code{Delta}, see Details
   \item \code{penalty} when \code{TRUE}, the penalized version of the likelihood is used (i.e., the sum of the log-likelihoods of the mean and variance processes, see References).
-  \item \code{hardpenalty} is \code{TRUE}, the log-likelihood from the noise GP is taken into account only if negative.
   \item \code{checkHom} when \code{TRUE}, if the log-likelihood with a homoskedastic model is better, then return it.
   \item \code{trace} optional scalar (default to \code{0}). If positive, tracing information on the fitting process.
 If \code{1}, information is given about the result of the heterogeneous model optimization.
@@ -64,7 +64,7 @@ One can set one or several of the following:
 \itemize{
 \item \code{theta} lengthscale parameter(s) for the mean process either one value (isotropic) or a vector (anistropic)
 \item \code{Delta} vector of nuggets corresponding to each design in \code{X0}, that are smoothed to give \code{Lambda}
-(as the global covariance matrix depend on \code{Delta} and \code{nu2_hat}, it is recommended to also pass values for \code{theta})
+(as the global covariance matrix depend on \code{Delta} and \code{nu_hat}, it is recommended to also pass values for \code{theta})
 \item \code{beta0} constant trend of the mean process
 \item \code{k_theta_g} constant used for link mean and noise processes lengthscales, when \code{settings$linkThetas == 'joint'}
 \item \code{theta_g} either one value (isotropic) or a vector (anistropic) for lengthscale parameter(s) of the noise process, when \code{settings$linkThetas != 'joint'}
@@ -82,7 +82,7 @@ a list which is given the S3 class \code{"hetTP"}, with elements:
 \item \code{theta}: unless given, maximum likelihood estimate (mle) of the lengthscale parameter(s),
 \item \code{Delta}: unless given, mle of the nugget vector (non-smoothed),
 \item \code{Lambda}: predicted input noise variance at \code{X0}, 
-\item \code{nu2_hat}: plugin estimator of the variance,
+\item \code{nu_hat}: plugin estimator of the variance,
 \item \code{theta_g}: unless given, mle of the lengthscale(s) of the noise/log-noise process,
 \item \code{k_theta_g}: if \code{settings$linkThetas == 'joint'}, mle for the constant by which lengthscale parameters of \code{theta} are multiplied to get \code{theta_g},
 \item \code{g}: unless given, mle of the nugget of the noise/log-noise process,
@@ -93,7 +93,7 @@ a list which is given the S3 class \code{"hetTP"}, with elements:
 \item \code{nit_opt}, \code{msg}: \code{counts} and \code{message} returned by \code{\link[stats]{optim}}
 \item \code{modHom}: homoskedastic GP model of class \code{homGP} used for initialization of the mean process,
 \item \code{modNugs}: homoskedastic GP model of class \code{homGP} used for initialization of the noise/log-noise process,
-\item \code{nu2_hat_var}: variance of the noise process,
+\item \code{nu_hat_var}: variance of the noise process,
 \item \code{used_args}: list with arguments provided in the call to the function, which is saved in \code{call},
 \item \code{X0}, \code{Z0}, \code{Z}, \code{eps}, \code{logN}, \code{covtype}: values given in input
 }
@@ -127,7 +127,7 @@ Unless provided with \code{init$theta}, initial lengthscales are taken at the mi
 while \code{init$g_H} may be use to pass an initial nugget value.
 The resulting lengthscales provide initial values for \code{theta} (or update them if given in \code{init}). \cr \cr
 If necessary, a second homoskedastic model, \code{modNugs}, is fitted to the empirical residual variance between the prediction
- given by \code{modHom} at \code{X0} and \code{Z} (up to \code{modHom$nu2_hat}).
+ given by \code{modHom} at \code{X0} and \code{Z} (up to \code{modHom$nu_hat}).
 Note that when specifying \code{settings$linkThetas == 'joint'}, then this second homoskedastic model has fixed lengthscale parameters.
 Starting values for \code{theta_g} and \code{g} are extracted from \code{modNugs}.\cr \cr
 Finally, three initialization schemes for \code{Delta} are available with \code{settings$initStrategy}: 

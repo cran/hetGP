@@ -19,21 +19,25 @@
 # g noise variance for the process
 # beta0 trend
 # @return loglikelihood value
-logLikHom <- function(X0, Z0, Z, mult, theta, g, beta0 = NULL, covtype = "Gaussian", eps = sqrt(.Machine$double.eps)){
+logLikHom <- function(X0, Z0, Z, mult, theta, g, beta0 = NULL, covtype = "Gaussian", eps = sqrt(.Machine$double.eps), env = NULL){
   n <- nrow(X0)
   N <- length(Z)
   
   # Temporarily store Cholesky transform of K in Ki
-  Ki <- chol(add_diag(cov_gen(X1 = X0, theta = theta, type = covtype), eps + g / mult))
+  C <- cov_gen(X1 = X0, theta = theta, type = covtype)
+  if(!is.null(env)) env$C <- C
+  Ki <- chol(C + diag(eps + g / mult))
   ldetKi <- - 2 * sum(log(diag(Ki))) # log determinant from Cholesky
   Ki <- chol2inv(Ki)
+  
+  if(!is.null(env)) env$Ki <- Ki
   
   if(is.null(beta0))
     beta0 <- drop(colSums(Ki) %*% Z0 / sum(Ki))
   
   psi_0 <- drop(crossprod(Z0 - beta0, Ki) %*% (Z0 - beta0))
   
-  psi <- 1/N * ((crossprod(Z - beta0, Z - beta0) - crossprod((Z0 - beta0) * mult, Z0 - beta0))/g + psi_0)
+  psi <- 1/N * ((crossprod(Z - beta0) - crossprod((Z0 - beta0) * mult, Z0 - beta0))/g + psi_0)
   
   loglik <- -N/2 * log(2*pi) - N/2 * log(psi) + 1/2 * ldetKi - (N - n)/2 * log(g) - 1/2 * sum(log(mult)) - N/2
 }
@@ -49,12 +53,20 @@ logLikHom <- function(X0, Z0, Z, mult, theta, g, beta0 = NULL, covtype = "Gaussi
 # g noise variance for the process
 # beta0 trend
 ## @return gradient with respect to theta and g
-dlogLikHom <- function(X0, Z0, Z, mult, theta, g, beta0 = NULL, covtype = "Gaussian", eps = sqrt(.Machine$double.eps), components = c("theta", "g")){
+dlogLikHom <- function(X0, Z0, Z, mult, theta, g, beta0 = NULL, covtype = "Gaussian",
+                       eps = sqrt(.Machine$double.eps), components = c("theta", "g"), env = NULL){
   k <- length(Z)
   n <- nrow(X0)
   
-  C <- cov_gen(X1 = X0, theta = theta, type = covtype)
-  Ki <- chol2inv(chol(C + diag(eps + g / mult)))
+  
+  if(!is.null(env)){
+    C <- env$C
+    Ki <- env$Ki
+  }else{
+    C <- cov_gen(X1 = X0, theta = theta, type = covtype)
+    Ki <- chol2inv(chol(C + diag(eps + g / mult)))
+  }
+  
   
   if(is.null(beta0))
     beta0 <- drop(colSums(Ki) %*% Z0 / sum(Ki))
@@ -73,18 +85,18 @@ dlogLikHom <- function(X0, Z0, Z, mult, theta, g, beta0 = NULL, covtype = "Gauss
     tmp1 <- rep(NA, length(theta))
     if(length(theta)==1){
       dC_dthetak <- partial_cov_gen(X1 = X0, theta = theta, type = covtype, arg = "theta_k") * C
-      tmp1 <- k/2 * crossprod(KiZ0, dC_dthetak) %*% KiZ0 /((crossprod(Z, Z) - crossprod(Z0 * mult, Z0))/g + psi) - 1/2 * fast_trace(Ki, dC_dthetak)
+      tmp1 <- k/2 * crossprod(KiZ0, dC_dthetak) %*% KiZ0 /((crossprod(Z) - crossprod(Z0 * mult, Z0))/g + psi) - 1/2 * fast_trace(Ki, dC_dthetak)
     }else{
       for(i in 1:length(theta)){
         dC_dthetak <- partial_cov_gen(X1 = X0[,i, drop = F], theta = theta[i], type = covtype, arg = "theta_k") * C
-        tmp1[i] <- k/2 * crossprod(KiZ0, dC_dthetak) %*% KiZ0 /((crossprod(Z, Z) - crossprod(Z0 * mult, Z0))/g + psi) - 1/2 * fast_trace(Ki, dC_dthetak)
+        tmp1[i] <- k/2 * crossprod(KiZ0, dC_dthetak) %*% KiZ0 /((crossprod(Z) - crossprod(Z0 * mult, Z0))/g + psi) - 1/2 * fast_trace(Ki, dC_dthetak)
       }
     } 
   }
   
   # Second component derivative with respect to g
   if("g" %in% components)
-    tmp2 <- k/2 * ((crossprod(Z, Z) - crossprod(Z0 * mult, Z0))/g^2 + sum(KiZ0^2/mult)) / ((crossprod(Z, Z) - crossprod(Z0 * mult, Z0))/g + psi) - (k - n)/ (2*g) - 1/2 * sum(diag(Ki)/mult)
+    tmp2 <- k/2 * ((crossprod(Z) - crossprod(Z0 * mult, Z0))/g^2 + sum(KiZ0^2/mult)) / ((crossprod(Z) - crossprod(Z0 * mult, Z0))/g + psi) - (k - n)/ (2*g) - 1/2 * sum(diag(Ki)/mult)
   
   return(c(tmp1, tmp2))
 }
@@ -121,19 +133,19 @@ dlogLikHom <- function(X0, Z0, Z, mult, theta, g, beta0 = NULL, covtype = "Gauss
 ##' \item \code{g}: maximum likelihood estimate of the nugget variance,
 ##' \item \code{trendtype}: either "\code{SK}" if \code{beta0} is given, else "\code{OK}" 
 ##' \item \code{beta0}: estimated trend unless given in input,
-##' \item \code{nu2_hat}: plugin estimator of the variance,
+##' \item \code{nu_hat}: plugin estimator of the variance,
 ##' \item \code{ll}: log-likelihood value,
 ##' \item \code{X0}, \code{Z0}, \code{Z}, \code{mult}, \code{eps}, \code{covtype}: values given in input,
 ##' \item \code{call}: user call of the function
 ##' \item \code{used_args}: list with arguments provided in the call
 ##' \item \code{nit_opt}, \code{msg}: \code{counts} and \code{msg} returned by \code{\link[stats]{optim}}
-##' \item \code{Ki}, inverse covariance matrix (if \code{return.Ki} is \code{TRUE} in \code{settings})
+##' \item \code{Ki}: inverse covariance matrix (not scaled by \code{nu_hat}) (if \code{return.Ki} is \code{TRUE} in \code{settings})
 ##' 
 ##'}
 ##' @details
-##' The global covariance matrix of the model is parameterized as \code{K = nu2_hat * (C + g * diag(1/mult))},
+##' The global covariance matrix of the model is parameterized as \code{nu_hat * (C + g * diag(1/mult)) = nu_hat * K},
 ##' with \code{C} the correlation matrix between unique designs, depending on the family of kernel used (see \code{\link[hetGP]{cov_gen}} for available choices) and values of lengthscale parameters.
-##' \code{nu2_hat} is the plugin estimator of the variance of the process.
+##' \code{nu_hat} is the plugin estimator of the variance of the process.
 ##' 
 ##' It is generally recommended to use \code{\link[hetGP]{find_reps}} to pre-process the data, to rescale the inputs to the unit cube and to normalize the outputs.
 ##' 
@@ -216,7 +228,7 @@ mleHomGP <- function(X, Z, lower, upper, known = NULL,
     trendtype <- 'SK'
   
   ## General definition of fn and gr
-  fn <- function(par, X0, Z0, Z, mult, beta0, theta, g){
+  fn <- function(par, X0, Z0, Z, mult, beta0, theta, g, env){
     idx <- 1 # to store the first non used element of par
     
     if(is.null(theta)){
@@ -227,10 +239,10 @@ mleHomGP <- function(X, Z, lower, upper, known = NULL,
     if(is.null(g)){
       g <- par[idx]
     }
-    return(logLikHom(X0 = X0, Z0 = Z0, Z = Z, mult = mult, theta = theta, g = g, beta0 = beta0, covtype = covtype, eps = eps))
+    return(logLikHom(X0 = X0, Z0 = Z0, Z = Z, mult = mult, theta = theta, g = g, beta0 = beta0, covtype = covtype, eps = eps, env = env))
   }
   
-  gr <- function(par, X0, Z0, Z, mult, beta0, theta, g){
+  gr <- function(par, X0, Z0, Z, mult, beta0, theta, g, env){
     idx <- 1
     components <- NULL
     
@@ -245,7 +257,7 @@ mleHomGP <- function(X, Z, lower, upper, known = NULL,
       components <- c(components, "g")
     }
     return(dlogLikHom(X0 = X0, Z0 = Z0, Z = Z, mult = mult, theta = theta, g = g, beta0 = beta0, covtype = covtype, eps = eps,
-                      components = components))
+                      components = components, env = env))
   }
   
   ## Both known
@@ -268,7 +280,7 @@ mleHomGP <- function(X, Z, lower, upper, known = NULL,
     }
     
     out <- optim(par = parinit, fn = fn, gr = gr, method = "L-BFGS-B", lower = lowerOpt, upper = upperOpt, theta = known[["theta"]], g = known$g,
-                 X0 = X0, Z0 = Z0, Z = Z, mult = mult, beta0 = beta0, control = list(fnscale = -1, maxit = maxit))
+                 X0 = X0, Z0 = Z0, Z = Z, mult = mult, beta0 = beta0, control = list(fnscale = -1, maxit = maxit), env = environment())
     if(is.null(known$g)) g_out <- out$par[length(out$par)] else g_out <- known$g
     if(is.null(known[["theta"]])) theta_out <- out$par[1:length(init$theta)] else theta_out <- known[["theta"]]
     
@@ -281,9 +293,9 @@ mleHomGP <- function(X, Z, lower, upper, known = NULL,
   
   psi_0 <- drop(crossprod(Z0 - beta0, Ki) %*% (Z0 - beta0))
   
-  nu <- 1/N * ((crossprod(Z - beta0, Z - beta0) - crossprod((Z0 - beta0) * mult, Z0 - beta0))/g_out + psi_0)
+  nu <- 1/N * ((crossprod(Z - beta0) - crossprod((Z0 - beta0) * mult, Z0 - beta0))/g_out + psi_0)
   
-  res <- list(theta = theta_out, g = g_out, nu2_hat = as.numeric(nu), ll = out$value, nit_opt = out$counts,
+  res <- list(theta = theta_out, g = g_out, nu_hat = as.numeric(nu), ll = out$value, nit_opt = out$counts,
               beta0 = beta0, trendtype = trendtype, covtype = covtype, msg = out$message, eps = eps,
               X0 = X0, Z0 = Z0, Z = Z, mult = mult, call = match.call(),
               used_args = list(lower = lower, upper = upper, known = known, noiseControl = noiseControl))
@@ -310,7 +322,7 @@ print.summary.homGP <- function(x, ...){
   
   cat("Homoskedastic nugget value: ", x$g, "\n")
   
-  cat("Variance/scale hyperparameter: ", x$nu2_hat, "\n")
+  cat("Variance/scale hyperparameter: ", x$nu_hat, "\n")
   
   if(x$trendtype == "SK"){
     cat("Given constant trend value: ", x$beta0, "\n")
@@ -351,40 +363,48 @@ predict.homGP <- function(object, x, xprime = NULL, ...){
   if(is.null(object$Ki))
     object$Ki <- chol2inv(chol(add_diag(cov_gen(X1 = object$X0, theta = object$theta, type = object$covtype), object$g/object$mult + object$eps)))
   
-  object$Ki <- object$Ki/object$nu2_hat
+  object$Ki <- object$Ki/object$nu_hat
   
   
-  kx <- object$nu2_hat * cov_gen(X1 = x, X2 = object$X0, theta = object$theta, type = object$covtype)
+  kx <- object$nu_hat * cov_gen(X1 = x, X2 = object$X0, theta = object$theta, type = object$covtype)
   
-  nugs <- rep(object$nu2_hat * object$g, nrow(x))
+  nugs <- rep(object$nu_hat * object$g, nrow(x))
   mean <- as.vector(object$beta0 + kx %*% (object$Ki %*% (object$Z0 - object$beta0)))
   
   if(object$trendtype == 'SK'){
-    sd2 <- as.vector(object$nu2_hat - fast_diag(kx, tcrossprod(object$Ki, kx)))
+    sd2 <- as.vector(object$nu_hat - fast_diag(kx, tcrossprod(object$Ki, kx)))
   }else{
-    sd2 <- as.vector(object$nu2_hat - fast_diag(kx, tcrossprod(object$Ki, kx)) + (1 - tcrossprod(rowSums(object$Ki), kx))^2/sum(object$Ki))
+    sd2 <- as.vector(object$nu_hat - fast_diag(kx, tcrossprod(object$Ki, kx)) + (1 - tcrossprod(rowSums(object$Ki), kx))^2/sum(object$Ki))
   }
   
   ## In case of numerical errors, some sd2 values may become negative
   if(any(sd2 < 0)){
-    # object$Ki <- ginv(add_diag(cov_gen(X1 = object$X0, theta = object$theta, type = object$covtype), object$g/object$mult + object$eps))/object$nu2_hat
+    # object$Ki <- ginv(add_diag(cov_gen(X1 = object$X0, theta = object$theta, type = object$covtype), object$g/object$mult + object$eps))/object$nu_hat
     # mean <- as.vector(object$beta0 + kx %*% (object$Ki %*% (object$Z0 - object$beta0)))
     # 
     # if(object$trendtype == 'SK'){
-    #   sd2 <- as.vector(object$nu2_hat - fast_diag(kx, tcrossprod(object$Ki, kx)))
+    #   sd2 <- as.vector(object$nu_hat - fast_diag(kx, tcrossprod(object$Ki, kx)))
     # }else{
-    #   sd2 <- as.vector(object$nu2_hat - fast_diag(kx, tcrossprod(object$Ki, kx)) + (1 - tcrossprod(rowSums(object$Ki), kx))^2/sum(object$Ki))
+    #   sd2 <- as.vector(object$nu_hat - fast_diag(kx, tcrossprod(object$Ki, kx)) + (1 - tcrossprod(rowSums(object$Ki), kx))^2/sum(object$Ki))
     # }
     sd2 <- pmax(0, sd2)
     warning("Numerical errors caused some negative predictive variances to be thresholded to zero. Consider using ginv via rebuild.homGP")
   }
   
   if(!is.null(xprime)){
-    kxprime <- object$nu2_hat * cov_gen(X1 = xprime, X2 = object$X0, theta = object$theta, type = object$covtype)
+    kxprime <- object$nu_hat * cov_gen(X1 = object$X0, X2 = xprime, theta = object$theta, type = object$covtype)
     if(object$trendtype == 'SK'){
-      cov <- object$nu2_hat * cov_gen(X1 = x, X2 = xprime, theta = object$theta, type = object$covtype) - kx %*% tcrossprod(object$Ki, kxprime)
+      if(nrow(x) < nrow(xprime)){
+        cov <- object$nu_hat * cov_gen(X1 = x, X2 = xprime, theta = object$theta, type = object$covtype) - kx %*% object$Ki %*% kxprime 
+      }else{
+        cov <- object$nu_hat * cov_gen(X1 = x, X2 = xprime, theta = object$theta, type = object$covtype) - kx %*% (object$Ki %*% kxprime)
+      }
     }else{
-      cov <- object$nu2_hat * cov_gen(X1 = x, X2 = xprime, theta = object$theta, type = object$covtype) - kx %*% tcrossprod(object$Ki, kxprime) + crossprod(1 - tcrossprod(rowSums(object$Ki), kx), 1 - tcrossprod(rowSums(object$Ki), kxprime))/sum(object$Ki)
+      if(nrow(x) < nrow(xprime)){
+        cov <- object$nu_hat * cov_gen(X1 = x, X2 = xprime, theta = object$theta, type = object$covtype) - kx %*% object$Ki %*% kxprime + crossprod(1 - tcrossprod(rowSums(object$Ki), kx), 1 - rowSums(object$Ki) %*% kxprime)/sum(object$Ki)
+      }else{
+        cov <- object$nu_hat * cov_gen(X1 = x, X2 = xprime, theta = object$theta, type = object$covtype) - kx %*% (object$Ki %*%  kxprime) + crossprod(1 - tcrossprod(rowSums(object$Ki), kx), 1 - rowSums(object$Ki) %*% kxprime)/sum(object$Ki)
+      }
     }
   }else{
     cov = NULL
@@ -443,7 +463,7 @@ rebuild <- function (object, robust) {
 ##' @export
 rebuild.homGP <- function(object, robust = FALSE){
   if(robust){
-    object$Ki <- ginv(add_diag(cov_gen(X1 = object$X0, theta = object$theta, type = object$covtype), object$g/object$mult + object$eps))/object$nu2_hat
+    object$Ki <- ginv(add_diag(cov_gen(X1 = object$X0, theta = object$theta, type = object$covtype), object$g/object$mult + object$eps))/object$nu_hat
   }else{
     object$Ki <- chol2inv(chol(add_diag(cov_gen(X1 = object$X0, theta = object$theta, type = object$covtype), object$g/object$mult + object$eps)))
   }
@@ -486,10 +506,11 @@ strip <- function (object) {
 ## ' @param eps minimal value of elements of Lambda
 ## ' @param covtype covariance kernel type
 ## ' @param penalty should a penalty term on Delta be used?
+## ' @param hom_ll reference homoskedastic likelihood
 ## ' @export
 logLikHet <- function(X0, Z0, Z, mult, Delta, theta, g, k_theta_g = NULL, theta_g = NULL, logN = FALSE, SiNK = FALSE,
                       beta0 = NULL, pX = NULL, eps = sqrt(.Machine$double.eps), covtype = "Gaussian", SiNK_eps = 1e-4,
-                      penalty = T, hardpenalty = T){
+                      penalty = T, hom_ll = NULL, env = NULL, trace = 0){
   n <- nrow(X0)
   N <- length(Z)
   
@@ -539,9 +560,19 @@ logLikHet <- function(X0, Z0, Z, mult, Delta, theta, g, k_theta_g = NULL, theta_
   LambdaN <- rep(Lambda, times = mult)
   
   # Temporarily store Cholesky transform of K in Ki
-  Ki <- chol(add_diag(cov_gen(X1 = X0, theta = theta, type = covtype), Lambda/mult + eps))
+  C <- cov_gen(X1 = X0, theta = theta, type = covtype)
+  if(!is.null(env)) env$C <- C
+  Ki <- chol(C + diag(Lambda/mult + eps))
   ldetKi <- - 2 * sum(log(diag(Ki))) # log determinant from Cholesky
   Ki <- chol2inv(Ki)
+  
+  if(!is.null(env)){
+    env$Cg <- Cg
+    env$Kg_c <- Kg_c
+    env$Kgi <- Kgi
+    env$ldetKi <- ldetKi
+    env$Ki <- Ki
+  }
   
   if(is.null(beta0))
     beta0 <- drop(colSums(Ki) %*% Z0 / sum(Ki))
@@ -553,15 +584,23 @@ logLikHet <- function(X0, Z0, Z, mult, Delta, theta, g, k_theta_g = NULL, theta_
   loglik <- -N/2 * log(2*pi) - N/2 * log(psi) + 1/2 * ldetKi - 1/2 * sum((mult - 1) * log(Lambda) + log(mult)) - N/2
   
   if(penalty){
-    nu2_hat_var <- drop(crossprod(Delta - nmean, Kgi) %*% (Delta - nmean))/length(Delta)
+    nu_hat_var <- drop(crossprod(Delta - nmean, Kgi) %*% (Delta - nmean))/length(Delta)
     
     ## To avoid 0 variance, e.g., when Delta = nmean
-    if(nu2_hat_var < eps) return(loglik)
+    if(nu_hat_var < eps) return(loglik)
     
-    if(hardpenalty)
-      return(loglik + min(0, - n/2 * log(nu2_hat_var) - sum(log(diag(Kg_c))) - n/2*log(2*pi) - n/2))
+    # if(hardpenalty)
+    #   return(loglik + min(0, - n/2 * log(nu_hat_var) - sum(log(diag(Kg_c))) - n/2*log(2*pi) - n/2))
     
-    return(loglik - n/2 * log(nu2_hat_var) - sum(log(diag(Kg_c))) - n/2*log(2*pi) - n/2)
+    pen <- - n/2 * log(nu_hat_var) - sum(log(diag(Kg_c))) - n/2*log(2*pi) - n/2
+    
+    if(loglik < hom_ll && pen > 0){
+      if(trace > 0) warning("Penalty is desactivated when unpenalized likelihood is lower than its homGP equivalent")
+      return(loglik)
+    }
+    
+    
+    return(loglik + pen)
   }
   return(loglik)
 }
@@ -590,10 +629,11 @@ logLikHet <- function(X0, Z0, Z, mult, Delta, theta, g, k_theta_g = NULL, theta_
 ## ' @param eps minimal value of elements of Lambda
 ## ' @param covtype covariance kernel type
 ## ' @param penalty should a penalty term on Delta be used?
+## ' @param hom_ll: reference homoskedastic likelihood
 ## ' @export
 dlogLikHet <- function(X0, Z0, Z, mult, Delta, theta, g, k_theta_g = NULL, theta_g = NULL, beta0 = NULL, pX = NULL,
                        logN = TRUE, SiNK = FALSE, components = NULL, eps = sqrt(.Machine$double.eps), covtype = "Gaussian", SiNK_eps = 1e-4,
-                       penalty = T, hardpenalty = T){
+                       penalty = T, hom_ll, env = NULL){
   
   ## Verifications
   if(is.null(k_theta_g) && is.null(theta_g))
@@ -619,17 +659,24 @@ dlogLikHet <- function(X0, Z0, Z, mult, Delta, theta, g, k_theta_g = NULL, theta
   n <- nrow(X0)
   N <- length(Z)
   
-  if(is.null(pX)){
-    Cg <- cov_gen(X1 = X0, theta = theta_g, type = covtype)
-    Kg_c <- chol(Cg + diag(eps + g/mult))
-    Kgi <- chol2inv(Kg_c)
-    # M <- Cg %*% Kgi
-    M <- add_diag(Kgi * (-eps - g / mult), rep(1, n))
+  if(!is.null(env)){
+    Cg <- env$Cg
+    Kg_c <- env$Kg_c
+    Kgi <- env$Kgi
+    if(is.null(pX)) M <- add_diag(Kgi * (-eps - g / mult), rep(1, n))
   }else{
-    Cg <- cov_gen(X1 = pX, theta = theta_g, type = covtype)
-    Kg_c <- chol(Cg + diag(eps + g/mult))
-    Kgi <- chol2inv(Kg_c)
-    kg <- cov_gen(X1 = X0, X2 = pX, theta = theta_g, type = covtype)
+    if(is.null(pX)){
+      Cg <- cov_gen(X1 = X0, theta = theta_g, type = covtype)
+      Kg_c <- chol(Cg + diag(eps + g/mult))
+      Kgi <- chol2inv(Kg_c)
+      # M <- Cg %*% Kgi
+      M <- add_diag(Kgi * (-eps - g / mult), rep(1, n))
+    }else{
+      Cg <- cov_gen(X1 = pX, theta = theta_g, type = covtype)
+      Kg_c <- chol(Cg + diag(eps + g/mult))
+      Kgi <- chol2inv(Kg_c)
+      kg <- cov_gen(X1 = X0, X2 = pX, theta = theta_g, type = covtype)
+    }
   }
   
   ## Precomputations for reuse
@@ -641,12 +688,6 @@ dlogLikHet <- function(X0, Z0, Z, mult, Delta, theta, g, k_theta_g = NULL, theta
   
   ## Precomputations for reuse
   KgiD <- Kgi %*% (Delta - nmean)
-  
-  if(penalty){
-    nu2_hat_var <- drop(crossprod(KgiD, (Delta - nmean)))/length(Delta) 
-    # To prevent numerical issues when Delta = nmean, giving a positive penalty (or if the penalty is positive)
-    if(nu2_hat_var < eps || (hardpenalty && (- n/2 * log(nu2_hat_var) - sum(log(diag(Kg_c))) - n/2*log(2*pi) - n/2) > 0)) penalty <- FALSE
-  }                                          
   
   if(SiNK){
     rhox <- 1 / rho_AN(xx = X0, X0 = pX, theta_g = theta_g, g = g, type = covtype, eps = eps, SiNK_eps = SiNK_eps, mult = mult)
@@ -664,9 +705,18 @@ dlogLikHet <- function(X0, Z0, Z, mult, Delta, theta, g, k_theta_g = NULL, theta
   
   LambdaN <- rep(Lambda, times = mult)
   
-  C <- cov_gen(X1 = X0, theta = theta, type = covtype)
+  if(!is.null(env)){
+    C <- env$C
+    Ki <- env$Ki
+    ldetKi <- env$ldetKi
+  }else{
+    C <- cov_gen(X1 = X0, theta = theta, type = covtype)
+    Ki <- chol(C + diag(Lambda/mult + eps))
+    ldetKi <- - 2 * sum(log(diag(Ki))) # log determinant from Cholesky
+    Ki <- chol2inv(Ki)
+  }
   
-  Ki <- chol2inv(chol(C + diag(Lambda/mult + eps)))
+  # Ki <- chol2inv(chol(C + diag(Lambda/mult + eps)))
   
   if(is.null(beta0))
     beta0 <- drop(colSums(Ki) %*% Z0 / sum(Ki))
@@ -678,6 +728,20 @@ dlogLikHet <- function(X0, Z0, Z, mult, Delta, theta, g, k_theta_g = NULL, theta
   psi_0 <- drop(crossprod(KiZ0, Z0 - beta0))
   
   psi <- drop((crossprod((Z - beta0)/LambdaN, Z - beta0) - crossprod((Z0 - beta0) * mult/Lambda, Z0 - beta0)) + psi_0)
+  
+  if(penalty){
+    nu_hat_var <- drop(crossprod(KgiD, (Delta - nmean)))/length(Delta) 
+    
+    # To prevent numerical issues when Delta = nmean, resulting in divisions by zero
+    if(nu_hat_var < eps){
+      penalty <- FALSE
+    }else{
+      loglik <- -N/2 * log(2*pi) - N/2 * log(psi/N)  + 1/2 * ldetKi - 1/2 * sum((mult - 1) * log(Lambda) + log(mult)) - N/2
+      pen <- - n/2 * log(nu_hat_var) - sum(log(diag(Kg_c))) - n/2*log(2*pi) - n/2
+      if(hom_ll > loglik && pen > 0) penalty <- FALSE
+    }
+    # if(nu_hat_var < eps || (hardpenalty && (- n/2 * log(nu_hat_var) - sum(log(diag(Kg_c))) - n/2*log(2*pi) - n/2) > 0)) penalty <- FALSE
+  }       
   
   dLogL_dtheta <- dLogL_dDelta <- dLogL_dkthetag <- dLogL_dthetag <- dLogL_dg <- dLogL_dpX <- NULL
   
@@ -744,7 +808,7 @@ dlogLikHet <- function(X0, Z0, Z, mult, Delta, theta, g, k_theta_g = NULL, theta
         dLogL_dtheta[i] <- dLogL_dtheta[i] - 1/2 * sum((mult - 1) * dLdtk/Lambda) # derivative of the sum(a_i - 1)log(lambda_i)
         
         if(penalty)
-          dLogL_dtheta[i] <- dLogL_dtheta[i]  + 1/2 * crossprod(KgiD, dCg_dthetak) %*% KgiD / nu2_hat_var  - 1/2 * fast_trace(Kgi, dCg_dthetak)
+          dLogL_dtheta[i] <- dLogL_dtheta[i]  + 1/2 * crossprod(KgiD, dCg_dthetak) %*% KgiD / nu_hat_var  - 1/2 * fast_trace(Kgi, dCg_dthetak)
         
       }else{
         dLogL_dtheta[i] <- N/2 * crossprod(KiZ0, dC_dthetak) %*% KiZ0/psi - 1/2 * fast_trace(Ki, dC_dthetak)
@@ -838,7 +902,7 @@ dlogLikHet <- function(X0, Z0, Z, mult, Delta, theta, g, k_theta_g = NULL, theta
       }
       
       # Penalty term
-      if(penalty) dLogL_dthetag[i] <- dLogL_dthetag[i] + 1/2 * crossprod(KgiD, dCg_dthetagk) %*% KgiD/nu2_hat_var - fast_trace(Kgi, dCg_dthetagk)/2 
+      if(penalty) dLogL_dthetag[i] <- dLogL_dthetag[i] + 1/2 * crossprod(KgiD, dCg_dthetagk) %*% KgiD/nu_hat_var - fast_trace(Kgi, dCg_dthetagk)/2 
     }
   }
   
@@ -872,7 +936,7 @@ dlogLikHet <- function(X0, Z0, Z, mult, Delta, theta, g, k_theta_g = NULL, theta
                                                        (1 - rsM) * (rSKgi %*% dCg_dpX %*% Kgi %*% Delta * sKgi - rSKgi %*% Delta * (rSKgi %*% dCg_dpX %*% rSKgi))/sKgi^2, dLogLdLambda)
         }
         
-        if(penalty) dLogL_dpX[(j-1)*nrow(pX) + i] <- dLogL_dpX[(j-1)*nrow(pX) + i] - 1/2 * crossprod(KgiD, dCg_dpX) %*% KgiD / nu2_hat_var - fast_trace(Kgi, dCg_dpX)/2 
+        if(penalty) dLogL_dpX[(j-1)*nrow(pX) + i] <- dLogL_dpX[(j-1)*nrow(pX) + i] - 1/2 * crossprod(KgiD, dCg_dpX) %*% KgiD / nu_hat_var - fast_trace(Kgi, dCg_dpX)/2 
         
       }
     }
@@ -881,13 +945,13 @@ dlogLikHet <- function(X0, Z0, Z, mult, Delta, theta, g, k_theta_g = NULL, theta
   # Additional penalty terms on Delta
   if(penalty){
     if("Delta" %in% components){
-      dLogL_dDelta <- dLogL_dDelta - KgiD / nu2_hat_var
+      dLogL_dDelta <- dLogL_dDelta - KgiD / nu_hat_var
     }
     if("k_theta_g" %in% components){
-      dLogL_dkthetag <- dLogL_dkthetag + 1/2 * crossprod(KgiD, dCg_dk) %*% KgiD / nu2_hat_var - fast_trace(Kgi, dCg_dk)/2 
+      dLogL_dkthetag <- dLogL_dkthetag + 1/2 * crossprod(KgiD, dCg_dk) %*% KgiD / nu_hat_var - fast_trace(Kgi, dCg_dk)/2 
     }
     if("g" %in% components){
-      dLogL_dg <- dLogL_dg + 1/2 * crossprod(KgiD/mult, KgiD) / nu2_hat_var - sum(diag(Kgi)/mult)/2 
+      dLogL_dg <- dLogL_dg + 1/2 * crossprod(KgiD/mult, KgiD) / nu_hat_var - sum(diag(Kgi)/mult)/2 
     }
     
   }
@@ -955,7 +1019,7 @@ compareGP <- function(model1, model2){
 ##'   \item \code{logN}, when \code{TRUE} (default), the log-noise process is modeled.
 ##'   \item \code{initStrategy} one of \code{'simple'}, \code{'residuals'} (default) and \code{'smoothed'} to obtain starting values for \code{Delta}, see Details
 ##'   \item \code{penalty} when \code{TRUE}, the penalized version of the likelihood is used (i.e., the sum of the log-likelihoods of the mean and variance processes, see References).
-##'   \item \code{hardpenalty} is \code{TRUE}, the log-likelihood from the noise GP is taken into account only if negative (default if \code{maxit > 1000}).
+## '   \item \code{hardpenalty} is \code{TRUE}, the log-likelihood from the noise GP is taken into account only if negative (default if \code{maxit > 1000}).
 ##'   \item \code{checkHom} when \code{TRUE}, if the log-likelihood with a homoskedastic model is better, then return it.
 ##'   \item \code{trace} optional scalar (default to \code{0}). If positive, tracing information on the fitting process.
 ##' If \code{1}, information is given about the result of the heterogeneous model optimization.
@@ -970,7 +1034,7 @@ compareGP <- function(model1, model2){
 ##' \itemize{
 ##' \item \code{theta} lengthscale parameter(s) for the mean process either one value (isotropic) or a vector (anistropic)
 ##' \item \code{Delta} vector of nuggets corresponding to each design in \code{X0}, that are smoothed to give \code{Lambda}
-##' (as the global covariance matrix depend on \code{Delta} and \code{nu2_hat}, it is recommended to also pass values for \code{theta})
+##' (as the global covariance matrix depend on \code{Delta} and \code{nu_hat}, it is recommended to also pass values for \code{theta})
 ##' \item \code{beta0} constant trend of the mean process
 ##' \item \code{k_theta_g} constant used for link mean and noise processes lengthscales, when \code{settings$linkThetas == 'joint'}
 ##' \item \code{theta_g} either one value (isotropic) or a vector (anistropic) for lengthscale parameter(s) of the noise process, when \code{settings$linkThetas != 'joint'}
@@ -983,9 +1047,9 @@ compareGP <- function(model1, model2){
 ##' 
 ##' @details
 ##' 
-##' The global covariance matrix of the model is parameterized as \code{K = nu2_hat * (C + Lambda * diag(1/mult))},
+##' The global covariance matrix of the model is parameterized as \code{nu_hat * (C + Lambda * diag(1/mult)) = nu_hat * K},
 ##' with \code{C} the correlation matrix between unique designs, depending on the family of kernel used (see \code{\link[hetGP]{cov_gen}} for available choices) and values of lengthscale parameters.
-##' \code{nu2_hat} is the plugin estimator of the variance of the process.
+##' \code{nu_hat} is the plugin estimator of the variance of the process.
 ##' \code{Lambda} is the prediction on the noise level given by a second (homoskedastic) GP: \cr
 ##' \deqn{\Lambda = C_g(C_g + \mathrm{diag}(g/\mathrm{mult}))^{-1} \Delta} \cr
 ##' with \code{C_g} the correlation matrix between unique designs for this second GP, with lengthscales hyperparameters \code{theta_g} and nugget \code{g}
@@ -1007,7 +1071,7 @@ compareGP <- function(model1, model2){
 ##' while \code{init$g_H} may be use to pass an initial nugget value.
 ##' The resulting lengthscales provide initial values for \code{theta} (or update them if given in \code{init}). \cr \cr
 ##' If necessary, a second homoskedastic model, \code{modNugs}, is fitted to the empirical residual variance between the prediction
-##'  given by \code{modHom} at \code{X0} and \code{Z} (up to \code{modHom$nu2_hat}).
+##'  given by \code{modHom} at \code{X0} and \code{Z} (up to \code{modHom$nu_hat}).
 ##' Note that when specifying \code{settings$linkThetas == 'joint'}, then this second homoskedastic model has fixed lengthscale parameters.
 ##' Starting values for \code{theta_g} and \code{g} are extracted from \code{modNugs}.\cr \cr
 ##' Finally, three initialization schemes for \code{Delta} are available with \code{settings$initStrategy}: 
@@ -1029,7 +1093,7 @@ compareGP <- function(model1, model2){
 ##' \item \code{theta}: unless given, maximum likelihood estimate (mle) of the lengthscale parameter(s),
 ##' \item \code{Delta}: unless given, mle of the nugget vector (non-smoothed),
 ##' \item \code{Lambda}: predicted input noise variance at \code{X0}, 
-##' \item \code{nu2_hat}: plugin estimator of the variance,
+##' \item \code{nu_hat}: plugin estimator of the variance,
 ##' \item \code{theta_g}: unless given, mle of the lengthscale(s) of the noise/log-noise process,
 ##' \item \code{k_theta_g}: if \code{settings$linkThetas == 'joint'}, mle for the constant by which lengthscale parameters of \code{theta} are multiplied to get \code{theta_g},
 ##' \item \code{g}: unless given, mle of the nugget of the noise/log-noise process,
@@ -1041,9 +1105,9 @@ compareGP <- function(model1, model2){
 ##' \item \code{nit_opt}, \code{msg}: \code{counts} and \code{message} returned by \code{\link[stats]{optim}}
 ##' \item \code{modHom}: homoskedastic GP model of class \code{homGP} used for initialization of the mean process,
 ##' \item \code{modNugs}: homoskedastic GP model of class \code{homGP} used for initialization of the noise/log-noise process,
-##' \item \code{nu2_hat_var}: variance of the noise process,
+##' \item \code{nu_hat_var}: variance of the noise process,
 ##' \item \code{used_args}: list with arguments provided in the call to the function, which is saved in \code{call},
-##' \item \code{Ki}, \code{Kgi}: inverse of the covariance matrices of the mean and noise processes,  
+##' \item \code{Ki}, \code{Kgi}: inverse of the covariance matrices of the mean and noise processes (not scaled by \code{nu_hat} and \code{nu_hat_var}),  
 ##' \item \code{X0}, \code{Z0}, \code{Z}, \code{eps}, \code{logN}, \code{covtype}: values given in input
 ##'}
 ##' @seealso \code{\link[hetGP]{predict.hetGP}} for predictions, \code{\link[hetGP]{update.hetGP}} for updating an existing model.
@@ -1227,12 +1291,11 @@ mleHetGP <- function(X, Z, lower, upper,
   if(!is.null(settings$penalty))
     penalty <- settings$penalty
   
-  
-  if(!is.null(settings$hardpenalty)){
-    hardpenalty <- settings$hardpenalty
-  }else{
-    if(maxit < 1000) hardpenalty <- FALSE else hardpenalty <- TRUE
-  }
+  # if(!is.null(settings$hardpenalty)){
+  #   hardpenalty <- settings$hardpenalty
+  # }else{
+  #   if(maxit < 1000) hardpenalty <- FALSE else hardpenalty <- TRUE
+  # }
   
   
   if(is.null(settings$checkHom))
@@ -1302,6 +1365,9 @@ mleHetGP <- function(X, Z, lower, upper,
     noiseControl$g_bounds <- c(1e-6, 1)
   }
   
+  if(is.null(components) && is.null(known$theta_g)){
+    known$theta_g <- known$k_theta_g * known$theta
+  }
   
   ## Advanced option Single Nugget Kriging model for the noise process
   if(!is.null(noiseControl$SiNK) && noiseControl$SiNK){
@@ -1356,7 +1422,8 @@ mleHetGP <- function(X, Z, lower, upper,
     }else{
       rKI <- FALSE
     } 
-    modHom <- mleHomGP(X = list(X0 = X0, Z0 = Z0, mult = mult), Z = Z, lower = lower, known = list(theta = known[["theta"]], g = known$g_H),
+    modHom <- mleHomGP(X = list(X0 = X0, Z0 = Z0, mult = mult), Z = Z, lower = lower,
+                       known = list(theta = known[["theta"]], g = known$g_H, beta0 = known$beta0),
                        upper = upper, init = list(theta = init$theta, g = g_init), covtype = covtype, maxit = maxit,
                        noiseControl = list(g_bounds = c(noiseControl$g_min, noiseControl$g_max)), eps = eps, settings = list(return.Ki = rKI))
     
@@ -1364,9 +1431,9 @@ mleHetGP <- function(X, Z, lower, upper,
       init$theta <- modHom$theta
     
     if(is.null(init$Delta)){
-      predHom <- predict(x = X0, object = modHom)$mean
+      predHom <- suppressWarnings(predict(x = X0, object = modHom)$mean)
       nugs_est <- (Z - rep(predHom, times = mult))^2 #squared deviation from the homoskedastic prediction mean to the actual observations
-      nugs_est <-  nugs_est / modHom$nu2_hat  # to be homegeneous with Delta
+      nugs_est <-  nugs_est / modHom$nu_hat  # to be homegeneous with Delta
       
       if(logN){
         nugs_est <- log(nugs_est)
@@ -1439,7 +1506,7 @@ mleHetGP <- function(X, Z, lower, upper,
                           lower = noiseControl$lowerTheta_g, upper = noiseControl$upperTheta_g,
                           init = list(theta = init$theta_g, g =  init$g), covtype = covtype, noiseControl = noiseControl,
                           maxit = maxit, eps = eps, settings = list(return.Ki = F))
-      prednugs <- predict(x = X0, object = modNugs)
+      prednugs <- suppressWarnings(predict(x = X0, object = modNugs))
       
     }else{
       if(!exists("nugs_est0")) nugs_est0 <- init$Delta
@@ -1452,7 +1519,7 @@ mleHetGP <- function(X, Z, lower, upper,
                           lower = noiseControl$lowerTheta_g, upper = noiseControl$upperTheta_g,
                           init = list(theta = init$theta_g, g =  init$g), covtype = covtype, noiseControl = noiseControl,
                           maxit = maxit, eps = eps, settings = list(return.Ki = F))
-      prednugs <- predict(x = X0, object = modNugs)
+      prednugs <- suppressWarnings(predict(x = X0, object = modNugs))
     }
     
     if(settings$initStrategy == 'smoothed')
@@ -1479,7 +1546,7 @@ mleHetGP <- function(X, Z, lower, upper,
   
   ### Start of optimization of the log-likelihood
   fn <- function(par, X0, Z0, Z, mult, Delta = NULL, theta = NULL, g = NULL, k_theta_g = NULL, theta_g = NULL, logN = FALSE, SiNK = FALSE,
-                 beta0 = NULL, pX = NULL){
+                 beta0 = NULL, pX = NULL, hom_ll, env){
     
     idx <- 1 # to store the first non used element of par
     
@@ -1508,12 +1575,13 @@ mleHetGP <- function(X, Z, lower, upper,
       pX <- matrix(par[idx:length(par)], ncol = ncol(X0))
     
     return(logLikHet(X0 = X0, Z0 = Z0, Z = Z, mult = mult, Delta = Delta, theta = theta, g = g, k_theta_g = k_theta_g, theta_g = theta_g,
-                     logN = logN, SiNK = SiNK, beta0 = beta0, pX = pX, covtype = covtype, eps = eps, SiNK_eps = SiNK_eps, penalty = penalty, hardpenalty = hardpenalty))
+                     logN = logN, SiNK = SiNK, beta0 = beta0, pX = pX, covtype = covtype, eps = eps, SiNK_eps = SiNK_eps, penalty = penalty,
+                     hom_ll = hom_ll, env = env, trace = trace))
   }
   
   
   gr <- function(par, X0, Z0, Z, mult, Delta = NULL, theta = NULL, g = NULL, k_theta_g = NULL, theta_g = NULL, logN = FALSE, SiNK = FALSE,
-                 beta0 = NULL, pX = NULL){
+                 beta0 = NULL, pX = NULL, hom_ll, env){
     
     idx <- 1 # to store the first non used element of par
     
@@ -1553,7 +1621,7 @@ mleHetGP <- function(X, Z, lower, upper,
     
     return(dlogLikHet(X0 = X0, Z0 = Z0, Z = Z, mult = mult, Delta = Delta, theta = theta, g = g, k_theta_g = k_theta_g, theta_g = theta_g,
                       logN = logN, SiNK = SiNK, beta0 = beta0, pX = pX, components = components, covtype = covtype, eps = eps, SiNK_eps = SiNK_eps,
-                      penalty = penalty, hardpenalty = hardpenalty))
+                      penalty = penalty, hom_ll = hom_ll, env = env))
     
   }
   
@@ -1647,11 +1715,22 @@ mleHetGP <- function(X, Z, lower, upper,
   mle_par <- known # Store infered and known parameters
   if(!is.null(components)){
     
+    if(!is.null(modHom)){
+      hom_ll <- modHom$ll
+    }else{
+      ## Compute reference homoskedastic likelihood, with fixed theta for speed
+      modHom_tmp <- mleHomGP(X = list(X0 = X0, Z0 = Z0, mult = mult), Z = Z, lower = lower, upper = upper, upper,
+                             known = list(theta = known[["theta"]], g = known$g_H, beta0 = known$beta0), covtype = covtype, init = init,
+                             noiseControl = list(g_bounds = c(noiseControl$g_min, noiseControl$g_max)), eps = eps)
+      
+      hom_ll <- modHom_tmp$ll
+    } 
+    
     ## Maximization of the log-likelihood
     out <- optim(par = parinit, fn = fn, gr = gr, method = "L-BFGS-B", lower = lowerOpt, upper = upperOpt, X0 = X0, Z0 = Z0, Z = Z,
                  mult = mult, logN = logN, SiNK = SiNK,
                  Delta = known$Delta, theta = known[["theta"]], g = known$g, k_theta_g = known$k_theta_g, theta_g = known$theta_g,
-                 pX = known$pX, beta0 = known$beta0,
+                 pX = known$pX, beta0 = known$beta0, hom_ll = hom_ll, env = environment(),
                  control = list(fnscale = -1, maxit = maxit))
     
     ## Temporary
@@ -1680,7 +1759,6 @@ mleHetGP <- function(X, Z, lower, upper,
           if(!logN) cat("Delta |", mle_par$Delta[i_tmp], " | ", pmax(mult[i_tmp] * eps, init$Delta[i_tmp] / 1000), " | ", init$Delta[i_tmp] * 100, "\n")
         }
       }
-      
     }
     if(jointThetas){
       if(is.null(known$k_theta_g)){
@@ -1714,7 +1792,7 @@ mleHetGP <- function(X, Z, lower, upper,
   
   if(penalty){
     ll_non_pen <- logLikHet(X0 = X0, Z0 = Z0, Z = Z, mult = mult, Delta = mle_par$Delta, theta = mle_par$theta, g = mle_par$g, k_theta_g = mle_par$k_theta_g, theta_g = mle_par$theta_g,
-                            logN = logN, SiNK = SiNK, beta0 = mle_par$beta0, pX = mle_par$pX, covtype = covtype, eps = eps, SiNK_eps = SiNK_eps, penalty = FALSE)
+                            logN = logN, SiNK = SiNK, beta0 = mle_par$beta0, pX = mle_par$pX, covtype = covtype, eps = eps, SiNK_eps = SiNK_eps, penalty = FALSE, hom_ll = NULL, trace = trace)
   }else{
     ll_non_pen <- out$value
   }
@@ -1734,7 +1812,7 @@ mleHetGP <- function(X, Z, lower, upper,
     
     nmean <- drop(rowSums(Kgi) %*% mle_par$Delta / sum(Kgi)) ## ordinary kriging mean
     
-    nu2_hat_var <- max(eps, drop(crossprod(mle_par$Delta - nmean, Kgi) %*% (mle_par$Delta - nmean))/length(mle_par$Delta))
+    nu_hat_var <- max(eps, drop(crossprod(mle_par$Delta - nmean, Kgi) %*% (mle_par$Delta - nmean))/length(mle_par$Delta))
     
     if(SiNK){
       rhox <- 1 / rho_AN(xx = X0, X0 = mle_par$pX, theta_g = mle_par$theta_g, g = mle_par$g, type = covtype, eps = eps, SiNK_eps = SiNK_eps, mult = mult)
@@ -1749,7 +1827,7 @@ mleHetGP <- function(X, Z, lower, upper,
     
     nmean <- drop(rowSums(Kgi) %*% mle_par$Delta / sum(Kgi)) ## ordinary kriging mean
     
-    nu2_hat_var <- max(eps, drop(crossprod(mle_par$Delta - nmean, Kgi) %*% (mle_par$Delta - nmean))/length(mle_par$Delta))
+    nu_hat_var <- max(eps, drop(crossprod(mle_par$Delta - nmean, Kgi) %*% (mle_par$Delta - nmean))/length(mle_par$Delta))
     
     if(SiNK){
       rhox <- 1 / rho_AN(xx = X0, X0 = mle_par$pX, theta_g = mle_par$theta_g, g = mle_par$g, type = covtype, eps = eps, SiNK_eps = SiNK_eps, mult = mult)
@@ -1780,11 +1858,11 @@ mleHetGP <- function(X, Z, lower, upper,
   
   nu2 <- 1/length(Z) * (crossprod((Z - mle_par$beta0)/LambdaN, Z - mle_par$beta0) - crossprod((Z0 - mle_par$beta0) * mult/Lambda, Z0 - mle_par$beta0) + psi_0)
   
-  res <- list(theta = mle_par$theta, Delta = mle_par$Delta, nu2_hat = as.numeric(nu2), beta0 = mle_par$beta0,
+  res <- list(theta = mle_par$theta, Delta = mle_par$Delta, nu_hat = as.numeric(nu2), beta0 = mle_par$beta0,
               k_theta_g = mle_par$k_theta_g, theta_g = mle_par$theta_g, g = mle_par$g, nmean = nmean, Lambda = Lambda,
               ll = out$value, ll_non_pen = ll_non_pen, nit_opt = out$counts, logN = logN, SiNK = SiNK, covtype = covtype, pX = mle_par$pX, msg = out$message,
               X0 = X0, Z0 = Z0, Z = Z, mult = mult, trendtype = trendtype, eps = eps,
-              nu2_hat_var = nu2_hat_var, call = match.call(),
+              nu_hat_var = nu_hat_var, call = match.call(),
               used_args = list(noiseControl = noiseControl, settings = settings, lower = lower, upper = upper, known = known))
   if(SiNK){
     res <- c(res, list(SiNK_eps = SiNK_eps))
@@ -1858,9 +1936,9 @@ predict.hetGP <- function(object, x, noise.var = FALSE, xprime = NULL, nugs.only
   }
   
   if(object$logN){
-    nugs <- object$nu2_hat * exp(drop(object$nmean + M))
+    nugs <- object$nu_hat * exp(drop(object$nmean + M))
   }else{
-    nugs <- object$nu2_hat * pmax(0, drop(object$nmean + M))
+    nugs <- object$nu_hat * pmax(0, drop(object$nmean + M))
   }
   
   if(nugs.only){
@@ -1868,19 +1946,19 @@ predict.hetGP <- function(object, x, noise.var = FALSE, xprime = NULL, nugs.only
   }
   
   if(noise.var){
-    if(is.null(object$nu2_hat_var))
-      object$nu2_hat_var <- max(object$eps, drop(crossprod(object$Delta - object$nmean, object$Kgi) %*% (object$Delta - object$nmean))/length(object$Delta)) ## To avoid 0 variance
-    sd2var = object$nu2_hat * object$nu2_hat_var* drop(1 - fast_diag(kg, tcrossprod(object$Kgi, kg)) + (1 - tcrossprod(rowSums(object$Kgi), kg))^2/sum(object$Kgi))
+    if(is.null(object$nu_hat_var))
+      object$nu_hat_var <- max(object$eps, drop(crossprod(object$Delta - object$nmean, object$Kgi) %*% (object$Delta - object$nmean))/length(object$Delta)) ## To avoid 0 variance
+    sd2var <- object$nu_hat * object$nu_hat_var* drop(1 - fast_diag(kg, tcrossprod(object$Kgi, kg)) + (1 - tcrossprod(rowSums(object$Kgi), kg))^2/sum(object$Kgi))
   }else{
-    sd2var = NULL
+    sd2var <- NULL
   }
   
   kx <- cov_gen(X1 = x, X2 = object$X0, theta = object$theta, type = object$covtype)
   
   if(object$trendtype == 'SK'){
-    sd2 <- object$nu2_hat * drop(1 - fast_diag(kx, tcrossprod(object$Ki, kx)))
+    sd2 <- object$nu_hat * drop(1 - fast_diag(kx, tcrossprod(object$Ki, kx)))
   }else{
-    sd2 <- object$nu2_hat * drop(1 - fast_diag(kx, tcrossprod(object$Ki, kx)) + (1 - tcrossprod(rowSums(object$Ki), kx))^2/sum(object$Ki))
+    sd2 <- object$nu_hat * drop(1 - fast_diag(kx, tcrossprod(object$Ki, kx)) + (1 - tcrossprod(rowSums(object$Ki), kx))^2/sum(object$Ki))
   }
   
   ## In case of numerical errors, some sd2 values may become negative
@@ -1888,20 +1966,28 @@ predict.hetGP <- function(object, x, noise.var = FALSE, xprime = NULL, nugs.only
     # object$Ki <- ginv(add_diag(cov_gen(X1 = object$X0, theta = object$theta, type = object$covtype), object$Lambda/object$mult + object$eps))
     # 
     # if(object$trendtype == 'SK'){
-    #   sd2 <- object$nu2_hat * drop(1 - fast_diag(kx, tcrossprod(object$Ki, kx)))
+    #   sd2 <- object$nu_hat * drop(1 - fast_diag(kx, tcrossprod(object$Ki, kx)))
     # }else{
-    #   sd2 <- object$nu2_hat * drop(1 - fast_diag(kx, tcrossprod(object$Ki, kx)) + (1 - tcrossprod(rowSums(object$Ki), kx))^2/sum(object$Ki))
+    #   sd2 <- object$nu_hat * drop(1 - fast_diag(kx, tcrossprod(object$Ki, kx)) + (1 - tcrossprod(rowSums(object$Ki), kx))^2/sum(object$Ki))
     # }
     sd2 <- pmax(0, sd2)
     warning("Numerical errors caused some negative predictive variances to be thresholded to zero. Consider using ginv via rebuild.hetGP")
   }
   
   if(!is.null(xprime)){
-    kxprime <- cov_gen(X1 = xprime, X2 = object$X0, theta = object$theta, type = object$covtype)
+    kxprime <- cov_gen(X1 = object$X0, X2 = xprime, theta = object$theta, type = object$covtype)
     if(object$trendtype == 'SK'){
-      cov <- object$nu2_hat * (cov_gen(X1 = x, X2 = xprime, theta = object$theta, type = object$covtype) - kx %*% tcrossprod(object$Ki, kxprime))
+      if(nrow(x) < nrow(xprime)){
+        cov <- object$nu_hat * (cov_gen(X1 = x, X2 = xprime, theta = object$theta, type = object$covtype) - kx %*% object$Ki %*% kxprime) 
+      }else{
+        cov <- object$nu_hat * (cov_gen(X1 = x, X2 = xprime, theta = object$theta, type = object$covtype) - kx %*% (object$Ki %*% kxprime))
+      }
     }else{
-      cov <- object$nu2_hat * (cov_gen(X1 = x, X2 = xprime, theta = object$theta, type = object$covtype) - kx %*% tcrossprod(object$Ki, kxprime) + crossprod(1 - tcrossprod(rowSums(object$Ki), kx), 1 - tcrossprod(rowSums(object$Ki), kxprime))/sum(object$Ki))
+      if(nrow(x) < nrow(xprime)){
+        cov <- object$nu_hat * (cov_gen(X1 = x, X2 = xprime, theta = object$theta, type = object$covtype) - kx %*% object$Ki %*% kxprime + crossprod(1 - tcrossprod(rowSums(object$Ki), kx), 1 - rowSums(object$Ki) %*% kxprime)/sum(object$Ki))
+      }else{
+        cov <- object$nu_hat * (cov_gen(X1 = x, X2 = xprime, theta = object$theta, type = object$covtype) - kx %*% (object$Ki %*%  kxprime) + crossprod(1 - tcrossprod(rowSums(object$Ki), kx), 1 - rowSums(object$Ki) %*% kxprime)/sum(object$Ki))
+      }
     }
   }else{
     cov = NULL
@@ -1927,7 +2013,7 @@ summary.hetGP <- function(object,...){
 print.summary.hetGP <- function(x, ...){
   cat("N = ", length(x$Z), " n = ", length(x$Z0), " d = ", ncol(x$X0), "\n")
   cat(x$covtype, " covariance lengthscale values of the main process: ", x$theta, "\n")
-  cat("Variance/scale hyperparameter: ", x$nu2_hat, "\n")
+  cat("Variance/scale hyperparameter: ", x$nu_hat, "\n")
   
   cat("Summary of Lambda values: \n")
   print(summary(x$Lambda))

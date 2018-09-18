@@ -5,7 +5,8 @@
 \title{Fast \code{homGP}-update}
 \usage{
 \method{update}{homGP}(object, Xnew, Znew = NULL, lower = NULL,
-  upper = NULL, noiseControl = NULL, known = NULL, maxit = 100, ...)
+  upper = NULL, noiseControl = NULL, known = NULL, maxit = 100,
+  ...)
 }
 \arguments{
 \item{object}{initial model of class \code{homGP}}

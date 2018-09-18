@@ -70,7 +70,7 @@ sirSimulate <- function(S0 = 1990, I0 = 10, M = S0 + I0, beta = 0.75, gamma = 0.
 ##' @examples 
 ##' plot(f1d)
 f1d <- function(x){
-  if(is.null(x)) x <- matrix(x, ncol = 1)
+  if(is.null(dim(x))) x <- matrix(x, ncol = 1)
   return(((x*6-2)^2)*sin((x*6-2)*2))
 } 
 

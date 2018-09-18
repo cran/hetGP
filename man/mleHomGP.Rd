@@ -4,10 +4,10 @@
 \alias{mleHomGP}
 \title{Gaussian process modeling with homoskedastic noise}
 \usage{
-mleHomGP(X, Z, lower, upper, known = NULL, noiseControl = list(g_bounds =
-  c(sqrt(.Machine$double.eps), 100)), init = NULL, covtype = c("Gaussian",
-  "Matern5_2", "Matern3_2"), maxit = 100, eps = sqrt(.Machine$double.eps),
-  settings = list(return.Ki = TRUE))
+mleHomGP(X, Z, lower, upper, known = NULL, noiseControl = list(g_bounds
+  = c(sqrt(.Machine$double.eps), 100)), init = NULL,
+  covtype = c("Gaussian", "Matern5_2", "Matern3_2"), maxit = 100,
+  eps = sqrt(.Machine$double.eps), settings = list(return.Ki = TRUE))
 }
 \arguments{
 \item{X}{matrix of all designs, one per row, or list with elements:
@@ -50,13 +50,13 @@ a list which is given the S3 class "\code{homGP}", with elements:
 \item \code{g}: maximum likelihood estimate of the nugget variance,
 \item \code{trendtype}: either "\code{SK}" if \code{beta0} is given, else "\code{OK}" 
 \item \code{beta0}: estimated trend unless given in input,
-\item \code{nu2_hat}: plugin estimator of the variance,
+\item \code{nu_hat}: plugin estimator of the variance,
 \item \code{ll}: log-likelihood value,
 \item \code{X0}, \code{Z0}, \code{Z}, \code{mult}, \code{eps}, \code{covtype}: values given in input,
 \item \code{call}: user call of the function
 \item \code{used_args}: list with arguments provided in the call
 \item \code{nit_opt}, \code{msg}: \code{counts} and \code{msg} returned by \code{\link[stats]{optim}}
-\item \code{Ki}, inverse covariance matrix (if \code{return.Ki} is \code{TRUE} in \code{settings})
+\item \code{Ki}: inverse covariance matrix (not scaled by \code{nu_hat}) (if \code{return.Ki} is \code{TRUE} in \code{settings})
 
 }
 }
@@ -65,9 +65,9 @@ Gaussian process regression under homoskedastic noise based on maximum likelihoo
 hyperparameters. This function is enhanced to deal with replicated observations.
 }
 \details{
-The global covariance matrix of the model is parameterized as \code{K = nu2_hat * (C + g * diag(1/mult))},
+The global covariance matrix of the model is parameterized as \code{nu_hat * (C + g * diag(1/mult)) = nu_hat * K},
 with \code{C} the correlation matrix between unique designs, depending on the family of kernel used (see \code{\link[hetGP]{cov_gen}} for available choices) and values of lengthscale parameters.
-\code{nu2_hat} is the plugin estimator of the variance of the process.
+\code{nu_hat} is the plugin estimator of the variance of the process.
 
 It is generally recommended to use \code{\link[hetGP]{find_reps}} to pre-process the data, to rescale the inputs to the unit cube and to normalize the outputs.
 }

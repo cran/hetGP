@@ -5,7 +5,7 @@
 \title{Integrated Mean Square Prediction Error}
 \usage{
 IMSPE(X, theta = NULL, Lambda = NULL, mult = NULL, covtype = NULL,
-  nu2 = NULL, eps = sqrt(.Machine$double.eps))
+  nu = NULL, eps = sqrt(.Machine$double.eps))
 }
 \arguments{
 \item{X}{\code{hetGP} or \code{homGP} model. Alternatively, one can provide a matrix of unique designs considered}
@@ -18,7 +18,7 @@ IMSPE(X, theta = NULL, Lambda = NULL, mult = NULL, covtype = NULL,
 
 \item{covtype}{either "Gaussian", "Matern3_2" or "Matern5_2"}
 
-\item{nu2}{variance parameter}
+\item{nu}{variance parameter}
 
 \item{eps}{numerical nugget}
 }

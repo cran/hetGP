@@ -1,3 +1,14 @@
+## hetGP 1.1.0
+
+## change / hetGP 1.0.2
+  * better handling of the penalty term
+  * update the documentation, rename nu2_hat by nu_hat for consistency with JCGS paper
+  * several performance improvements (e.g., predict with xprime argument)
+  * contour finding infill criteria related to arXiv:1807.06712
+  * add Expected Improvement criterion (beta version)
+  * correct bug with known mean not used for initialization with mleHetGP/TP
+  * add leave one out predictions
+
 ## hetGP 1.0.2
 
 ## change / hetGP 1.0.1

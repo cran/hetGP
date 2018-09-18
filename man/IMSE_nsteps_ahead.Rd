@@ -4,8 +4,8 @@
 \alias{IMSE_nsteps_ahead}
 \title{h-IMSE with replication}
 \usage{
-IMSE_nsteps_ahead(model, h = 2, Xcand = NULL, control = list(multi.start =
-  10, maxit = 100), Wijs = NULL)
+IMSE_nsteps_ahead(model, h = 2, Xcand = NULL,
+  control = list(multi.start = 10, maxit = 100), Wijs = NULL)
 }
 \arguments{
 \item{model}{\code{homGP} or \code{hetGP} model}

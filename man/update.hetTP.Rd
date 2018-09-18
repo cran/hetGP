@@ -65,7 +65,7 @@ Z <- sin(X) + noisefun(X) * rt(length(X), df = 10)
 ## Initial fit
 testpts <- matrix(seq(0, 2*pi, length = 10*n), ncol = 1)
 model <- model_init <- mleHetTP(X = X, Z = Z, lower = rep(0.1, nvar), 
-  upper = rep(50, nvar), maxit = 1000, settings = list(hardpenalty = TRUE))
+  upper = rep(50, nvar), maxit = 1000)
 
 ## Visualizing initial predictive surface
 preds <- predict(x = testpts, model_init) 
@@ -101,7 +101,7 @@ lines(testpts, qnorm(0.95, p_fin$mean, sqrt(p_fin$sd2 + p_fin$nugs)),
   col = "blue", lty = 3)
 
 ## Now compare to what you would get if you did a full batch fit instead
-model_direct <-  mleHetTP(X = X, Z = Z, maxit = 1000, settings = list(hardpenalty = TRUE),
+model_direct <-  mleHetTP(X = X, Z = Z, maxit = 1000,
                           lower = rep(0.1, nvar), upper = rep(50, nvar),
                           init = list(theta = model_init$theta, k_theta_g = model_init$k_theta_g))
 p_dir <- predict(x = testpts, model_direct)

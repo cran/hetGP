@@ -7,8 +7,8 @@
 \usage{
 sirEval(x)
 
-sirSimulate(S0 = 1990, I0 = 10, M = S0 + I0, beta = 0.75, gamma = 0.5,
-  imm = 0)
+sirSimulate(S0 = 1990, I0 = 10, M = S0 + I0, beta = 0.75,
+  gamma = 0.5, imm = 0)
 }
 \arguments{
 \item{x}{vector of size two}

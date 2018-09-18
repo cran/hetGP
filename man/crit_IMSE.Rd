@@ -19,7 +19,7 @@ crit_IMSE(x, model, id = NULL, Wijs = NULL)
 Compute the integrated mean square prediction error after adding a new design
 }
 \details{
-The computations are scale free, i.e., values are not multiplied by \code{nu2_hat} from \code{homGP} or \code{hetGP}.
+The computations are scale free, i.e., values are not multiplied by \code{nu_hat} from \code{homGP} or \code{hetGP}.
 }
 \examples{
 ## One-d toy example
@@ -53,7 +53,7 @@ IMSE_grid <- apply(xgrid, 1, crit_IMSE, Wijs = Wijs, model = model)
 t1 <- Sys.time()
 print(t1 - t0)
 
-plot(xgrid, IMSE_grid/ngrid, xlab = "x", ylab = "crit_IMSE values")
+plot(xgrid, IMSE_grid * model$nu_hat, xlab = "x", ylab = "crit_IMSE values")
 abline(v = designs)
 
 ###############################################################################
@@ -61,7 +61,7 @@ abline(v = designs)
 
 nvar <- 2 
 
-set.seed(42)
+set.seed(2)
 ftest <- function(x, coef = 0.1) return(sin(2*pi*sum(x)) + rnorm(1, sd = coef))
 
 n <- 16 # must be a square

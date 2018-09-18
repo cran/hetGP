@@ -6,10 +6,10 @@
 \usage{
 mleHomTP(X, Z, lower, upper, known = list(beta0 = 0),
   noiseControl = list(g_bounds = c(sqrt(.Machine$double.eps), 10000),
-  nu_bounds = c(2 + 0.001, 30), sigma2_bounds = c(sqrt(.Machine$double.eps),
-  10000)), init = list(nu = 3), covtype = c("Gaussian", "Matern5_2",
-  "Matern3_2"), maxit = 100, eps = sqrt(.Machine$double.eps),
-  settings = list(return.Ki = TRUE))
+  nu_bounds = c(2 + 0.001, 30), sigma2_bounds =
+  c(sqrt(.Machine$double.eps), 10000)), init = list(nu = 3),
+  covtype = c("Gaussian", "Matern5_2", "Matern3_2"), maxit = 100,
+  eps = sqrt(.Machine$double.eps), settings = list(return.Ki = TRUE))
 }
 \arguments{
 \item{X}{matrix of all designs, one per row, or list with elements:
