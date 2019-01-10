@@ -66,11 +66,11 @@ dlogLikHomTP <- function(X0, Z0, Z, mult, theta, g, nu, sigma2, beta0 = 0, covty
     tmp1 <- rep(NA, length(theta))
     if(length(theta)==1){
       dC_dthetak <- partial_cov_gen(X1 = X0, theta = theta, type = covtype, arg = "theta_k") * C
-      tmp1 <- sigma2 * (nu + N)/(2 * (nu + psi - 2)) * crossprod(KiZ0, dC_dthetak) %*% KiZ0  - sigma2/2 * fast_trace(Ki, dC_dthetak)
+      tmp1 <- sigma2 * (nu + N)/(2 * (nu + psi - 2)) * crossprod(KiZ0, dC_dthetak) %*% KiZ0  - sigma2/2 * trace_sym(Ki, dC_dthetak)
     }else{
       for(i in 1:length(theta)){
         dC_dthetak <- partial_cov_gen(X1 = X0[,i, drop = F], theta = theta[i], type = covtype, arg = "theta_k") * C
-        tmp1[i] <- sigma2 * (nu + N)/(2 * (nu + psi - 2)) * crossprod(KiZ0, dC_dthetak) %*% KiZ0 - sigma2/2 * fast_trace(Ki, dC_dthetak)
+        tmp1[i] <- sigma2 * (nu + N)/(2 * (nu + psi - 2)) * crossprod(KiZ0, dC_dthetak) %*% KiZ0 - sigma2/2 * trace_sym(Ki, dC_dthetak)
       }
     } 
   }
@@ -79,7 +79,7 @@ dlogLikHomTP <- function(X0, Z0, Z, mult, theta, g, nu, sigma2, beta0 = 0, covty
     tmp2 <- -N / (2*(nu - 2)) + 1/2*digamma((nu + N)/2) - 1/2*digamma(nu/2) - 1/2 * log(1 + psi/(nu - 2)) + psi * (nu + N)/(2*(nu - 2)^2 + 2 * psi * (nu - 2))
   
   if("sigma2" %in% components) 
-    tmp3 <- (nu + N)/(2 * (nu + psi - 2)) * crossprod(KiZ0, C) %*% KiZ0 -1/2 * fast_trace(Ki, C)
+    tmp3 <- (nu + N)/(2 * (nu + psi - 2)) * crossprod(KiZ0, C) %*% KiZ0 -1/2 * trace_sym(Ki, C)
   
   # Fourth component derivative with respect to g
   if("g" %in% components)
@@ -114,8 +114,8 @@ dlogLikHomTP <- function(X0, Z0, Z, mult, theta, g, nu, sigma2, beta0 = 0, covty
 ##' } 
 ##' @param init list specifying starting values for MLE optimization, with elements:
 ##' \itemize{
-##'  \item \code{theta_init} initial value of the theta parameters to be optimized over (default to \code{(upper-lower)/2})
-##'  \item \code{g_init} initial value of the nugget parameter to be optimized over (default to \code{0.5})
+##'  \item \code{theta_init} initial value of the theta parameters to be optimized over (default to 10\% of the range determined with \code{lower} and \code{upper})
+##'  \item \code{g_init} initial value of the nugget parameter to be optimized over (based on the variance at replicates if there are any, else 10\% of the variance)
 ##'  \item \code{sigma2} initial value of the variance paramter (default to \code{1})
 ##'  \item \code{nu} initial value of the degrees of freedom parameter (default to \code{3})
 ##' }
@@ -136,6 +136,7 @@ dlogLikHomTP <- function(X0, Z0, Z, mult, theta, g, nu, sigma2, beta0 = 0, covty
 ##' \item \code{used_args}: list with arguments provided in the call
 ##' \item \code{nit_opt}, \code{msg}: \code{counts} and {msg} returned by \code{\link[stats]{optim}}
 ##' \item \code{Ki}, inverse covariance matrix (if \code{return.Ki} is \code{TRUE} in \code{settings})
+##' \item \code{time}: time to train the model, in seconds.
 ##' 
 ##'}
 ##' @details
@@ -144,12 +145,14 @@ dlogLikHomTP <- function(X0, Z0, Z, mult, theta, g, nu, sigma2, beta0 = 0, covty
 ##' 
 ##' It is generally recommended to use \code{\link[hetGP]{find_reps}} to pre-process the data, to rescale the inputs to the unit cube and to normalize the outputs.
 ##' 
-##' @seealso \code{\link[hetGP]{predict.homTP}} for predictions. A \code{summary} function is available as well.
+##' @seealso \code{\link[hetGP]{predict.homTP}} for predictions.
+##' \code{summary} and \code{plot} functions are available as well. 
 ##' @references 
 ##' M. Binois, Robert B. Gramacy, M. Ludkovski (2017+), Practical heteroskedastic Gaussian process modeling for large simulation experiments, arXiv preprint arXiv:1611.05902. \cr \cr
 ##' 
-##' A. Shah, A. Wilson, Z. Ghahramani (2014), Student-t processes as alternatives to Gaussian processes, Artificial Intelligence and Statistics, 877--885.
+##' A. Shah, A. Wilson, Z. Ghahramani (2014), Student-t processes as alternatives to Gaussian processes, Artificial Intelligence and Statistics, 877--885. \cr \cr
 ##' 
+##' M. Chung, M. Binois, RB Gramacy, DJ Moquin, AP Smith, AM Smith (2018+). Parameter and Uncertainty Estimation for Dynamical Systems Using Surrogate Stochastic Processes. Preprint available on arXiv:1802.00852. 
 ##' @examples
 ##' ##------------------------------------------------------------
 ##' ## Example 1: Homoskedastic Student-t modeling on the motorcycle data
@@ -182,7 +185,7 @@ dlogLikHomTP <- function(X0, Z0, Z, mult, theta, g, nu, sigma2, beta0 = 0, covty
 ##' lines(xgrid, preds$mean + sqrt(preds$sd2 + preds$nugs) * qt(0.95, df = model$nu + nrow(X)), 
 ##'   col = 3, lty = 2)
 ##' @export
-mleHomTP <- function(X, Z, lower, upper, known = list(beta0 = 0),
+mleHomTP <- function(X, Z, lower = NULL, upper = NULL, known = list(beta0 = 0),
                      noiseControl = list(g_bounds = c(sqrt(.Machine$double.eps), 1e4),
                                          nu_bounds = c(2 + 1e-3, 30),
                                          sigma2_bounds = c(sqrt(.Machine$double.eps), 1e4)),
@@ -195,13 +198,31 @@ mleHomTP <- function(X, Z, lower, upper, known = list(beta0 = 0),
     Z0 <- X$Z0
     mult <- X$mult
     if(sum(mult) != length(Z)) stop("Length(Z) should be equal to sum(mult)")
+    if(is.null(dim(X0))) X0 <- matrix(X0, ncol = 1)
+    if(length(Z0) != nrow(X0)) stop("Dimension mismatch between Z0 and X0")
   }else{
+    if(is.null(dim(X))) X <- matrix(X, ncol = 1)
+    if(nrow(X) != length(Z)) stop("Dimension mismatch between Z and X")
     elem <- find_reps(X, Z, return.Zlist = F)
     X0 <- elem$X0
     Z0 <- elem$Z0
     Z <- elem$Z
     mult <- elem$mult
   }
+  
+  covtype <- match.arg(covtype)
+  
+  if(is.null(lower) || is.null(upper)){
+    auto_thetas <- auto_bounds(X = X0, covtype = covtype)
+    if(is.null(lower)) lower <- auto_thetas$lower
+    if(is.null(upper)) upper <- auto_thetas$upper
+    if(is.null(known[["theta"]]) && is.null(init$theta)) init$theta <- sqrt(upper * lower)
+  }
+  
+  if(length(lower) != length(upper)) stop("upper and lower should have the same size")
+  
+  ## Save time to train model
+  tic <- proc.time()[3]
   
   if(is.null(settings$return.Ki)) settings$return.Ki <- TRUE
   if(is.null(noiseControl$g_bounds)) noiseControl$g_bounds <- c(sqrt(.Machine$double.eps), 1e4)
@@ -217,15 +238,13 @@ mleHomTP <- function(X, Z, lower, upper, known = list(beta0 = 0),
   if(is.null(n))
     stop("X0 should be a matrix. \n")
   
-  if(is.null(known[["theta"]]) && is.null(init$theta)) init$theta <- 0.5 * (upper + lower)
+  if(is.null(known[["theta"]]) && is.null(init$theta)) init$theta <- 0.1 * lower + 0.9 * upper
   if(is.null(known$g) && is.null(init$g)){
-    if(any(mult > 2)) init$g <- mean((fast_tUY2(mult, (Z - rep(Z0, times = mult))^2)/mult)[which(mult > 2)]) else init$g <- 0.5
+    if(any(mult > 2)) init$g <- mean((fast_tUY2(mult, (Z - rep(Z0, times = mult))^2)/mult)[which(mult > 2)]) else init$g <- 0.1 * var(Z0)
   } 
   if(is.null(known$nu) && is.null(init$nu)) init$nu <- 3
   if(is.null(known$sigma2) && is.null(init$sigma2)) init$sigma2 <- var(Z0)
-  
-  covtype <- match.arg(covtype)
-  
+
   parinit <- c(init$theta, init$nu, init$sigma2, init$g)
   
   # trendtype <- 'OK'
@@ -252,8 +271,18 @@ mleHomTP <- function(X, Z, lower, upper, known = list(beta0 = 0),
     if(is.null(g)){
       g <- par[idx]
     }
-    return(loglik_HomTP(X0 = X0, Z0 = Z0, Z = Z, mult = mult, theta = theta, g = g, nu = nu, sigma2 = sigma2,
-                        beta0 = beta0, covtype = covtype, eps = eps, env = env))
+    
+    loglik <- loglik_HomTP(X0 = X0, Z0 = Z0, Z = Z, mult = mult, theta = theta, g = g, nu = nu, sigma2 = sigma2,
+                           beta0 = beta0, covtype = covtype, eps = eps, env = env)
+    
+    if(!is.null(env) && !is.na(loglik)){
+      if(is.null(env$max_loglik) || loglik > env$max_loglik){
+        env$max_loglik <- loglik
+        env$arg_max <- par
+      }
+    } 
+    
+    return(loglik)
   }
   
   gr <- function(par, X0, Z0, Z, mult, beta0, theta, sigma2, nu, g, env){
@@ -292,7 +321,7 @@ mleHomTP <- function(X, Z, lower, upper, known = list(beta0 = 0),
     g_out <- known$g
     out <- list(value = loglik_HomTP(X0 = X0, Z0 = Z0, Z = Z, mult = mult, theta = theta_out, g = g_out, nu = nu_out, sigma2 = sigma2_out, 
                                      beta0 = beta0, covtype = covtype, eps = eps),
-                message = "All hyperparameters given", counts = 0)
+                message = "All hyperparameters given", counts = 0, time = proc.time()[3] - tic)
   }else{
     parinit <- lowerOpt <- upperOpt <- NULL
     if(is.null(known[["theta"]])){
@@ -318,9 +347,14 @@ mleHomTP <- function(X, Z, lower, upper, known = list(beta0 = 0),
     
     
     # environment storing values from log to pass to dlog
-    out <- optim(par = parinit, fn = fn, gr = gr, method = "L-BFGS-B", lower = lowerOpt, upper = upperOpt, theta = known[["theta"]], 
-                 nu = known$nu, sigma2 = known$sigma2, g = known$g, env = environment(),
-                 X0 = X0, Z0 = Z0, Z = Z, mult = mult, beta0 = beta0, control = list(fnscale = -1, maxit = maxit))
+    envtmp <- environment()
+    out <- try(optim(par = parinit, fn = fn, gr = gr, method = "L-BFGS-B", lower = lowerOpt, upper = upperOpt, theta = known[["theta"]], 
+                 nu = known$nu, sigma2 = known$sigma2, g = known$g, env = envtmp,
+                 X0 = X0, Z0 = Z0, Z = Z, mult = mult, beta0 = beta0, control = list(fnscale = -1, maxit = maxit, factr = 1e9)))
+    ## Catch errors when at least one likelihood evaluation worked
+    if(class(out) == "try-error")
+      out <- list(par = envtmp$arg_max, value = envtmp$max_loglik, counts = NA,
+                  message = "Optimization stopped due to NAs, use best value so far")
     
     ## Post-processing
     idx <- 1
@@ -365,7 +399,8 @@ mleHomTP <- function(X, Z, lower, upper, known = list(beta0 = 0),
               psi = psi,
               beta0 = beta0,  covtype = covtype, msg = out$message, eps = eps,
               X0 = X0, Z = Z, mult = mult, Z0 = Z0, call = match.call(),
-              used_args = list(lower = lower, upper = upper, known = known, noiseControl = noiseControl))
+              used_args = list(lower = lower, upper = upper, known = known, noiseControl = noiseControl), 
+              time = proc.time()[3] - tic)
   
   if(settings$return.Ki) res <- c(res, list(Ki = Ki))
   
@@ -401,13 +436,20 @@ print.summary.homTP <- function(x, ...){
 ##' @method print homTP
 ##' @export
 print.homTP <- function(x, ...){
-  print("Call:")
-  print(x$call)
-  
-  print(lapply(x, class))
+  print(summary(x))
   
 }
 
+##' @method plot homTP
+##' @export
+plot.homTP <- function(x, ...){
+  LOOpreds <- LOO_preds(x)
+  plot(x$Z, LOOpreds$mean[rep(1:nrow(x$X0), times = x$mult)], xlab = "Observed values", ylab = "Predicted values",
+       main = "Leave-one-out predictions")
+  points(x$Z0[which(x$mult > 1)], LOOpreds$mean[which(x$mult > 1)], pch = 20, col = 2)
+  abline(a = 0, b = 1, lty = 3)
+  legend("topleft", pch = c(1, 20), col = c(1, 2), legend = c("observations", "averages (if > 1 observation)"))
+}
 
 ##' Student-t process predictions using a homoskedastic noise GP object (of class \code{homGP})
 ##' @param x matrix of designs locations to predict at
@@ -426,6 +468,17 @@ print.homTP <- function(x, ...){
 ##' @method predict homTP
 ##' @export
 predict.homTP <- function(object, x, xprime = NULL, ...){
+  
+  if(is.null(dim(x))){
+    x <- matrix(x, nrow = 1)
+    if(ncol(x) != ncol(object$X0)) stop("x is not a matrix")
+  }
+  
+  if(!is.null(xprime) && is.null(dim(xprime))){
+    xprime <- matrix(xprime, nrow = 1)
+    if(ncol(xprime) != ncol(object$X0)) stop("xprime is not a matrix")
+  }
+  
   if(is.null(object$Ki))
     object$Ki <- chol2inv(chol(object$sigma2 * cov_gen(X1 = object$X0, theta = object$theta, type = object$covtype) + diag(object$g/object$mult + object$eps)))
   
@@ -660,7 +713,7 @@ dlogLikHetTP <- function(X0, Z0, Z, mult, Delta, theta, nu, sigma2, g, k_theta_g
     }else{
       loglik <- -N/2 * log(2*pi) - N/2 * log(psi/N)  + 1/2 * ldetKi - 1/2 * sum((mult - 1) * log(Lambda) + log(mult)) - N/2
       pen <- - n/2 * log(nu_hat_var) - sum(log(diag(Kg_c))) - n/2*log(2*pi) - n/2
-      if(hom_ll > loglik && pen > 0) penalty <- FALSE
+      if(loglik < hom_ll && pen > 0) penalty <- FALSE
     }
     # if(nu_hat_var < eps || (hardpenalty && (- n/2 * log(nu_hat_var) - sum(log(diag(Kg_c))) - n/2*log(2*pi) - n/2) > 0)) penalty <- FALSE
   }   
@@ -695,14 +748,14 @@ dlogLikHetTP <- function(X0, Z0, Z, mult, Delta, theta, nu, sigma2, g, k_theta_g
         
         dK_dthetak <- add_diag(sigma2 * dC_dthetak, drop(dLdtk)/mult) # dK/dtheta[k]
         dLogL_dtheta[i] <- (nu + N)/(2 * (nu + psi - 2)) * (crossprod((Z - beta0)/LambdaN * rep(dLdtk, times = mult), (Z - beta0)/LambdaN) - crossprod((Z0 - beta0)/Lambda * mult * dLdtk, (Z0 - beta0)/Lambda) +
-                                                              crossprod(KiZ0, dK_dthetak) %*% KiZ0) - 1/2 * fast_trace(Ki, dK_dthetak)
+                                                              crossprod(KiZ0, dK_dthetak) %*% KiZ0) - 1/2 * trace_sym(Ki, dK_dthetak)
         dLogL_dtheta[i] <- dLogL_dtheta[i] - 1/2 * sum((mult - 1) * dLdtk/Lambda) # derivative of the sum(a_i - 1)log(lambda_i)
         
         if(penalty)
-          dLogL_dtheta[i] <- dLogL_dtheta[i]  + 1/2 * crossprod(KgiD, dCg_dthetak) %*% KgiD / nu_hat_var  - 1/2 * fast_trace(Kgi, dCg_dthetak)
+          dLogL_dtheta[i] <- dLogL_dtheta[i]  + 1/2 * crossprod(KgiD, dCg_dthetak) %*% KgiD / nu_hat_var  - 1/2 * trace_sym(Kgi, dCg_dthetak)
         
       }else{
-        dLogL_dtheta[i] <- sigma2 * (nu + N)/(2 * (nu + psi - 2)) * crossprod(KiZ0, dC_dthetak) %*% KiZ0  - sigma2/2 * fast_trace(Ki, dC_dthetak)
+        dLogL_dtheta[i] <- sigma2 * (nu + N)/(2 * (nu + psi - 2)) * crossprod(KiZ0, dC_dthetak) %*% KiZ0  - sigma2/2 * trace_sym(Ki, dC_dthetak)
       }
     }
   }
@@ -747,12 +800,12 @@ dlogLikHetTP <- function(X0, Z0, Z, mult, Delta, theta, nu, sigma2, g, k_theta_g
       dLogL_dthetag[i] <- crossprod(dCg_dthetagk %*% KgiD - M %*% (dCg_dthetagk %*% KgiD) -
                                       (1 - rsM) * drop(rSKgi %*% dCg_dthetagk %*% (Kgi %*% Delta) * sKgi - rSKgi %*% Delta * (rSKgi %*% dCg_dthetagk %*% rSKgi))/sKgi^2, dLogLdLambda) #chain rule
       # Penalty term
-      if(penalty) dLogL_dthetag[i] <- dLogL_dthetag[i] + 1/2 * crossprod(KgiD, dCg_dthetagk) %*% KgiD/nu_hat_var - fast_trace(Kgi, dCg_dthetagk)/2 
+      if(penalty) dLogL_dthetag[i] <- dLogL_dthetag[i] + 1/2 * crossprod(KgiD, dCg_dthetagk) %*% KgiD/nu_hat_var - trace_sym(Kgi, dCg_dthetagk)/2 
     }
   }
   
   if("sigma2" %in% components) 
-    dLogL_dsigma2 <- (nu + N)/(2 * (nu + psi - 2)) * crossprod(KiZ0, C) %*% KiZ0 -1/2 * fast_trace(Ki, C)
+    dLogL_dsigma2 <- (nu + N)/(2 * (nu + psi - 2)) * crossprod(KiZ0, C) %*% KiZ0 -1/2 * trace_sym(Ki, C)
   
   if("nu" %in% components) 
     dLogL_dnu <- -N / (2*(nu - 2)) + 1/2*digamma((nu + N)/2) - 1/2*digamma(nu/2) - 1/2 * log(1 + psi/(nu - 2)) + psi * (nu + N)/(2*(nu - 2)^2 + 2 * psi * (nu - 2))
@@ -769,7 +822,7 @@ dlogLikHetTP <- function(X0, Z0, Z, mult, Delta, theta, nu, sigma2, g, k_theta_g
       dLogL_dDelta <- dLogL_dDelta - KgiD / nu_hat_var
     }
     if("k_theta_g" %in% components){
-      dLogL_dkthetag <- dLogL_dkthetag + 1/2 * crossprod(KgiD, dCg_dk) %*% KgiD / nu_hat_var - fast_trace(Kgi, dCg_dk)/2 
+      dLogL_dkthetag <- dLogL_dkthetag + 1/2 * crossprod(KgiD, dCg_dk) %*% KgiD / nu_hat_var - trace_sym(Kgi, dCg_dk)/2 
     }
     if("g" %in% components){
       dLogL_dg <- dLogL_dg + 1/2 * crossprod(KgiD/mult, KgiD) / nu_hat_var - sum(diag(Kgi)/mult)/2 
@@ -869,7 +922,7 @@ dlogLikHetTP <- function(X0, Z0, Z, mult, Delta, theta, nu, sigma2, g, k_theta_g
 ##'
 ##' When no starting nor fixed parameter values are provided with \code{init} or \code{known}, 
 ##' the initialization process consists of fitting first an homoskedastic model of the data, called \code{modHom}.
-##' Unless provided with \code{init$theta}, initial lengthscales are taken at the middle of the range determined with \code{lower} and \code{upper},
+##' Unless provided with \code{init$theta}, initial lengthscales are taken at 10\% of the range determined with \code{lower} and \code{upper},
 ##' while \code{init$g_H} may be use to pass an initial nugget value.
 ##' The resulting lengthscales provide initial values for \code{theta} (or update them if given in \code{init}). \cr \cr
 ##' If necessary, a second homoskedastic model, \code{modNugs}, is fitted to the empirical residual variance between the prediction
@@ -891,7 +944,7 @@ dlogLikHetTP <- function(X0, Z0, Z, mult, Delta, theta, nu, sigma2, g, k_theta_g
 ##' \item \code{theta}: unless given, maximum likelihood estimate (mle) of the lengthscale parameter(s),
 ##' \item \code{Delta}: unless given, mle of the nugget vector (non-smoothed),
 ##' \item \code{Lambda}: predicted input noise variance at \code{X0}, 
-##' \item \code{nu_hat}: plugin estimator of the variance,
+##' \item \code{sigma2}: plugin estimator of the variance,
 ##' \item \code{theta_g}: unless given, mle of the lengthscale(s) of the noise/log-noise process,
 ##' \item \code{k_theta_g}: if \code{settings$linkThetas == 'joint'}, mle for the constant by which lengthscale parameters of \code{theta} are multiplied to get \code{theta_g},
 ##' \item \code{g}: unless given, mle of the nugget of the noise/log-noise process,
@@ -905,9 +958,11 @@ dlogLikHetTP <- function(X0, Z0, Z, mult, Delta, theta, nu, sigma2, g, k_theta_g
 ##' \item \code{modNugs}: homoskedastic GP model of class \code{homGP} used for initialization of the noise/log-noise process,
 ##' \item \code{nu_hat_var}: variance of the noise process,
 ##' \item \code{used_args}: list with arguments provided in the call to the function, which is saved in \code{call},
-##' \item \code{X0}, \code{Z0}, \code{Z}, \code{eps}, \code{logN}, \code{covtype}: values given in input
+##' \item \code{X0}, \code{Z0}, \code{Z}, \code{eps}, \code{logN}, \code{covtype}: values given in input,
+##' \item \code{time}: time to train the model, in seconds.
 ##'}
-##' @seealso \code{\link[hetGP]{predict.hetTP}} for predictions. A \code{summary} function is available as well.
+##' @seealso \code{\link[hetGP]{predict.hetTP}} for predictions. 
+##' \code{summary} and \code{plot} functions are available as well. 
 ##' @references 
 ##' M. Binois, Robert B. Gramacy, M. Ludkovski (2017+), Practical heteroskedastic Gaussian process modeling for large simulation experiments, arXiv preprint arXiv:1611.05902. \cr \cr
 ##' 
@@ -1027,21 +1082,24 @@ dlogLikHetTP <- function(X0, Z0, Z, mult, Delta, theta, nu, sigma2, g, k_theta_g
 ##' points(X, col = 'blue', pch = 20)
 ##' par(mfrow = c(1, 1))
 ##
-mleHetTP <- function(X, Z, lower, upper,
+mleHetTP <- function(X, Z, lower = NULL, upper = NULL,
                      noiseControl = list(k_theta_g_bounds = c(1, 100), g_max = 1e4, g_bounds = c(1e-6, 0.1),
                                          nu_bounds = c(2 + 1e-3, 30), sigma2_bounds = c(sqrt(.Machine$double.eps), 1e4)),
                      settings = list(linkThetas = 'joint', logN = TRUE, initStrategy = 'residuals', checkHom = TRUE,
-                                     penalty = TRUE, hardpenalty = FALSE, trace = 0, return.matrices = TRUE, return.hom = FALSE), 
+                                     penalty = TRUE, trace = 0, return.matrices = TRUE, return.hom = FALSE), 
                      covtype = c("Gaussian", "Matern5_2", "Matern3_2"), maxit = 100, known = list(beta0 = 0),
                      init = list(nu = 3), eps = sqrt(.Machine$double.eps)){
-  
   
   if(typeof(X)=="list"){
     X0 <- X$X0
     Z0 <- X$Z0
     mult <- X$mult
     if(sum(mult) != length(Z)) stop("Length(Z) should be equal to sum(mult)")
+    if(is.null(dim(X0))) X0 <- matrix(X0, ncol = 1)
+    if(length(Z0) != nrow(X0)) stop("Dimension mismatch between Z0 and X0")
   }else{
+    if(is.null(dim(X))) X <- matrix(X, ncol = 1)
+    if(nrow(X) != length(Z)) stop("Dimension mismatch between Z and X")
     elem <- find_reps(X, Z, return.Zlist = F)
     X0 <- elem$X0
     Z0 <- elem$Z0
@@ -1049,15 +1107,26 @@ mleHetTP <- function(X, Z, lower, upper,
     mult <- elem$mult
   }
   
+  covtype <- match.arg(covtype)
+  
+  if(is.null(lower) || is.null(upper)){
+    auto_thetas <- auto_bounds(X = X0, covtype = covtype)
+    if(is.null(lower)) lower <- auto_thetas$lower
+    if(is.null(upper)) upper <- auto_thetas$upper
+  }
+  
+  if(length(lower) != length(upper)) stop("upper and lower should have the same size")
+  
+  ## Save time to train model
+  tic <- proc.time()[3]
+  
   ## Initial checks
   
   n <- nrow(X0)
   
   if(is.null(n))
     stop("X0 should be a matrix. \n")
-  
-  covtype <- match.arg(covtype)
-  
+
   jointThetas <- constrThetas <- FALSE
   
   if(is.null(settings$linkThetas)){
@@ -1234,7 +1303,7 @@ mleHetTP <- function(X, Z, lower, upper,
     }
     
     if(is.null(init$theta))
-      init$theta <- 0.5 * (upper + lower)
+      init$theta <- sqrt(upper * lower)
     
     if(settings$checkHom){
       rKI <- TRUE
@@ -1336,7 +1405,7 @@ mleHetTP <- function(X, Z, lower, upper,
       if(!exists("nugs_est0")) nugs_est0 <- init$Delta
       
       if(is.null(init$g)){
-        init$g <- 0.05
+        init$g <- 0.05 * var(nugs_est0)
       }
       
       modNugs <- mleHomGP(X = list(X0 = X0, Z0 = nugs_est0, mult = rep(1, nrow(X0))),
@@ -1416,9 +1485,18 @@ mleHetTP <- function(X, Z, lower, upper,
       g <- par[idx]
     }
     
-    return(logLik_HetTP(X0 = X0, Z0 = Z0, Z = Z, mult = mult, Delta = Delta, theta = theta, g = g, k_theta_g = k_theta_g, theta_g = theta_g,
-                        nu = nu, sigma2 = sigma2, logN = logN, beta0 = beta0, covtype = covtype, eps = eps,
-                        penalty = penalty, hom_ll = hom_ll, env = env, trace = trace))
+    loglik <-logLik_HetTP(X0 = X0, Z0 = Z0, Z = Z, mult = mult, Delta = Delta, theta = theta, g = g, k_theta_g = k_theta_g, theta_g = theta_g,
+                          nu = nu, sigma2 = sigma2, logN = logN, beta0 = beta0, covtype = covtype, eps = eps,
+                          penalty = penalty, hom_ll = hom_ll, env = env, trace = trace)
+    
+    if(!is.null(env) && !is.na(loglik)){
+      if(is.null(env$max_loglik) || loglik > env$max_loglik){
+        env$max_loglik <- loglik
+        env$arg_max <- par
+      }
+    }
+    
+    return(loglik)
   }
   
   
@@ -1579,10 +1657,15 @@ mleHetTP <- function(X, Z, lower, upper,
     } 
     
     ## Maximization of the log-likelihood
-    out <- optim(par = parinit, fn = fn, gr = gr, method = "L-BFGS-B", lower = lowerOpt, upper = upperOpt,
+    envtmp <- environment()
+    out <- try(optim(par = parinit, fn = fn, gr = gr, method = "L-BFGS-B", lower = lowerOpt, upper = upperOpt,
                  X0 = X0, Z0 = Z0, Z = Z, mult = mult, logN = logN, Delta = known$Delta, theta = known$theta,
-                 g = known$g, k_theta_g = known$k_theta_g, theta_g = known$theta_g, hom_ll = hom_ll, env = environment(),
-                 nu = known$nu, beta0 = known$beta0, sigma2 = known$sigma2, control = list(fnscale = -1, maxit = maxit))
+                 g = known$g, k_theta_g = known$k_theta_g, theta_g = known$theta_g, hom_ll = hom_ll, env = envtmp,
+                 nu = known$nu, beta0 = known$beta0, sigma2 = known$sigma2, control = list(fnscale = -1, maxit = maxit, factr = 1e9)))
+    ## Catch errors when at least one likelihood evaluation worked
+    if(class(out) == "try-error")
+      out <- list(par = envtmp$arg_max, value = envtmp$max_loglik, counts = NA,
+                  message = "Optimization stopped due to NAs, use best value so far")
     
     ## Temporary
     if(trace > 0){
@@ -1736,7 +1819,8 @@ mleHetTP <- function(X, Z, lower, upper,
               ll = out$value, ll_non_pen = ll_non_pen, nit_opt = out$counts, logN = logN, covtype = covtype, pX = mle_par$pX, msg = out$message,
               X0 = X0, Z0 = Z0, Z = Z, mult = mult, trendtype = trendtype, eps = eps,
               nu_hat_var = nu_hat_var, call = match.call(), nu = mle_par$nu, sigma2 = mle_par$sigma2,
-              used_args = list(noiseControl = noiseControl, settings = settings, lower = lower, upper = upper, known = known))
+              used_args = list(noiseControl = noiseControl, settings = settings, lower = lower, upper = upper, known = known),
+              time = proc.time()[3] - tic)
   
   if(settings$return.matrices){
     res <- c(res, list(Ki = Ki, Kgi = Kgi))
@@ -1764,13 +1848,24 @@ mleHetTP <- function(X, Z, lower, upper,
 ##' \item \code{mean}: kriging mean;
 ##' \item \code{sd2}: kriging variance (filtered, e.g. without the nugget values)
 ##' \item \code{nugs}: noise variance
-##' \item \code{sd2_var}: (optional) kriging variance of the noise process
+##' \item \code{sd2_var}: (optional) kriging variance of the noise process (i.e., on log-variances if \code{logN = TRUE})
 ##' \item \code{cov}: (optional) predictive covariance matrix between x and xprime
 ##' }
 ##' @details The full predictive variance corresponds to the sum of \code{sd2} and \code{nugs}.
 ##' @method predict hetTP 
 ##' @export
 predict.hetTP <- function(object, x, noise.var = FALSE, xprime = NULL, nugs.only = FALSE, ...){
+  
+  if(is.null(dim(x))){
+    x <- matrix(x, nrow = 1)
+    if(ncol(x) != ncol(object$X0)) stop("x is not a matrix")
+  }
+  
+  if(!is.null(xprime) && is.null(dim(xprime))){
+    xprime <- matrix(xprime, nrow = 1)
+    if(ncol(xprime) != ncol(object$X0)) stop("xprime is not a matrix")
+  }
+  
   n1 <- length(object$Z)
   if(is.null(object$Kgi)){
     if(is.null(object$pX)){
@@ -1897,10 +1992,18 @@ print.summary.hetTP <- function(x, ...){
 ##' @method print hetTP
 ##' @export
 print.hetTP <- function(x, ...){
-  print("Call:")
-  print(x$call)
-  # str(x) instead?
-  print(lapply(x, class))
+  print(summary(x))
+}
+
+##' @method plot hetTP
+##' @export
+plot.hetTP <- function(x, ...){
+  LOOpreds <- LOO_preds(x)
+  plot(x$Z, LOOpreds$mean[rep(1:nrow(x$X0), times = x$mult)], xlab = "Observed values", ylab = "Predicted values",
+       main = "Leave-one-out predictions")
+  points(x$Z0[which(x$mult > 1)], LOOpreds$mean[which(x$mult > 1)], pch = 20, col = 2)
+  abline(a = 0, b = 1, lty = 3)
+  legend("topleft", pch = c(1, 20), col = c(1, 2), legend = c("observations", "averages (if > 1 observation)"))
 }
 
 ## ' Rebuild inverse covariance matrices of \code{hetTP} (e.g., if exported without inverse matrices \code{Kgi} and/or \code{Ki})
@@ -1917,7 +2020,7 @@ rebuild.hetTP <- function(object, robust = FALSE){
   }else{
     object$Kgi <- chol2inv(chol(add_diag(cov_gen(X1 = object$X0, theta = object$theta_g, type = object$covtype), object$eps + object$g/object$mult)))
     
-    object$Ki <- chol2inv(chol(add_diag(cov_gen(X1 = object$X0, theta = object$theta, type = object$covtype), object$Lambda/object$mult + object$eps)))
+    object$Ki <- chol2inv(chol(add_diag(object$sigma2 * cov_gen(X1 = object$X0, theta = object$theta, type = object$covtype), object$Lambda/object$mult + object$eps)))
   }
   return(object)
 }

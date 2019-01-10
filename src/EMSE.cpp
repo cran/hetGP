@@ -4,21 +4,21 @@ using namespace Rcpp;
 //////// Gaussian kernel
 
 NumericVector erf_cpp(NumericVector x){
-  return(2. * pnorm(x * sqrt(2.)) - 1);
+  return(2. * pnorm(x * sqrt(2.)) - 1.);
 }
 
 
-// // [[Rcpp::export]]
-// NumericVector mi_gauss_cpp(NumericMatrix Mu, NumericVector sigma){
-//   NumericVector mis(Mu.nrow(), 1.);
-//   
-//   for(int i = 0; i < Mu.nrow(); i++){
-//     for(int j = 0; j < Mu.ncol(); j++){
-//       mis(i) *= 0.5 * sqrt(M_PI) * sigma(j) * (erf((1 - Mu(i,j))/sigma(j)) + erf(Mu(i,j)/sigma(j)));
-//     }
-//   }
-//   return(mis);
-// }
+// [[Rcpp::export]]
+NumericVector mi_gauss_cpp(NumericMatrix Mu, NumericVector sigma){
+  NumericVector mis(Mu.nrow(), 1.);
+
+  for(int i = 0; i < Mu.nrow(); i++){
+    for(int j = 0; j < Mu.ncol(); j++){
+      mis(i) *= 0.5 * sqrt(M_PI) * sigma(j) * (erf((1 - Mu(i,j))/sigma(j)) + erf(Mu(i,j)/sigma(j)));
+    }
+  }
+  return(mis);
+}
 
 // -1/2 * sqrt(pi/2.) * sigma * exp(-(mu1 - mu2)^2 / (2*sigma^2)) * (erf((mu1 + mu2 - 2) / (sqrt(2.) * sigma)) - erf((mu1 + mu2) / (sqrt(2.) * sigma))) 
 
@@ -120,7 +120,7 @@ NumericMatrix Wijs_gauss_sym_cpp(NumericMatrix Mu, NumericVector sigma){
       for(int k = 0; k < mc; k++, ptr_s++){
         if(i == j){
           a = Mu(i, k);
-          Wijs(i, i) *= -1./2. * sqrt(M_PI/2.) * *ptr_s * (erf((2 * a  - 2.) / (sqrt(2.) * *ptr_s)) - erf((2 * a) / (sqrt(2.) * *ptr_s)));
+          Wijs(i, i) *= -1./2. * sqrt(M_PI/2.) * *ptr_s * (erf((2. * a  - 2.) / (sqrt(2.) * *ptr_s)) - erf((2. * a) / (sqrt(2.) * *ptr_s)));
         }else{
           a = Mu(i, k);
           b = Mu(j, k);
@@ -157,7 +157,7 @@ NumericVector d_gauss_cpp(NumericVector X, double x, double sigma){
   NumericVector dis(X.length());  
   
   for(int i = 0; i < X.length(); i++){
-    dis(i) = 2 / sigma * (X(i) - x) ;
+    dis(i) = 2. / sigma * (X(i) - x);
   }
   return(dis);
 }
@@ -166,6 +166,7 @@ NumericVector d_gauss_cpp(NumericVector X, double x, double sigma){
 
 double c1i_gauss(double x1, double X, double sigma){
   double tmp = -1./2. * sqrt(M_PI/2.) * sigma * exp(-(X - x1) * (X - x1) / (2. * sigma * sigma)) * (erf((X + x1 - 2.) / (sqrt(2.) * sigma)) - erf((X + x1) / (sqrt(2.) * sigma)));
+  if(tmp == 0.) return(0.);
   
   return((0.5*exp(-(x1 - X)*(x1 - X) / (2.*sigma*sigma))* (exp(-(x1 + X)*(x1 + X)/(2.*sigma*sigma)) -
          exp(-(2.-(x1 + X))*(2.-(x1 + X))/(2.*sigma * sigma))) - sqrt(2.*M_PI)/4./sigma*(x1 - X) * exp(-(x1 - X)*(x1 - X)/(2.*sigma*sigma)) * 
@@ -174,7 +175,9 @@ double c1i_gauss(double x1, double X, double sigma){
 
 // [[Rcpp::export]]
 double c2_gauss_cpp(double x, double t, double w){
-  double tmp = -1./2. * sqrt(M_PI/2.) * t * (erf((2 * x  - 2.) / (sqrt(2.) * t)) - erf((2 * x) / (sqrt(2.) * t)));
+  if(w == 0.) return(0.);
+  double tmp = -1./2. * sqrt(M_PI/2.) * t * (erf((2. * x  - 2.) / (sqrt(2.) * t)) - erf((2. * x) / (sqrt(2.) * t)));
+  if(tmp == 0.) return(0.);
   return((exp(-2. * x * x / (t * t)) - exp(-2.*(1. - x) * (1. - x) / (t * t)))*w/tmp);
 }
 
@@ -184,7 +187,7 @@ NumericVector c1_gauss_cpp(NumericVector X, double x, double sigma, NumericVecto
   NumericVector cis(X.length());  
   
   for(int i = 0; i < X.length(); i++){
-    cis(i) += c1i_gauss(x, X(i), sigma) * W(i);
+    cis(i) = c1i_gauss(x, X(i), sigma) * W(i);
   }
   
   return(cis);
@@ -192,21 +195,21 @@ NumericVector c1_gauss_cpp(NumericVector X, double x, double sigma, NumericVecto
 
 //////// Matern 5/2 kernel
 
-// double A_2_cpp(double x){
-//   return((8. + 5. * x + x * x) * exp(-x));
-// }
+double A_2_cpp(double x){
+  return((8. + 5. * x + x * x) * exp(-x));
+}
 
-// // [[Rcpp::export]]
-// NumericVector mi_mat52_cpp(NumericMatrix Mu, NumericVector sigma){
-//   NumericVector mis(Mu.nrow(), 1.);
-//   
-//   for(int i = 0; i < Mu.nrow(); i++){
-//     for(int j = 0; j < Mu.ncol(); j++){
-//       mis(i) *= sigma(j)/(3.*sqrt(5.)) * (16. - A_2_cpp(sqrt(5.) * Mu(i,j)/sigma(j)) - A_2_cpp(sqrt(5.) * (1. - Mu(i,j))/sigma(j)));
-//     }
-//   }
-//   return(mis);
-// }
+// [[Rcpp::export]]
+NumericVector mi_mat52_cpp(NumericMatrix Mu, NumericVector sigma){
+  NumericVector mis(Mu.nrow(), 1.);
+
+  for(int i = 0; i < Mu.nrow(); i++){
+    for(int j = 0; j < Mu.ncol(); j++){
+      mis(i) *= sigma(j)/(3.*sqrt(5.)) * (16. - A_2_cpp(sqrt(5.) * Mu(i,j)/sigma(j)) - A_2_cpp(sqrt(5.) * (1. - Mu(i,j))/sigma(j)));
+    }
+  }
+  return(mis);
+}
 
 
 // Mij_mat52 <- function(a, b, t){
@@ -421,6 +424,8 @@ double c1i_mat52(double a, double b, double t){
   p3 = (b-a)*(54*t2*t2+(54*sqrt(5.)*b-54*sqrt(5.)*a)*t*t2+(105*b2-210*a*b+105*a2)*t2+(3*5.*sqrt(5.)*b2*b-9*5.*sqrt(5.)*a*b2+9*5.*sqrt(5.)*a2*b-3*5.*sqrt(5.)*a2*a)*t+5*b2*b2-20*a*b2*b+30*a2*b2-20*a2*a*b+5*a2*a2)*exp(sqrt(5.)*(a-b)/t)/(54*t2*t2);
   p4 = -((t*(t*(9*t*(7*t-5.*sqrt(5.)*(b+a-2))+10*b*(5*b+17*a-27)+10*(5*a2-27*a+27))-8*5.*sqrt(5.)*(a-1)*(b-1)*(b+a-2))+50*(a-1)*(a-1)*(b-2)*b+50*(a-1)*(a-1))*exp(2*sqrt(5.)*b/t))*exp(-sqrt(5.)*(b-a+2)/t)/(36*sqrt(5.)*t*t2);
   
+  if((p1 + p3 + p4) == 0.) return(0.); 
+  
   if(!boo){
     dw = -((2*5*sqrt(5.)*exp(2*sqrt(5.)/t)*a2*a2*a+(-100*t-2*5*5*sqrt(5.)*b)*exp(2*sqrt(5.)/t)*a2*a2+(18*5*sqrt(5.)*t2+400*b*t+4*5*5*sqrt(5.)*b2)*exp(2*sqrt(5.)/t)*a2*a+((150*t2*t+(24*5*sqrt(5.)-24*5*sqrt(5.)*b)*t2+(150*b2-300*b+150)*t)*exp(2*sqrt(5.)*b/t)+
       (-210*t2*t-54*5*sqrt(5.)*b*t2-600*b2*t-4*5*5*sqrt(5.)*b2*b)*exp(2*sqrt(5.)/t))*a2+((-3*5*5*sqrt(5.)*t2*t2+(270*b-570)*t2*t+(-12*5*sqrt(5.)*b2+72*5*sqrt(5.)*b-12*5*5*sqrt(5.))*t2+(-300*b2+600*b-300)*t)*exp(2*sqrt(5.)*b/t)+(42*sqrt(5.)*t2*t2+420*b*t2*t+
@@ -443,7 +448,10 @@ double c1i_mat52(double a, double b, double t){
 double c2_mat52_cpp(double x, double t, double w){
   double x2 = x*x;
   double t2 = t*t;
+  if(w == 0.) return(0.);
+  
   double tmp = (exp(-2*sqrt(5.)*x/t)*(63*t2*t2*exp(2*sqrt(5.)*x/t)-50*x2*x2-16*5*sqrt(5.)*t*x2*x-270*t2*x2-18*5*sqrt(5.)*t2*t*x-63*t2*t2)-exp(-2*sqrt(5.)/t)*((t*(t*(10*(5*x2-27*x+27)+9*t*(7*t-5*sqrt(5.)*(2*x-2))+10*x*(22*x-27))-8*5*sqrt(5.)*(x-1)*(x-1)*(2*x-2))+50*(x-2)*(x-1)*(x-1)*x+50*(x-1)*(x-1))*exp(2*sqrt(5.)*x/t)-63*t2*t2*exp(2*sqrt(5.)/t)))/(36*sqrt(5.)*t2*t);
+  if(tmp == 0.) return(0.);
   double dw = -((25*x2*x2-2*(3*5*sqrt(5.)*t+50)*x2*x+3*(t*(25*t+6*5*sqrt(5.))+50)*x2-2*(3*t*(t*(3*sqrt(5.)*t+25)+3*5*sqrt(5.))+50)*x+9*t2*t2+18*sqrt(5.)*t2*t+75*t2+6*5*sqrt(5.)*t+25)*exp(4*sqrt(5.)*x/t)-25*exp(2*sqrt(5.)/t)*x2*x2-6*5*sqrt(5.)*t*exp(2*sqrt(5.)/t)*x2*x-75*t2*exp(2*sqrt(5.)/t)*x2-18*sqrt(5.)*t2*t*exp(2*sqrt(5.)/t)*x-9*t2*t2*exp(2*sqrt(5.)/t))*exp(-2*sqrt(5.)*(x+1)/t)/(9*t2*t2);
   return(dw*w/tmp);
 }
@@ -482,6 +490,22 @@ NumericVector d_mat52_cpp(NumericVector X, double x, double sigma){
 }
 
 //////// Matern 3/2 kernel
+
+double A_1_cpp(double x){
+  return((2. + x) * exp(-x));
+}
+
+// [[Rcpp::export]]
+NumericVector mi_mat32_cpp(NumericMatrix Mu, NumericVector sigma){
+  NumericVector mis(Mu.nrow(), 1.);
+  
+  for(int i = 0; i < Mu.nrow(); i++){
+    for(int j = 0; j < Mu.ncol(); j++){
+      mis(i) *= sigma(j)/(sqrt(3.)) * (4. - A_1_cpp(sqrt(3.) * Mu(i,j)/sigma(j)) - A_1_cpp(sqrt(3.) * (1. - Mu(i,j))/sigma(j)));
+    }
+  }
+  return(mis);
+}
 
 // [[Rcpp::export]]
 NumericMatrix Wijs_mat32_cpp(NumericMatrix Mu1, NumericMatrix Mu2, NumericVector sigma){
@@ -601,6 +625,8 @@ double c1i_mat32(double a, double b, double t){
   
   p = ((t*(5*sqrt(3.)*t+9*b-9*a)*exp((2*sqrt(3.)*a)/t)-5*sqrt(3.)*t2-9*(b+a)*t-2*3*sqrt(3.)*a*b)*exp(-(sqrt(3.)*(b+a))/t))/(12*t)+((b-a)*(2*t2+2*sqrt(3.)*(b-a)*t+b*b-2*a*b+a*a)*exp(-(sqrt(3.)*(b-a))/t))/(2*t2)-(((t*(5*t-3*sqrt(3.)*(b+a-2))+6*(a-1)*b-6*a+6)*exp((2*sqrt(3.)*b)/t)-t*(5*t+3*sqrt(3.)*(b-a))*exp((2*sqrt(3.))/t))*exp(-(sqrt(3.)*(b-a+2))/t))/(4*sqrt(3.)*t);
 
+  if(p == 0.) return(0.);
+  
   if(!boo){
     dw =-(((2*sqrt(3.)*exp((2*sqrt(3.))/t)*a2*a+(-6*t-2*3*sqrt(3.)*b)*exp((2*sqrt(3.))/t)*a2+(((6*b-6)*t-3*sqrt(3.)*t2)*exp((2*sqrt(3.)*b)/t)+(2*sqrt(3.)*t2+12*b*t+2*3*sqrt(3.)*b2)*exp((2*sqrt(3.))/t))*a+(2*t2*t+(4*sqrt(3.)-sqrt(3.)*b)*t2+(6-6*b)*t)*exp((2*sqrt(3.)*b)/t)+(-2*sqrt(3.)*b*t2-6*b2*t-2*sqrt(3.)*b2*b)*exp((2*sqrt(3.))/t))*exp((2*sqrt(3.)*a)/t)+(-3*sqrt(3.)*t2-6*b*t)*exp((2*sqrt(3.))/t)*a+(-2*t2*t-sqrt(3.)*b*t2)*exp((2*sqrt(3.))/t))*exp((-sqrt(3.)*a-sqrt(3.)*b-2*sqrt(3.))/t))/(4*t2*t);
   }else{
@@ -614,7 +640,13 @@ double c1i_mat32(double a, double b, double t){
 double c2_mat32_cpp(double x, double t, double w){
   double x2 = x*x;
   double t2 = t*t;
+  
+  if(w == 0.) return(0.);
+  
   double tmp = (15*t2-(t*(15*t-2*9*sqrt(3.)*(x-1))+18*(x-1)*(x-1))*exp((2*sqrt(3.)*x)/t-(2*sqrt(3.))/t))/(4*3*sqrt(3.)*t) -((5*t2+2*3*sqrt(3.)*x*t+6*x*x)*exp(-(2*sqrt(3.)*x)/t)-5*t2)/(4*sqrt(3.)*t);
+  
+  if(tmp == 0.) return(0.);
+  
   double dw = -(((3*x*x-2*(sqrt(3.)*t+3)*x+t2+2*sqrt(3.)*t+3)*exp((4*sqrt(3.)*x)/t)-3*exp((2*sqrt(3.))/t)*x2-2*sqrt(3.)*t*exp((2*sqrt(3.))/t)*x-t2*exp((2*sqrt(3.))/t))*exp(-(2*sqrt(3.)*(x+1))/t))/t2;
   return(dw*w/tmp);
 }

@@ -283,9 +283,9 @@ update.hetGP <- function(object, Xnew, Znew, ginit = 1e-2, lower = NULL, upper =
     if(is.null(known)) known <- object$used_args$known
     
     m_new <- mleHetGP(X = list(X0 = m_new$X0, Z0 = m_new$Z0, mult = m_new$mult), Z = m_new$Z,
-                          noiseControl = noiseControl, lower = lower, upper = upper, covtype = object$covtype, settings = settings,
-                          init = list(theta = object$theta, theta_g = object$theta_g, k_theta_g = object$k_theta_g, Delta = m_new$Delta, g = max(object$g, ginit)),
-                          known = known, eps = object$eps, maxit = maxit)
+                      noiseControl = noiseControl, lower = lower, upper = upper, covtype = object$covtype, settings = settings,
+                      init = list(theta = object$theta, theta_g = object$theta_g, k_theta_g = object$k_theta_g, Delta = m_new$Delta, g = max(object$g, ginit)),
+                      known = known, eps = object$eps, maxit = maxit)
   }
   return(m_new)
 }
@@ -436,14 +436,14 @@ update.homGP <- function(object, Xnew, Znew = NULL, lower = NULL, upper = NULL, 
       object$mult <- c(object$mult, newdata$mult[i])
       object$Z <- c(object$Z, newdata$Zlist[[i]])
     }
-
+    
     object$nit_opt <- 0
     object$msg <- "Not optimized \n"
   }
   
   if(maxit> 0){
     
-
+    
     if(is.null(upper)) upper <- object$used_args$upper
     if(is.null(lower)) lower <- object$used_args$lower
     if(is.null(noiseControl)) noiseControl <- object$used_args$noiseControl
@@ -452,11 +452,11 @@ update.homGP <- function(object, Xnew, Znew = NULL, lower = NULL, upper = NULL, 
     init <- NULL
     if(is.null(known$theta)) init <- list(theta = object$theta)
     if(is.null(known$g)) init <- c(init, list(g = object$g))
-
+    
     object <- mleHomGP(X = list(X0 = rbind(object$X0, newdata$X0), Z0 = c(object$Z0, newdata$Z0), mult = c(object$mult, newdata$mult)), Z = c(object$Z, unlist(newdata$Zlist)), 
-                           lower = lower, upper = upper, noiseControl = noiseControl, covtype = object$covtype, 
-                           init = init, 
-                           known = known, eps = object$eps, maxit = maxit)
+                       lower = lower, upper = upper, noiseControl = noiseControl, covtype = object$covtype, 
+                       init = init, 
+                       known = known, eps = object$eps, maxit = maxit)
   }
   
   return(object)
@@ -936,10 +936,10 @@ update.hetTP <- function(object, Xnew, Znew, ginit = 1e-2, lower = NULL, upper =
     if(is.null(known)) known <- object$used_args$known
     
     m_new <- mleHetTP(X = list(X0 = m_new$X0, Z0 = m_new$Z0, mult = m_new$mult), Z = m_new$Z,
-                          noiseControl = noiseControl, lower = lower, upper = upper, covtype = object$covtype, settings = settings,
-                          init = list(theta = object$theta, theta_g = object$theta_g, k_theta_g = object$k_theta_g,
-                                      Delta = m_new$Delta, g = max(object$g, ginit), nu = object$new, sigma2 = object$sigma2),
-                          known = known, eps = object$eps, maxit = maxit)
+                      noiseControl = noiseControl, lower = lower, upper = upper, covtype = object$covtype, settings = settings,
+                      init = list(theta = object$theta, theta_g = object$theta_g, k_theta_g = object$k_theta_g,
+                                  Delta = m_new$Delta, g = max(object$g, ginit), nu = object$new, sigma2 = object$sigma2),
+                      known = known, eps = object$eps, maxit = maxit)
   }
   return(m_new)
 }
@@ -989,7 +989,7 @@ update_Ki <- function(x, model, new_lambda = NULL, nrep = 1){
       new_lambda <- predict(object = model, x = x, nugs.only = TRUE)$nugs/model$nu_hat
     vn <- drop(1 - kn1 %*% tcrossprod(model$Ki, kn1)) + new_lambda/nrep + model$eps
   }
-
+  
   gn <- - tcrossprod(model$Ki, kn1) / vn
   Ki <- model$Ki + tcrossprod(gn) * vn
   
@@ -1049,12 +1049,14 @@ LOO_preds_nugs <- function(model, i){
   return(list(mean = yih, sd2 = sih))
 }
 
-##' Provide leave one out predictions, e.g., for model testing
+##' Provide leave one out predictions, e.g., for model testing and diagnostics. 
+##' This is used in the method plot available on GP and TP models.
 ##' @title Leave one out predictions
 ##' @param model \code{homGP} or \code{hetGP} model, TP version is not considered at this point
 ##' @param ids vector of indices of the unique design point considered (default to all)
 ##' @return list with mean and variance predictions at x_i assuming this point has not been evaluated
 ##' @export
+##' @note For TP models, \code{psi} is considered fixed.
 ##' @references
 ##' O. Dubrule (1983), Cross validation of Kriging in a unique neighborhood, Mathematical Geology 15, 687--699. \cr \cr
 ##' 
@@ -1068,10 +1070,10 @@ LOO_preds_nugs <- function(model, i){
 ##' X <- matrix(mcycle$times, ncol = 1)
 ##' Z <- mcycle$accel
 ##' nvar <- 1
-##' plot(X, Z, ylim = c(-160, 90), ylab = 'acceleration', xlab = "time")
+## ' plot(X, Z, ylim = c(-160, 90), ylab = 'acceleration', xlab = "time")
 ##'
 ##' ## Model fitting
-##' model <- mleHomGP(X = X, Z = Z, lower = rep(0.1, nvar), upper = rep(50, nvar),
+##' model <- mleHomGP(X = X, Z = Z, lower = rep(0.1, nvar), upper = rep(10, nvar),
 ##'                   covtype = "Matern5_2", known = list(beta0 = 0))
 ##' LOO_p <- LOO_preds(model)
 ##'  
@@ -1084,7 +1086,7 @@ LOO_preds_nugs <- function(model, i){
 ##'                      mult = d_mot$mult[-i]), Z = unlist(d_mot$Zlist[-i]),
 ##'                      lower = rep(0.1, nvar), upper = rep(50, nvar), covtype = "Matern5_2",
 ##'                      known = list(theta = model$theta, k_theta_g = model$k_theta_g, g = model$g,
-##'                                   Delta = model$Delta[-i], beta0 = 0))
+##'                                   beta0 = 0))
 ##'  model_i$nu_hat <- model$nu_hat
 ## ' # For hetGP, need to use the same Lambdas to get the same results  
 ## '  model_i$Lambda <- model$Lambda[-i] 
@@ -1098,10 +1100,14 @@ LOO_preds_nugs <- function(model, i){
 ##' 
 ##' range(LOO_ref[,1] - LOO_p$mean)
 ##' range(LOO_ref[,2] - LOO_p$sd2)
+##' 
+##' # Use of LOO for diagnostics
+##' plot(model)
 LOO_preds <- function(model, ids = NULL){
   if(is.null(ids)) ids <- 1:nrow(model$X0)
   
-  if(model$trendtype == "OK") model$Ki <- model$Ki - matrix(rowSums(model$Ki), ncol = 1) %*% matrix(rowSums(model$Ki), nrow = 1) / sum(model$Ki)
+  if(!is.null(model$trendtype) && model$trendtype == "OK") 
+    model$Ki <- model$Ki - matrix(rowSums(model$Ki), ncol = 1) %*% matrix(rowSums(model$Ki), nrow = 1) / sum(model$Ki)
   
   if(class(model) == "homGP"){
     sds <- model$nu_hat * (1/diag(model$Ki)[ids] - model$g/model$mult[ids])
@@ -1109,7 +1115,19 @@ LOO_preds <- function(model, ids = NULL){
   
   if(class(model) == "hetGP"){
     sds <- model$nu_hat * (1/diag(model$Ki)[ids] - model$Lambda[ids]/model$mult[ids])
-  } 
+  }
+  
+  if(class(model) == "homTP"){
+    sds <- (1/diag(model$Ki)[ids] - model$g/model$mult[ids])
+    # TP correction
+    sds <- (model$nu + model$psi - 2) / (model$nu + length(model$Z) - model$mult[ids] - 2) * sds
+  }
+  
+  if(class(model) == "hetTP"){
+    sds <- (1/diag(model$Ki)[ids] - model$Lambda[ids]/model$mult[ids])
+    # TP correction
+    sds <- (model$nu + model$psi - 2) / (model$nu + length(model$Z) - model$mult[ids] - 2) * sds
+  }
   
   ys <- model$Z0[ids] - (model$Ki %*% (model$Z0 - model$beta0))[ids]/diag(model$Ki)[ids]
   return(list(mean = ys, sd2 = sds))

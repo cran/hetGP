@@ -118,7 +118,7 @@ crit_cSUR <- function(x, model, thres = 0, preds = NULL){
     psd2 <- preds$sd2 * (model$nu + length(model$Z) - 2) / (model$nu + model$psi - 2)
     
     Ki_new <- chol2inv(chol(pcov + diag(model$eps + preds$nugs, nrow = length(preds$nugs))))
-    sd2_new <- psd2 - fast_diag(pcov, tcrossprod(Ki_new, pcov))
+    sd2_new <- pmax(0, psd2 - fast_diag(pcov, tcrossprod(Ki_new, pcov)))
     
     # now update psi
     # kn1 <- model$sigma2 * cov_gen(model$X0, x, theta = model$theta, type = model$covtype)
@@ -133,7 +133,7 @@ crit_cSUR <- function(x, model, thres = 0, preds = NULL){
   }else{
     
     Ki_new <- chol2inv(chol(preds$cov + diag(model$eps + preds$nugs, nrow = length(preds$nugs))))
-    sd2_new <- preds$sd2 - fast_diag(preds$cov, tcrossprod(Ki_new, preds$cov))
+    sd2_new <- pmax(0, preds$sd2 - fast_diag(preds$cov, tcrossprod(Ki_new, preds$cov)))
     
     return(pnorm(-abs(preds$mean - thres)/sqrt(preds$sd2)) - pnorm(-abs(preds$mean - thres)/sqrt(sd2_new)))
   }
@@ -222,7 +222,7 @@ crit_ICU <- function(x, model, thres = 0, Xref, w = NULL, preds = NULL, kxprime 
     covnew <- (model$nu + length(model$Z) - 2) / (model$nu + model$psi - 2) * covnew
     preds$sd2 <- (model$nu + length(model$Z) - 2) / (model$nu + model$psi - 2) * preds$sd2
     
-    sd2_new <- preds$sd2 - drop(covnew^2)/(predx$sd2 + predx$nugs + model$eps)
+    sd2_new <- pmax(0, preds$sd2 - drop(covnew^2)/(predx$sd2 + predx$nugs + model$eps))
     
     # now update psi
     psi_n1 <- model$psi + model$nu/(model$nu - 2)
@@ -232,8 +232,8 @@ crit_ICU <- function(x, model, thres = 0, Xref, w = NULL, preds = NULL, kxprime 
     
     return(- sum(w * pt(-abs(preds$mean - thres)/sqrt(sd2_new), df = model$nu + length(model$Z) + 1)))
   }else{
-    sdnew <- preds$sd2 - drop(covnew^2)/(predx$sd2 + predx$nugs + model$eps)
-    return(- sum(w * pnorm(-abs(preds$mean - thres)/sqrt(sdnew))))
+    sd2_new <- pmax(0, preds$sd2 - drop(covnew^2)/(predx$sd2 + predx$nugs + model$eps))
+    return(- sum(w * pnorm(-abs(preds$mean - thres)/sqrt(sd2_new))))
   }
   
 }

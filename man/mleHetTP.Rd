@@ -4,12 +4,12 @@
 \alias{mleHetTP}
 \title{Student-t process modeling with heteroskedastic noise}
 \usage{
-mleHetTP(X, Z, lower, upper, noiseControl = list(k_theta_g_bounds = c(1,
-  100), g_max = 10000, g_bounds = c(1e-06, 0.1), nu_bounds = c(2 + 0.001,
-  30), sigma2_bounds = c(sqrt(.Machine$double.eps), 10000)),
-  settings = list(linkThetas = "joint", logN = TRUE, initStrategy =
-  "residuals", checkHom = TRUE, penalty = TRUE, hardpenalty = FALSE, trace
-  = 0, return.matrices = TRUE, return.hom = FALSE),
+mleHetTP(X, Z, lower = NULL, upper = NULL,
+  noiseControl = list(k_theta_g_bounds = c(1, 100), g_max = 10000,
+  g_bounds = c(1e-06, 0.1), nu_bounds = c(2 + 0.001, 30), sigma2_bounds =
+  c(sqrt(.Machine$double.eps), 10000)), settings = list(linkThetas =
+  "joint", logN = TRUE, initStrategy = "residuals", checkHom = TRUE,
+  penalty = TRUE, trace = 0, return.matrices = TRUE, return.hom = FALSE),
   covtype = c("Gaussian", "Matern5_2", "Matern3_2"), maxit = 100,
   known = list(beta0 = 0), init = list(nu = 3),
   eps = sqrt(.Machine$double.eps))
@@ -82,7 +82,7 @@ a list which is given the S3 class \code{"hetTP"}, with elements:
 \item \code{theta}: unless given, maximum likelihood estimate (mle) of the lengthscale parameter(s),
 \item \code{Delta}: unless given, mle of the nugget vector (non-smoothed),
 \item \code{Lambda}: predicted input noise variance at \code{X0}, 
-\item \code{nu_hat}: plugin estimator of the variance,
+\item \code{sigma2}: plugin estimator of the variance,
 \item \code{theta_g}: unless given, mle of the lengthscale(s) of the noise/log-noise process,
 \item \code{k_theta_g}: if \code{settings$linkThetas == 'joint'}, mle for the constant by which lengthscale parameters of \code{theta} are multiplied to get \code{theta_g},
 \item \code{g}: unless given, mle of the nugget of the noise/log-noise process,
@@ -95,7 +95,8 @@ a list which is given the S3 class \code{"hetTP"}, with elements:
 \item \code{modNugs}: homoskedastic GP model of class \code{homGP} used for initialization of the noise/log-noise process,
 \item \code{nu_hat_var}: variance of the noise process,
 \item \code{used_args}: list with arguments provided in the call to the function, which is saved in \code{call},
-\item \code{X0}, \code{Z0}, \code{Z}, \code{eps}, \code{logN}, \code{covtype}: values given in input
+\item \code{X0}, \code{Z0}, \code{Z}, \code{eps}, \code{logN}, \code{covtype}: values given in input,
+\item \code{time}: time to train the model, in seconds.
 }
 }
 \description{
@@ -123,7 +124,7 @@ In this case lengthscales of the noise process are multiples of those of the mea
 
 When no starting nor fixed parameter values are provided with \code{init} or \code{known}, 
 the initialization process consists of fitting first an homoskedastic model of the data, called \code{modHom}.
-Unless provided with \code{init$theta}, initial lengthscales are taken at the middle of the range determined with \code{lower} and \code{upper},
+Unless provided with \code{init$theta}, initial lengthscales are taken at 10\% of the range determined with \code{lower} and \code{upper},
 while \code{init$g_H} may be use to pass an initial nugget value.
 The resulting lengthscales provide initial values for \code{theta} (or update them if given in \code{init}). \cr \cr
 If necessary, a second homoskedastic model, \code{modNugs}, is fitted to the empirical residual variance between the prediction
@@ -257,5 +258,6 @@ M. Binois, Robert B. Gramacy, M. Ludkovski (2017+), Practical heteroskedastic Ga
 A. Shah, A. Wilson, Z. Ghahramani (2014), Student-t processes as alternatives to Gaussian processes, Artificial Intelligence and Statistics, 877--885.
 }
 \seealso{
-\code{\link[hetGP]{predict.hetTP}} for predictions. A \code{summary} function is available as well.
+\code{\link[hetGP]{predict.hetTP}} for predictions. 
+\code{summary} and \code{plot} functions are available as well.
 }

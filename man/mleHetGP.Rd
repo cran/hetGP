@@ -4,12 +4,13 @@
 \alias{mleHetGP}
 \title{Gaussian process modeling with heteroskedastic noise}
 \usage{
-mleHetGP(X, Z, lower, upper, noiseControl = list(k_theta_g_bounds = c(1,
-  100), g_max = 100, g_bounds = c(1e-06, 1)), settings = list(linkThetas
-  = "joint", logN = TRUE, initStrategy = "residuals", checkHom = TRUE,
-  penalty = TRUE, trace = 0, return.matrices = TRUE, return.hom = FALSE),
-  covtype = c("Gaussian", "Matern5_2", "Matern3_2"), maxit = 100,
-  known = NULL, init = NULL, eps = sqrt(.Machine$double.eps))
+mleHetGP(X, Z, lower = NULL, upper = NULL,
+  noiseControl = list(k_theta_g_bounds = c(1, 100), g_max = 100, g_bounds
+  = c(1e-06, 1)), settings = list(linkThetas = "joint", logN = TRUE,
+  initStrategy = "residuals", checkHom = TRUE, penalty = TRUE, trace = 0,
+  return.matrices = TRUE, return.hom = FALSE), covtype = c("Gaussian",
+  "Matern5_2", "Matern3_2"), maxit = 100, known = NULL, init = NULL,
+  eps = sqrt(.Machine$double.eps))
 }
 \arguments{
 \item{X}{matrix of all designs, one per row, or list with elements:
@@ -21,7 +22,7 @@ mleHetGP(X, Z, lower, upper, noiseControl = list(k_theta_g_bounds = c(1,
 
 \item{Z}{vector of all observations. If using a list with \code{X}, \code{Z} has to be ordered with respect to \code{X0}, and of length \code{sum(mult)}}
 
-\item{lower, upper}{bounds for the \code{theta} parameter (see \code{\link[hetGP]{cov_gen}} for the exact parameterization).
+\item{lower, upper}{optional bounds for the \code{theta} parameter (see \code{\link[hetGP]{cov_gen}} for the exact parameterization).
 In the multivariate case, it is possible to give vectors for bounds (resp. scalars) for anisotropy (resp. isotropy)}
 
 \item{noiseControl}{list with elements related to optimization of the noise process parameters:
@@ -90,7 +91,8 @@ a list which is given the S3 class \code{"hetGP"}, with elements:
 \item \code{nu_hat_var}: variance of the noise process,
 \item \code{used_args}: list with arguments provided in the call to the function, which is saved in \code{call},
 \item \code{Ki}, \code{Kgi}: inverse of the covariance matrices of the mean and noise processes (not scaled by \code{nu_hat} and \code{nu_hat_var}),  
-\item \code{X0}, \code{Z0}, \code{Z}, \code{eps}, \code{logN}, \code{covtype}: values given in input
+\item \code{X0}, \code{Z0}, \code{Z}, \code{eps}, \code{logN}, \code{covtype}: values given in input,
+\item \code{time}: time to train the model, in seconds.
 }
 }
 \description{
@@ -119,7 +121,7 @@ In this case lengthscales of the noise process are multiples of those of the mea
 
 When no starting nor fixed parameter values are provided with \code{init} or \code{known}, 
 the initialization process consists of fitting first an homoskedastic model of the data, called \code{modHom}.
-Unless provided with \code{init$theta}, initial lengthscales are taken at the middle of the range determined with \code{lower} and \code{upper},
+Unless provided with \code{init$theta}, initial lengthscales are taken at 10\% of the range determined with \code{lower} and \code{upper},
 while \code{init$g_H} may be use to pass an initial nugget value.
 The resulting lengthscales provide initial values for \code{theta} (or update them if given in \code{init}). \cr \cr
 If necessary, a second homoskedastic model, \code{modNugs}, is fitted to the empirical residual variance between the prediction
@@ -248,11 +250,12 @@ points(Xu, col = 'blue', pch = 20)
 par(mfrow = c(1, 1))
 }
 \references{
-M. Binois, Robert B. Gramacy, M. Ludkovski (2017+), Practical heteroskedastic Gaussian process modeling for large simulation experiments,
-arXiv preprint arXiv:1611.05902.
+M. Binois, Robert B. Gramacy, M. Ludkovski (2018), Practical heteroskedastic Gaussian process modeling for large simulation experiments,
+Journal of Computational and Graphical Statistics, 27(4), 808--821.\cr 
+Preprint available on arXiv:1611.05902. \cr \cr
 }
 \seealso{
 \code{\link[hetGP]{predict.hetGP}} for predictions, \code{\link[hetGP]{update.hetGP}} for updating an existing model.
-A \code{summary} function is available as well.
+\code{summary} and \code{plot} functions are available as well.
 \code{\link[hetGP]{mleHetTP}} provide a Student-t equivalent.
 }

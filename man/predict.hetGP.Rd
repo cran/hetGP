@@ -25,9 +25,9 @@ list with elements
 \itemize{
 \item \code{mean}: kriging mean;
 \item \code{sd2}: kriging variance (filtered, e.g. without the nugget values)
-\item \code{nugs}: noise variance
-\item \code{sd2_var}: (optional) kriging variance of the noise process
-\item \code{cov}: (optional) predictive covariance matrix between \code{x} and \code{xprime}
+\item \code{nugs}: noise variance prediction
+\item \code{sd2_var}: (returned if \code{noise.var = TRUE}) kriging variance of the noise process (i.e., on log-variances if \code{logN = TRUE})
+\item \code{cov}: (returned if \code{xprime} is given) predictive covariance matrix between \code{x} and \code{xprime}
 }
 }
 \description{

@@ -43,7 +43,7 @@ NumericMatrix matern5_2_1args(NumericMatrix X1){
     for(int j = 0; j < i; j++, ptrs++, ptrr++){
       *ptrs *= exp(*ptrr);
       *ptrs2 = *ptrs;
-       ptrs2 += nr;
+      ptrs2 += nr;
     }
     ptrs += (nr - i);
     ptrr += (nr - i);
@@ -60,7 +60,7 @@ NumericMatrix d_matern5_2_1args_theta_k_iso(NumericMatrix X1, double theta){
   int nc = X1.ncol();
   NumericMatrix s(nr, nr);
   double tmp;
-
+  
   const double* ptrX1 = (const double*) &X1(1,0);
   const double* ptrX2 = (const double*) &X1(0,0);
   double* ptrs = &s(0,1);
@@ -88,12 +88,41 @@ NumericMatrix d_matern5_2_1args_theta_k_iso(NumericMatrix X1, double theta){
 }
 
 // [[Rcpp::export]]
+NumericMatrix d_matern5_2_1args_theta_k(NumericMatrix X1, double theta){
+  // X1 has just one column here
+  int nr = X1.nrow();
+  NumericMatrix s(nr, nr);
+  double tmp;
+  
+  const double* ptrX1 = (const double*) &X1(1,0);
+  const double* ptrX2 = (const double*) &X1(0,0);
+  double* ptrs = &s(0,1);
+  double* ptrs2 = &s(1,0); //symmetric
+  
+  for(int i = 1; i < nr; i++, ptrX1++){
+    for(int j = 0; j < i; j++, ptrs++){
+      tmp = std::abs(*ptrX1 - *ptrX2) / theta;
+      *ptrs -= ((10./3. - 5.) * tmp - 5 * sqrt(5.)/3. * tmp * tmp) / (1 + sqrt(5.) * tmp + 5./3. * tmp * tmp) * tmp/theta;
+      
+      *ptrs2 = *ptrs;
+      ptrs2 += nr;
+      ptrX2 ++;
+    }
+    
+    ptrX2 -= i;
+    ptrs += (nr - i);
+    ptrs2 += 1 - i*nr;
+  }
+  return s;
+}
+
+// [[Rcpp::export]]
 NumericMatrix d_matern5_2_1args_kthetag(NumericMatrix X1, double kt){
   int nr = X1.nrow();
   int nc = X1.ncol();
   NumericMatrix s(nr, nr);
   double tmp;
-
+  
   const double* ptrX1 = (const double*) &X1(1,0);
   const double* ptrX2 = (const double*) &X1(0,0);
   double* ptrs = &s(0,1);
@@ -175,11 +204,11 @@ NumericMatrix d_matern5_2_2args_theta_k_iso(NumericMatrix X1, NumericMatrix X2, 
   int dim = X1.ncol();
   NumericMatrix s(nr1, nr2);
   double tmp;
-
+  
   double* ptrs = &s(0,0);
   const double* ptrX2 = (const double*) &X2(0,0);
   const double* ptrX1 = (const double*) &X1(0,0);
-
+  
   for(int i = 0; i < nr2; i++){
     for(int j = 0; j < nr1; j++, ptrs++){
       for(int k = 0; k < dim; k++){
@@ -205,7 +234,7 @@ NumericMatrix d_matern5_2_2args_kthetag(NumericMatrix X1, NumericMatrix X2, doub
   int dim = X1.ncol();
   NumericMatrix s(nr1, nr2);
   double tmp;
-
+  
   double* ptrs = &s(0,0);
   const double* ptrX2 = (const double*) &X2(0,0);
   const double* ptrX1 = (const double*) &X1(0,0);
@@ -219,7 +248,7 @@ NumericMatrix d_matern5_2_2args_kthetag(NumericMatrix X1, NumericMatrix X2, doub
       }
       ptrX2 -= nr2*dim;
       ptrX1 -= nr1*dim - 1;
-
+      
     }
     ptrX2++;
     ptrX1 -= nr1;
@@ -232,7 +261,7 @@ NumericMatrix partial_d_dist_abs_dX_i1_i2(NumericMatrix X1, int i1, int i2){
   int nr = X1.nrow();
   NumericMatrix s(nr, nr);
   double tmp;
-
+  
   for(int i = 0; i < nr; i++){
     if(i == (i1 - 1))
       continue;
@@ -256,7 +285,7 @@ NumericMatrix partial_d_dist_abs_dX1_i1_i2_X2(NumericMatrix X1, NumericMatrix X2
   int nr = X2.nrow();
   NumericMatrix s(X1.nrow(), nr);
   double tmp;
-
+  
   for(int i = 0; i < nr; i++){
     tmp = X1(i1-1, i2-1) - X2(i, i2-1);
     if(tmp > 0){
@@ -352,6 +381,34 @@ NumericMatrix d_matern3_2_1args_theta_k_iso(NumericMatrix X1, double theta){
       ptrs2 += nr;
       ptrX1 -= nr*nc;
       ptrX2 -= nr*nc - 1;
+    }
+    
+    ptrX2 -= i;
+    ptrs += (nr - i);
+    ptrs2 += 1 - i*nr;
+  }
+  return s;
+}
+
+// [[Rcpp::export]]
+NumericMatrix d_matern3_2_1args_theta_k(NumericMatrix X1, double theta){
+  // X1 has one column
+  int nr = X1.nrow();
+  NumericMatrix s(nr, nr);
+  double tmp;
+  
+  const double* ptrX1 = (const double*) &X1(1,0);
+  const double* ptrX2 = (const double*) &X1(0,0);
+  double* ptrs = &s(0,1);
+  double* ptrs2 = &s(1,0); //symmetric
+  
+  for(int i = 1; i < nr; i++, ptrX1++){
+    for(int j = 0; j < i; j++, ptrs++){
+      tmp = std::abs(*ptrX1 - *ptrX2) / theta;
+      *ptrs -= 3*tmp / (1 + sqrt(3.) * tmp) * tmp / theta;
+      *ptrs2 = *ptrs;
+      ptrs2 += nr;
+      ptrX2++;
     }
     
     ptrX2 -= i;

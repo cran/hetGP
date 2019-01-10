@@ -29,6 +29,21 @@ double fast_trace(NumericMatrix A, NumericMatrix B) {
   return(tmp);
 }
 
+// Compute trace(A * B) when A is symmetric
+// [[Rcpp::export]]
+double trace_sym(NumericMatrix A, NumericMatrix B) {
+  double tmp = 0;
+  int nrA = A.nrow();
+  const double* ptrA = (const double*) &A(0,0);
+  const double* ptrB = (const double*) &B(0,0);
+  for(int i = 0; i < nrA; i++){
+    for(int j = 0; j < nrA; j++, ptrA++, ptrB++){
+      tmp += *ptrA * *ptrB;
+    }
+  }
+  return(tmp);
+}
+
 // // Compute trace(A * (g t(g))
 // // [[Rcpp::export]]
 // double fast_trace_g(NumericMatrix A, NumericVector g){

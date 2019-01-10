@@ -1,3 +1,23 @@
+## hetGP 1.1.1
+
+## change / hetGP 1.1.0
+  * add vignette describing the package
+  * precisions on noise.var with predict.hetGP in the documentation
+  * change print method to return summary
+  * add plot methods to GP and TP models
+  * catch optim errors when at least one likelihood evaluation worked
+  * lower and upper are now optional parameters
+  * IMSPE include the extra term with estimated beta0 (but not crit_IMSPE at this stage)
+  * IMSE.search and IMSE_nsteps_ahead are now a single function: IMSPE_optim
+  * update defaults of IMSE.search
+  * new functions crit_optim mimicking IMSPE_optim for contour/optim criteria
+  * catch numerical errors in updated variance in contour criteria
+  * improve partial derivatives wrt theta for Matern kernels
+  * add time slot in model fitting outputs
+  * faster trace computations in the symmetric case
+  * initial theta values when providing lower and upper is now 10% of the range
+  * fix strip and crit_EI methods (thanks to Rob Smith)
+
 ## hetGP 1.1.0
 
 ## change / hetGP 1.0.2

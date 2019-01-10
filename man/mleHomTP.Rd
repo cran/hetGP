@@ -4,7 +4,7 @@
 \alias{mleHomTP}
 \title{Student-T process modeling with homoskedastic noise}
 \usage{
-mleHomTP(X, Z, lower, upper, known = list(beta0 = 0),
+mleHomTP(X, Z, lower = NULL, upper = NULL, known = list(beta0 = 0),
   noiseControl = list(g_bounds = c(sqrt(.Machine$double.eps), 10000),
   nu_bounds = c(2 + 0.001, 30), sigma2_bounds =
   c(sqrt(.Machine$double.eps), 10000)), init = list(nu = 3),
@@ -37,8 +37,8 @@ considering a GP with \code{\link[hetGP]{mleHomGP}} may be better.
 
 \item{init}{list specifying starting values for MLE optimization, with elements:
 \itemize{
- \item \code{theta_init} initial value of the theta parameters to be optimized over (default to \code{(upper-lower)/2})
- \item \code{g_init} initial value of the nugget parameter to be optimized over (default to \code{0.5})
+ \item \code{theta_init} initial value of the theta parameters to be optimized over (default to 10\% of the range determined with \code{lower} and \code{upper})
+ \item \code{g_init} initial value of the nugget parameter to be optimized over (based on the variance at replicates if there are any, else 10\% of the variance)
  \item \code{sigma2} initial value of the variance paramter (default to \code{1})
  \item \code{nu} initial value of the degrees of freedom parameter (default to \code{3})
 }}
@@ -66,6 +66,7 @@ a list which is given the S3 class "\code{homGP}", with elements:
 \item \code{used_args}: list with arguments provided in the call
 \item \code{nit_opt}, \code{msg}: \code{counts} and {msg} returned by \code{\link[stats]{optim}}
 \item \code{Ki}, inverse covariance matrix (if \code{return.Ki} is \code{TRUE} in \code{settings})
+\item \code{time}: time to train the model, in seconds.
 
 }
 }
@@ -114,8 +115,11 @@ lines(xgrid, preds$mean + sqrt(preds$sd2 + preds$nugs) * qt(0.95, df = model$nu 
 \references{
 M. Binois, Robert B. Gramacy, M. Ludkovski (2017+), Practical heteroskedastic Gaussian process modeling for large simulation experiments, arXiv preprint arXiv:1611.05902. \cr \cr
 
-A. Shah, A. Wilson, Z. Ghahramani (2014), Student-t processes as alternatives to Gaussian processes, Artificial Intelligence and Statistics, 877--885.
+A. Shah, A. Wilson, Z. Ghahramani (2014), Student-t processes as alternatives to Gaussian processes, Artificial Intelligence and Statistics, 877--885. \cr \cr
+
+M. Chung, M. Binois, RB Gramacy, DJ Moquin, AP Smith, AM Smith (2018+). Parameter and Uncertainty Estimation for Dynamical Systems Using Surrogate Stochastic Processes. Preprint available on arXiv:1802.00852.
 }
 \seealso{
-\code{\link[hetGP]{predict.homTP}} for predictions. A \code{summary} function is available as well.
+\code{\link[hetGP]{predict.homTP}} for predictions.
+\code{summary} and \code{plot} functions are available as well.
 }

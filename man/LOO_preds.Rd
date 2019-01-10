@@ -15,7 +15,11 @@ LOO_preds(model, ids = NULL)
 list with mean and variance predictions at x_i assuming this point has not been evaluated
 }
 \description{
-Provide leave one out predictions, e.g., for model testing
+Provide leave one out predictions, e.g., for model testing and diagnostics. 
+This is used in the method plot available on GP and TP models.
+}
+\note{
+For TP models, \code{psi} is considered fixed.
 }
 \examples{
 set.seed(32)
@@ -24,10 +28,9 @@ library(MASS)
 X <- matrix(mcycle$times, ncol = 1)
 Z <- mcycle$accel
 nvar <- 1
-plot(X, Z, ylim = c(-160, 90), ylab = 'acceleration', xlab = "time")
 
 ## Model fitting
-model <- mleHomGP(X = X, Z = Z, lower = rep(0.1, nvar), upper = rep(50, nvar),
+model <- mleHomGP(X = X, Z = Z, lower = rep(0.1, nvar), upper = rep(10, nvar),
                   covtype = "Matern5_2", known = list(beta0 = 0))
 LOO_p <- LOO_preds(model)
  
@@ -40,7 +43,7 @@ for(i in 1:nrow(d_mot$X0)){
                      mult = d_mot$mult[-i]), Z = unlist(d_mot$Zlist[-i]),
                      lower = rep(0.1, nvar), upper = rep(50, nvar), covtype = "Matern5_2",
                      known = list(theta = model$theta, k_theta_g = model$k_theta_g, g = model$g,
-                                  Delta = model$Delta[-i], beta0 = 0))
+                                  beta0 = 0))
  model_i$nu_hat <- model$nu_hat
  p_i <- predict(model_i, d_mot$X0[i,,drop = FALSE])
  LOO_ref[i,] <- c(p_i$mean, p_i$sd2)
@@ -50,6 +53,9 @@ for(i in 1:nrow(d_mot$X0)){
 
 range(LOO_ref[,1] - LOO_p$mean)
 range(LOO_ref[,2] - LOO_p$sd2)
+
+# Use of LOO for diagnostics
+plot(model)
 }
 \references{
 O. Dubrule (1983), Cross validation of Kriging in a unique neighborhood, Mathematical Geology 15, 687--699. \cr \cr

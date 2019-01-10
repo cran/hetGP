@@ -187,7 +187,11 @@ cov_Matern5_2 <- function(X1, X2 = NULL, theta){
 
 ## Partial derivative of the covariance matrix with respect to theta[k] (to be multiplied by the covariance matrix)
 partial_d_C_Matern5_2_dtheta_k <- function(X1, theta){
-    tmp <- d_matern5_2_1args_theta_k_iso(X1 = X1, theta = theta)
+    if(ncol(X1) == 1){
+      tmp <- d_matern5_2_1args_theta_k(X1 = X1, theta = theta)
+    }else{
+      tmp <- d_matern5_2_1args_theta_k_iso(X1 = X1, theta = theta)
+    }
     return(tmp)
 }
 
@@ -264,10 +268,10 @@ cov_Matern3_2 <- function(X1, X2 = NULL, theta){
   }
 }
 
-## Partial derivative of the covariance matrix with respect to theta[k] (to be multiplied by the covariance matrix)
+## Partial derivative of the covariance matrix with respect to theta[k] (to be multiplied by the covariance matrix) 
 partial_d_C_Matern3_2_dtheta_k <- function(X1, theta){
-  tmp <- d_matern3_2_1args_theta_k_iso(X1 = X1, theta = theta)
-  return(tmp)
+  if(ncol(X1) == 1) return(d_matern3_2_1args_theta_k(X1 = X1, theta = theta))
+  return(d_matern3_2_1args_theta_k_iso(X1 = X1, theta = theta))
 }
 
 ## Partial derivative of the covariance vector with respect to theta[k] (to be multiplied by the covariance vector)

@@ -4,10 +4,11 @@
 \alias{mleHomGP}
 \title{Gaussian process modeling with homoskedastic noise}
 \usage{
-mleHomGP(X, Z, lower, upper, known = NULL, noiseControl = list(g_bounds
-  = c(sqrt(.Machine$double.eps), 100)), init = NULL,
-  covtype = c("Gaussian", "Matern5_2", "Matern3_2"), maxit = 100,
-  eps = sqrt(.Machine$double.eps), settings = list(return.Ki = TRUE))
+mleHomGP(X, Z, lower = NULL, upper = NULL, known = NULL,
+  noiseControl = list(g_bounds = c(sqrt(.Machine$double.eps), 100)),
+  init = NULL, covtype = c("Gaussian", "Matern5_2", "Matern3_2"),
+  maxit = 100, eps = sqrt(.Machine$double.eps),
+  settings = list(return.Ki = TRUE))
 }
 \arguments{
 \item{X}{matrix of all designs, one per row, or list with elements:
@@ -19,7 +20,7 @@ mleHomGP(X, Z, lower, upper, known = NULL, noiseControl = list(g_bounds
 
 \item{Z}{vector of all observations. If using a list with \code{X}, \code{Z} has to be ordered with respect to \code{X0}, and of length \code{sum(mult)}}
 
-\item{lower, upper}{bounds for the \code{theta} parameter (see \code{\link[hetGP]{cov_gen}} for the exact parameterization).
+\item{lower, upper}{optional bounds for the \code{theta} parameter (see \code{\link[hetGP]{cov_gen}} for the exact parameterization).
 In the multivariate case, it is possible to give vectors for bounds (resp. scalars) for anisotropy (resp. isotropy)}
 
 \item{known}{optional list of known parameters, e.g., \code{beta0}, \code{theta} or \code{g}}
@@ -31,8 +32,8 @@ In the multivariate case, it is possible to give vectors for bounds (resp. scala
 
 \item{init}{optional list specifying starting values for MLE optimization, with elements:
 \itemize{
- \item \code{theta_init} initial value of the theta parameters to be optimized over (default to \code{(upper-lower)/2})
- \item \code{g_init} initial value of the nugget parameter to be optimized over (default to \code{0.5})
+ \item \code{theta_init} initial value of the theta parameters to be optimized over (default to 10\% of the range determined with \code{lower} and \code{upper})
+ \item \code{g_init} initial value of the nugget parameter to be optimized over (based on the variance at replicates if there are any, else \code{0.1})
 }}
 
 \item{covtype}{covariance kernel type, either 'Gaussian', 'Matern5_2' or 'Matern3_2', see \code{\link[hetGP]{cov_gen}}}
@@ -57,6 +58,7 @@ a list which is given the S3 class "\code{homGP}", with elements:
 \item \code{used_args}: list with arguments provided in the call
 \item \code{nit_opt}, \code{msg}: \code{counts} and \code{msg} returned by \code{\link[stats]{optim}}
 \item \code{Ki}: inverse covariance matrix (not scaled by \code{nu_hat}) (if \code{return.Ki} is \code{TRUE} in \code{settings})
+\item \code{time}: time to train the model, in seconds.
 
 }
 }
@@ -103,9 +105,12 @@ lines(xgrid, qnorm(0.95, predictions$mean, sqrt(predictions$sd2 + predictions$nu
   col = 3, lty = 2)
 }
 \references{
-M. Binois, Robert B. Gramacy, M. Ludkovski (2017+), Practical heteroskedastic Gaussian process modeling for large simulation experiments, arXiv preprint arXiv:1611.05902.
+M. Binois, Robert B. Gramacy, M. Ludkovski (2018), Practical heteroskedastic Gaussian process modeling for large simulation experiments,
+Journal of Computational and Graphical Statistics, 27(4), 808--821.\cr 
+Preprint available on arXiv:1611.05902. \cr \cr
 }
 \seealso{
 \code{\link[hetGP]{predict.homGP}} for predictions, \code{\link[hetGP]{update.homGP}} for updating an existing model. 
-A \code{summary} function is available as well. \code{\link[hetGP]{mleHomTP}} provide a Student-t equivalent.
+\code{summary} and \code{plot} functions are available as well. 
+\code{\link[hetGP]{mleHomTP}} provide a Student-t equivalent.
 }

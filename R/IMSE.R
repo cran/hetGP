@@ -12,7 +12,12 @@
 ##' @export
 IMSPE <- function(X, theta = NULL, Lambda = NULL, mult = NULL, covtype = NULL, nu= NULL, eps = sqrt(.Machine$double.eps)){
   if(class(X) %in% c("homGP", "hetGP")){
-    return(X$nu_hat * (1 - sum(X$Ki * Wij(mu1 = X$X0, theta = X$theta, type = X$covtype))))
+    Wij <- Wij(mu1 = X$X0, theta = X$theta, type = X$covtype)
+    if(X$trendtype == "OK"){
+      tmp <- drop(1 - 2 * colSums(X$Ki) %*% mi(mu1 = X$X0, theta = X$theta, type = X$covtype) + colSums(X$Ki) %*% Wij %*% rowSums(X$Ki))/sum(X$Ki)
+    }else 
+      tmp <- 0
+    return(X$nu_hat * (1 - sum(X$Ki * Wij) + tmp))
   }else{
     return(nu*(1 - sum(chol2inv(chol(add_diag(cov_gen(X, theta = theta, type = covtype), Lambda/mult + eps))) * Wij(mu1 = X, theta = theta, type = covtype))))
   }
@@ -26,7 +31,8 @@ IMSPE <- function(X, theta = NULL, Lambda = NULL, mult = NULL, covtype = NULL, n
 ##' @param id instead of providing \code{x}, one can provide the index of a considered existing design 
 ##' @export
 ##' @details The computations are scale free, i.e., values are not multiplied by \code{nu_hat} from \code{homGP} or \code{hetGP}.
-##' @seealso \code{\link[hetGP]{deriv_crit_IMSE}} for the derivative
+##' Currently this function ignores the extra terms related to the estimation of the mean.
+##' @seealso \code{\link[hetGP]{deriv_crit_IMSPE}} for the derivative
 ##' @examples
 ##' ## One-d toy example
 ##' 
@@ -57,7 +63,7 @@ IMSPE <- function(X, theta = NULL, Lambda = NULL, mult = NULL, covtype = NULL, n
 ##' 
 ##' t0 <- Sys.time()
 ##' 
-##' IMSE_grid <- apply(xgrid, 1, crit_IMSE, Wijs = Wijs, model = model)
+##' IMSPE_grid <- apply(xgrid, 1, crit_IMSPE, Wijs = Wijs, model = model)
 ##' 
 ##' t1 <- Sys.time()
 ##' print(t1 - t0)
@@ -65,16 +71,16 @@ IMSPE <- function(X, theta = NULL, Lambda = NULL, mult = NULL, covtype = NULL, n
 ## ' ## Older version with candidate points (Warning: compare for fixed zero mean)
 ## ' Xref <- xgrid
 ## ' # deprecated, for testing only
-## ' IMSE_disc_grid <- apply(xgrid, 1, hetGP:::IMSPE_grid, model = model, Xref = Xref) 
+## ' IMSPE_disc_grid <- apply(xgrid, 1, hetGP:::IMSPE_grid, model = model, Xref = Xref) 
 ## ' 
 ## ' t2 <- Sys.time()
 ## ' 
 ## ' print(t2-t1)
 ## ' 
 ## ' par(mfrow = c(1,2))
-##' plot(xgrid, IMSE_grid * model$nu_hat, xlab = "x", ylab = "crit_IMSE values")
+##' plot(xgrid, IMSPE_grid * model$nu_hat, xlab = "x", ylab = "crit_IMSPE values")
 ##' abline(v = designs)
-## ' plot(xgrid, IMSE_disc_grid / ngrid)
+## ' plot(xgrid, IMSPE_disc_grid / ngrid)
 ## ' abline(v = designs)
 ## ' par(mfrow = c(1,1))
 ##' 
@@ -104,12 +110,12 @@ IMSPE <- function(X, theta = NULL, Lambda = NULL, mult = NULL, covtype = NULL, n
 ##' Wijs <- Wij(mu1 = model$X0, theta = model$theta, type = model$covtype)
 ##' t0 <- Sys.time()
 ##' 
-##' IMSE_grid <- apply(Xgrid, 1, crit_IMSE, Wijs = Wijs, model = model)
-##' filled.contour(x = xgrid, y = xgrid, matrix(IMSE_grid, ngrid),
+##' IMSPE_grid <- apply(Xgrid, 1, crit_IMSPE, Wijs = Wijs, model = model)
+##' filled.contour(x = xgrid, y = xgrid, matrix(IMSPE_grid, ngrid),
 ##'                nlevels = 20, color.palette = terrain.colors,
 ##'                main = "Sequential IMSPE values")
-## ' filled.contour(x = xgrid, y = xgrid, matrix(IMSE_grid, ngrid), nlevels = 20, color.palette = terrain.colors)
-crit_IMSE <- function(x, model, id = NULL, Wijs = NULL){
+## ' filled.contour(x = xgrid, y = xgrid, matrix(IMSPE_grid, ngrid), nlevels = 20, color.palette = terrain.colors)
+crit_IMSPE <- function(x, model, id = NULL, Wijs = NULL){
 
   ## Precalculations
   if(is.null(Wijs)) Wijs <- Wij(mu1 = model$X0, theta = model$theta, type = model$covtype)
@@ -178,12 +184,12 @@ c2 <- function(x, sigma, w, type){
   }
 }
 
-##' Derivative of crit_IMSE
+##' Derivative of crit_IMSPE
 ##' @param x matrix for the new design (size 1 x d)
 ##' @param model \code{homGP} or \code{hetGP} model
 ##' @param Wijs optional previously computed matrix of Wijs, see \code{\link[hetGP]{Wij}}
 ##' @return Derivative of the sequential IMSPE with respect to \code{x}
-##' @seealso \code{\link[hetGP]{crit_IMSE}} for the criterion
+##' @seealso \code{\link[hetGP]{crit_IMSPE}} for the criterion
 ##' @export
 ## ' @examples
 ## ' \dontrun{
@@ -201,11 +207,11 @@ c2 <- function(x, sigma, w, type){
 ## ' library(numDeriv)
 ## ' xnew <- matrix(runif(nvar), nrow = 1)
 ## ' 
-## ' print(grad(crit_IMSE, x = xnew, model = model))
-## ' deriv_crit_IMSE(xnew, model) 
+## ' print(grad(crit_IMSPE, x = xnew, model = model))
+## ' deriv_crit_IMSPE(xnew, model) 
 ## ' 
 ## ' }
-deriv_crit_IMSE <- function(x, model, Wijs = NULL){
+deriv_crit_IMSPE <- function(x, model, Wijs = NULL){
   
   ## Precalculations
   if(is.null(Wijs)) Wijs <- Wij(mu1 = model$X0, theta = model$theta, type = model$covtype)
@@ -253,20 +259,20 @@ deriv_crit_IMSE <- function(x, model, Wijs = NULL){
   return(-tmp)
 }
 
-##' Search for best reduction in IMSE 
-##' @title IMSE minimization
+##' Search for best reduction in IMSPE 
+##' @title IMSPE minimization
 ##' @param model \code{homGP} or \code{hetGP} model
 ##' @param replicate if \code{TRUE}, search only on existing designs
 ##' @param Xcand optional set of of candidates for discrete search
 ##' @param control list in case \code{Xcand == NULL}, with elements \code{multi.start},
 ##' to perform a multi-start optimization based on \code{\link[stats]{optim}}, with \code{maxit} iterations each.
 ##' Also, \code{tol_dist} defines the minimum distance to an existing design for a new point to be added, otherwise the closest existing design is chosen.
-##' In a similar fashion, \code{tol_dist} is the minimum relative change of IMSE for adding a new design.
+##' In a similar fashion, \code{tol_dist} is the minimum relative change of IMSPE for adding a new design.
 ##' @param Wijs optional previously computed matrix of Wijs, see \code{\link[hetGP]{Wij}}
 ##' @param seed optional seed for the generation of designs with \code{\link[DiceDesign]{maximinSA_LHS}}
 ##' @importFrom DiceDesign lhsDesign maximinSA_LHS
 ##' @return list with \code{par}, \code{value} elements, and additional slot \code{new} (boolean if it is or not a new design) and \code{id} giving the index of the duplicated design. 
-##' @export
+##' @noRd
 ##' @examples 
 ##' ###############################################################################
 ##' ## Bi-variate example
@@ -296,8 +302,8 @@ deriv_crit_IMSE <- function(x, model, Wijs = NULL){
 ##'         main = "Predicted mean", nlevels = 20)
 ##' points(model$X0, col = 'blue', pch = 20)
 ##' 
-##' IMSE_grid <- apply(Xgrid, 1, crit_IMSE, model = model)
-##' filled.contour(x = xgrid, y = xgrid, matrix(IMSE_grid, ngrid),
+##' IMSPE_grid <- apply(Xgrid, 1, crit_IMSPE, model = model)
+##' filled.contour(x = xgrid, y = xgrid, matrix(IMSPE_grid, ngrid),
 ##'                nlevels = 20, color.palette = terrain.colors, 
 ##'                main = "Initial IMSPE criterion landscape",
 ##' plot.axes = {axis(1); axis(2); points(model$X0, pch = 20)})
@@ -306,7 +312,7 @@ deriv_crit_IMSE <- function(x, model, Wijs = NULL){
 ##' nsteps <- 1 # Increase for better results
 ##' 
 ##' for(i in 1:nsteps){
-##'   res <- IMSE.search(model, control = list(multi.start = 100, maxit = 50))
+##'   res <- IMSPE.search(model, control = list(multi.start = 100, maxit = 50))
 ##'   newX <- res$par
 ##'   newZ <- ftest(newX)
 ##'   model <- update(object = model, Xnew = newX, Znew = newZ)
@@ -317,37 +323,38 @@ deriv_crit_IMSE <- function(x, model, Wijs = NULL){
 ##'         main = "Predicted mean", nlevels = 20)
 ##' points(model$X0, col = 'blue', pch = 20)
 ##' 
-##' IMSE_grid <- apply(Xgrid, 1, crit_IMSE, model = model)
-##' filled.contour(x = xgrid, y = xgrid, matrix(IMSE_grid, ngrid),
+##' IMSPE_grid <- apply(Xgrid, 1, crit_IMSPE, model = model)
+##' filled.contour(x = xgrid, y = xgrid, matrix(IMSPE_grid, ngrid),
 ##'                nlevels = 20, color.palette = terrain.colors, 
 ##'                main = "Final IMSPE criterion landscape",
 ##' plot.axes = {axis(1); axis(2); points(model$X0, pch = 20)})
 ##' 
-IMSE.search <- function(model, replicate = FALSE, Xcand = NULL, 
-                        control = list(tol_dist = 1e-4, tol_diff = 1e-3, multi.start = 5, maxit = 100, maximin = TRUE, Xstart = NULL), Wijs = NULL, seed = NULL){
+IMSPE.search <- function(model, replicate = FALSE, Xcand = NULL, 
+                        control = list(tol_dist = 1e-6, tol_diff = 1e-6, multi.start = 20,
+                                       maxit = 100, maximin = TRUE, Xstart = NULL), Wijs = NULL, seed = NULL){
   
   # Only search on existing designs
   if(replicate){
     ## Discrete optimization
-    res <- sapply(1:nrow(model$X0), crit_IMSE, Wijs = Wijs, model = model, x = NULL)
+    res <- sapply(1:nrow(model$X0), crit_IMSPE, Wijs = Wijs, model = model, x = NULL)
     
     return(list(par = model$X0[which.min(res),,drop = FALSE], value = min(res), new = FALSE, id = which.min(res)))
   }
 
   if(is.null(control))
-    control <- list(multi.start = 5, maxit = 100)
+    control <- list(multi.start = 20, maxit = 100)
   
   if(is.null(control$multi.start))
-    control$multi.start <- 5
+    control$multi.start <- 20
   
   if(is.null(control$maxit))
-    control$maxit <- 5
+    control$maxit <- 100
   
   if(is.null(control$maximin))
     control$maximin <- TRUE
   
-  if(is.null(control$tol_dist)) control$tol_dist <- 1e-4
-  if(is.null(control$tol_diff)) control$tol_diff <- 1e-3
+  if(is.null(control$tol_dist)) control$tol_dist <- 1e-6
+  if(is.null(control$tol_diff)) control$tol_diff <- 1e-6
   
   d <- ncol(model$X0)
   
@@ -371,8 +378,8 @@ IMSE.search <- function(model, replicate = FALSE, Xcand = NULL,
     
     res <- list(par = NA, value = Inf, new = NA)
     for(i in 1:nrow(Xstart)){
-      out <- optim(Xstart[i,, drop = FALSE], crit_IMSE, method = "L-BFGS-B", lower = rep(0, d), upper = rep(1, d),
-                   Wijs = Wijs, model = model, control = list(maxit = control$maxit), gr = deriv_crit_IMSE)
+      out <- optim(Xstart[i,, drop = FALSE], crit_IMSPE, method = "L-BFGS-B", lower = rep(0, d), upper = rep(1, d),
+                   Wijs = Wijs, model = model, control = list(maxit = control$maxit), gr = deriv_crit_IMSPE)
       if(out$value < res$value)
         res <- list(par = out$par, value = out$value, new = TRUE, id = NULL)
     }
@@ -382,12 +389,12 @@ IMSE.search <- function(model, replicate = FALSE, Xcand = NULL,
       dists <- sqrt(distance_cpp(res$par, model$X0))
       if(min(dists) < control$tol_dist){
         res <- list(par = model$X0[which.min(dists),,drop = FALSE],
-                    value = crit_IMSE(x = model$X0[which.min(dists),, drop = F], model = model, id = which.min(dists), Wijs = Wijs),
+                    value = crit_IMSPE(x = model$X0[which.min(dists),, drop = F], model = model, id = which.min(dists), Wijs = Wijs),
                     new = FALSE, id = which.min(dists))
       }else{
         ## Check if IMSPE difference between replication and new design is significative
         id_closest <- which.min(dists) # closest point to new design
-        imspe_rep <- crit_IMSE(model = model, id = id_closest, Wijs = Wijs)
+        imspe_rep <- crit_IMSPE(model = model, id = id_closest, Wijs = Wijs)
         if((imspe_rep - res$value)/res$value < control$tol_diff){ #(1 - sum(model$Ki * Wijs)) < ){
           res <- list(par = model$X0[which.min(dists),,drop = FALSE],
                       value = imspe_rep,
@@ -402,7 +409,7 @@ IMSE.search <- function(model, replicate = FALSE, Xcand = NULL,
     
   }else{
     ## Discrete optimization
-    res <- apply(Xcand, 1, crit_IMSE, Wijs = Wijs, model = model)
+    res <- apply(Xcand, 1, crit_IMSPE, Wijs = Wijs, model = model)
     
     tmp <- which(duplicated(rbind(model$X0, Xcand[which.min(res),,drop = FALSE]), fromLast = TRUE))
     if(length(tmp) > 0) return(list(par = Xcand[which.min(res),,drop = FALSE], value = min(res), new = FALSE, id = tmp))
@@ -413,30 +420,35 @@ IMSE.search <- function(model, replicate = FALSE, Xcand = NULL,
 }
 
 
-##' h-steps lookahead strategy to favor designs with replication
-##' @title h-IMSE with replication
+#' Search for the best value of the IMSPE criterion, possibly using a h-steps lookahead strategy to favor designs with replication
+##' @title IMSPE optimization
 ##' @param model \code{homGP} or \code{hetGP} model
-##' @param Xcand optional discrete set of new candidates (otherwise a maximin LHS is used to initialise search)
-##' @param control list to be passed to \code{\link[hetGP]{IMSE.search}}
-##' @param h horizon (multi-step ahead framework)
+##' @param Xcand optional discrete set of candidates (otherwise a maximin LHS is used to initialise continuous search)
+##' @param control list in case \code{Xcand == NULL}, with elements \code{multi.start},
+##' to perform a multi-start optimization based on \code{\link[stats]{optim}}, with \code{maxit} iterations each.
+##' Also, \code{tol_dist} defines the minimum distance to an existing design for a new point to be added, otherwise the closest existing design is chosen.
+##' In a similar fashion, \code{tol_dist} is the minimum relative change of IMSPE for adding a new design.
+#' @param h horizon for multi-step ahead framework.
+#' The decision is made between:
+#' \itemize{
+#'  \item sequential crit search starting by a new design (optimized first) then adding \code{h} replicates
+#'  \item sequential crit searches starting by \code{1} to \code{h} replicates before adding a new point
+#' }
+#' Use \code{h = 0} for the myopic criterion, i.e., not looking ahead.
 ##' @param Wijs optional previously computed matrix of Wijs, see \code{\link[hetGP]{Wij}}
+##' @param seed optional seed for the generation of designs with \code{\link[DiceDesign]{maximinSA_LHS}}
 ##' @details The domain needs to be [0, 1]^d for now.
-##' The decision is made between:
-##' \itemize{
-##'  \item sequential IMSE search starting by a new design (optimized first) then adding \code{h} replicates
-##'  \item sequential IMSE searches starting by \code{1} to \code{h} replicates before adding a new point
-##' } 
 ##' @return list with elements:
 ##' \itemize{
 ##' \item \code{par}: best first design,
 ##' \item \code{value}: IMSPE h-steps ahead starting from adding \code{par},
 ##' \item \code{path}: list of elements list(\code{par}, \code{value}, \code{new}) at each step \code{h}
 ##' }
-##' @references M. Binois, J. Huang, R. Gramacy, M. Ludkovski (2017+), Replication or exploration? Sequential design for stochastic simulation experiments.
+##' @references M. Binois, J. Huang, R. Gramacy, M. Ludkovski (2017+), Replication or exploration? Sequential design for stochastic simulation experiments. arXiv preprint arXiv:1710.03206.
 ##' @export 
 ##' @examples
 ##' ###############################################################################
-##' ## Bi-variate example
+##' ## Bi-variate example (myopic version)
 ##' ###############################################################################
 ##' 
 ##' nvar <- 2 
@@ -452,7 +464,61 @@ IMSE.search <- function(model, replicate = FALSE, Xcand = NULL,
 ##' 
 ##' model <- mleHomGP(X, Z, lower = rep(0.1, nvar), upper = rep(1, nvar))
 ##' 
+##' ngrid <- 51
+##' xgrid <- seq(0,1, length.out = ngrid)
+##' Xgrid <- as.matrix(expand.grid(xgrid, xgrid))
+##' 
+##' preds <- predict(x = Xgrid, object =  model)
+##' 
+##' ## Initial plots
+##' contour(x = xgrid,  y = xgrid, z = matrix(preds$mean, ngrid),
+##'         main = "Predicted mean", nlevels = 20)
+##' points(model$X0, col = 'blue', pch = 20)
+##' 
+##' IMSPE_grid <- apply(Xgrid, 1, crit_IMSPE, model = model)
+##' filled.contour(x = xgrid, y = xgrid, matrix(IMSPE_grid, ngrid),
+##'                nlevels = 20, color.palette = terrain.colors, 
+##'                main = "Initial IMSPE criterion landscape",
+##' plot.axes = {axis(1); axis(2); points(model$X0, pch = 20)})
+##' 
+##' ## Sequential IMSPE search
+##' nsteps <- 1 # Increase for better results
+##' 
+##' for(i in 1:nsteps){
+##'   res <- IMSPE_optim(model, control = list(multi.start = 100, maxit = 50))
+##'   newX <- res$par
+##'   newZ <- ftest(newX)
+##'   model <- update(object = model, Xnew = newX, Znew = newZ)
+##' }
+##' 
+##' ## Final plots
+##' contour(x = xgrid,  y = xgrid, z = matrix(preds$mean, ngrid),
+##'         main = "Predicted mean", nlevels = 20)
+##' points(model$X0, col = 'blue', pch = 20)
+##' 
+##' IMSPE_grid <- apply(Xgrid, 1, crit_IMSPE, model = model)
+##' filled.contour(x = xgrid, y = xgrid, matrix(IMSPE_grid, ngrid),
+##'                nlevels = 20, color.palette = terrain.colors, 
+##'                main = "Final IMSPE criterion landscape",
+##' plot.axes = {axis(1); axis(2); points(model$X0, pch = 20)})
+##' 
+##' ###############################################################################
+##' ## Bi-variate example (look-ahead version)
+##' ###############################################################################
 ##' \dontrun{ 
+##' nvar <- 2 
+##' 
+##' set.seed(42)
+##' ftest <- function(x, coef = 0.1) return(sin(2*pi*sum(x)) + rnorm(1, sd = coef))
+##' 
+##' n <- 25 # must be a square
+##' xgrid0 <- seq(0.1, 0.9, length.out = sqrt(n))
+##' designs <- as.matrix(expand.grid(xgrid0, xgrid0))
+##' X <- designs[rep(1:n, sample(1:10, n, replace = TRUE)),]
+##' Z <- apply(X, 1, ftest)
+##' 
+##' model <- mleHomGP(X, Z, lower = rep(0.1, nvar), upper = rep(1, nvar))
+##' 
 ##' ngrid <- 51
 ##' xgrid <- seq(0,1, length.out = ngrid)
 ##' Xgrid <- as.matrix(expand.grid(xgrid, xgrid))
@@ -460,10 +526,10 @@ IMSE.search <- function(model, replicate = FALSE, Xcand = NULL,
 ##' nsteps <- 5 # Increase for more steps
 ##' 
 ##' for(i in 1:nsteps){
-##'   res <- IMSE_nsteps_ahead(model, h = 3, control = list(multi.start = 100, maxit = 50))
+##'   res <- IMSPE_optim(model, h = 3, control = list(multi.start = 100, maxit = 50))
 ##'   
 ##'   # If a replicate is selected
-##'   if(res$path[[1]]$new) print("Add replicate")
+##'   if(!res$path[[1]]$new) print("Add replicate")
 ##'   
 ##'   newX <- res$par
 ##'   newZ <- ftest(newX)
@@ -479,108 +545,110 @@ IMSE.search <- function(model, replicate = FALSE, Xcand = NULL,
 ##'   ## Precalculations
 ##'   Wijs <- Wij(mu1 = model$X0, theta = model$theta, type = model$covtype)
 ##'   
-##'   IMSE_grid <- apply(Xgrid, 1, crit_IMSE, Wijs = Wijs, model = model)
-##'   filled.contour(x = xgrid, y = xgrid, matrix(IMSE_grid, ngrid),
+##'   IMSPE_grid <- apply(Xgrid, 1, crit_IMSPE, Wijs = Wijs, model = model)
+##'   filled.contour(x = xgrid, y = xgrid, matrix(IMSPE_grid, ngrid),
 ##'                  nlevels = 20, color.palette = terrain.colors,
 ##'   plot.axes = {axis(1); axis(2); points(model$X0, pch = 20)})
 ##' }
 ##' }
-IMSE_nsteps_ahead <- function(model, h = 2, Xcand = NULL, control = list(multi.start = 10, maxit = 100), Wijs = NULL){
+IMSPE_optim <- function(model, h = 2, Xcand = NULL, control = list(tol_dist = 1e-6, tol_diff = 1e-6, multi.start = 20, maxit = 100),
+                        Wijs = NULL, seed = NULL){
   d <- ncol(model$X0)
+  
+  if(max(abs(range(rbind(model$X0, Xcand)))) > 1) stop("IMSPE works only with [0,1]^d domain for now.")
   
   ## Precalculations
   if(is.null(Wijs)) Wijs <- Wij(mu1 = model$X0, theta = model$theta, type = model$covtype)
   
   
   ## A) Setting to beat: first new point then replicate h times
-  IMSE_A <- IMSE.search(model = model, control = control, Xcand = Xcand, Wijs = Wijs)
-  new_designA <- IMSE_A$par ## store first considered design to be added
-  path_A <- list(c(IMSE_A, new = IMSE_A$new))
+  IMSPE_A <- IMSPE.search(model = model, control = control, Xcand = Xcand, Wijs = Wijs)
+  new_designA <- IMSPE_A$par ## store first considered design to be added
+  path_A <- list(IMSPE_A)
   
   if(h > 0){
     newmodelA <- model
     
-    if(IMSE_A$new){
+    if(IMSPE_A$new){
       newWijs <- Wij(mu1 = model$X0, mu2 = new_designA, theta = model$theta, type = model$covtype)
       WijsA <- cbind(Wijs, newWijs)
-      WijsA <- rbind(WijsA, c(newWijs, Wij(IMSE_A$par, IMSE_A$par, theta = model$theta, type = model$covtype)))
+      WijsA <- rbind(WijsA, c(newWijs, Wij(IMSPE_A$par, IMSPE_A$par, theta = model$theta, type = model$covtype)))
     }else{
       WijsA <- Wijs
     }
     
     for(i in 1:h){
-      newmodelA <- update(object = newmodelA, Xnew = IMSE_A$par, Znew = NA, maxit = 0)
-      IMSE_A <- IMSE.search(model = newmodelA, replicate = TRUE, control = control, Wijs = WijsA)
-      path_A <- c(path_A, list(c(IMSE_A, new = FALSE)))
+      newmodelA <- update(object = newmodelA, Xnew = IMSPE_A$par, Znew = NA, maxit = 0)
+      IMSPE_A <- IMSPE.search(model = newmodelA, replicate = TRUE, control = control, Wijs = WijsA)
+      path_A <- c(path_A, list(IMSPE_A))
     }
 
   }
   
-  ## If new_design_A is a replicate, no need to do the rest
-  if(!path_A[[1]]$new) return(list(par = new_designA, value = IMSE_A$value, path = path_A)) 
+  if(h == -1) return(list(par = new_designA, value = IMSPE_A$value, path = path_A)) 
   
   ## B) Now compare with waiting to add new point
   newmodelB <- model
   
   if(h == 0){
-    IMSE_B <- IMSE.search(model = newmodelB, replicate = TRUE, control = control, Wijs = Wijs)
-    new_designB <- IMSE_B$par ## store considered design to be added
+    IMSPE_B <- IMSPE.search(model = newmodelB, replicate = TRUE, control = control, Wijs = Wijs)
+    new_designB <- IMSPE_B$par ## store considered design to be added
     
     # search from best replicate
     if(is.null(Xcand)){
-      IMSE_C <- IMSE.search(model = newmodelB, Wijs = Wijs,
-                            control = list(Xstart = IMSE_B$par, maxit = control$maxit,
+      IMSPE_C <- IMSPE.search(model = newmodelB, Wijs = Wijs,
+                            control = list(Xstart = IMSPE_B$par, maxit = control$maxit,
                                            tol_dist = control$tol_dist, tol_diff = control$tol_diff))
     }else{
-      IMSE_C <- IMSE_B
+      IMSPE_C <- IMSPE_B
     }
     
-    if(IMSE_C$value < min(IMSE_A$value, IMSE_B$value)) return(list(par = IMSE_C$par, value = IMSE_C$value, path = list(c(IMSE_C, new = TRUE))))
+    if(IMSPE_C$value < min(IMSPE_A$value, IMSPE_B$value)) return(list(par = IMSPE_C$par, value = IMSPE_C$value, path = list(IMSPE_C)))
     
-    if(IMSE_B$value < IMSE_A$value){
-      return(list(par = IMSE_B$par, value = IMSE_B$value, path = list(c(IMSE_B, new = FALSE))))
+    if(IMSPE_B$value < IMSPE_A$value){
+      return(list(par = IMSPE_B$par, value = IMSPE_B$value, path = list(IMSPE_B)))
     } 
   }else{
     for(i in 1:h){
       ## Add new replicate
-      IMSE_B <- IMSE.search(model = newmodelB, replicate = TRUE, control = control, Wijs = Wijs)
+      IMSPE_B <- IMSPE.search(model = newmodelB, replicate = TRUE, control = control, Wijs = Wijs)
       
       if(i == 1){
-        new_designB <- matrix(IMSE_B$par, nrow = 1) ##store first considered design to add
+        new_designB <- matrix(IMSPE_B$par, nrow = 1) ##store first considered design to add
         path_B <- list()
       } 
       
-      path_B <- c(path_B, list(c(IMSE_B, new = FALSE)))
-      newmodelB <- update(object = newmodelB, Xnew = IMSE_B$par, Znew = NA, maxit = 0)
+      path_B <- c(path_B, list(IMSPE_B))
+      newmodelB <- update(object = newmodelB, Xnew = IMSPE_B$par, Znew = NA, maxit = 0)
       
       ## Add new design
-      IMSE_C <- IMSE.search(model = newmodelB, control = control, Xcand = Xcand, Wijs = Wijs)
-      path_C <- list(c(IMSE_C, new = TRUE))
+      IMSPE_C <- IMSPE.search(model = newmodelB, control = control, Xcand = Xcand, Wijs = Wijs)
+      path_C <- list(IMSPE_C)
       
       if(i < h){
         newmodelC <- newmodelB
         
-        if(!any(duplicated(rbind(model$X0, IMSE_C$par)))){ 
-          newWijs <- Wij(mu1 = model$X0, mu2 = IMSE_C$par, theta = model$theta, type = model$covtype)
+        if(!any(duplicated(rbind(model$X0, IMSPE_C$par)))){ 
+          newWijs <- Wij(mu1 = model$X0, mu2 = IMSPE_C$par, theta = model$theta, type = model$covtype)
           WijsC <- cbind(Wijs, newWijs)
-          WijsC <- rbind(WijsC, c(newWijs, Wij(mu1 = IMSE_C$par, theta = model$theta, type = model$covtype)))
+          WijsC <- rbind(WijsC, c(newWijs, Wij(mu1 = IMSPE_C$par, theta = model$theta, type = model$covtype)))
         }else{
           WijsC <- Wijs
         }
         
         for(j in i:(h-1)){
           ## Add remaining replicates
-          newmodelC <- update(object = newmodelC, Xnew = IMSE_C$par, Znew = NA, maxit = 0)
-          IMSE_C <- IMSE.search(model = newmodelC, replicate = TRUE, control = control, Wijs = WijsC)
-          path_C <- c(path_C, list(c(IMSE_C, new = FALSE)))
+          newmodelC <- update(object = newmodelC, Xnew = IMSPE_C$par, Znew = NA, maxit = 0)
+          IMSPE_C <- IMSPE.search(model = newmodelC, replicate = TRUE, control = control, Wijs = WijsC)
+          path_C <- c(path_C, list(IMSPE_C))
         }
       }
       
-      if(IMSE_C$value < IMSE_A$value) return(list(par = new_designB, value = IMSE_C$value, path = c(path_B, path_C)))
+      if(IMSPE_C$value < IMSPE_A$value) return(list(par = new_designB, value = IMSPE_C$value, path = c(path_B, path_C)))
     }
   }
   
-  return(list(par = new_designA, value = IMSE_A$value, path = path_A))
+  return(list(par = new_designA, value = IMSPE_A$value, path = path_A))
   
 }
 
@@ -690,9 +758,12 @@ allocate_mult <- function(model, N, Wijs = NULL, use.Ki = FALSE){
 ##' then the new horizon is sampled from the difference between the actual allocation and the best one, bounded below by 0.
 ##' See (Binois et al. 2017).
 ##' 
-##' @references M. Binois, J. Huang, R. Gramacy, M. Ludkovski (2017+), Replication or exploration? Sequential design for stochastic simulation experiments.
+##' @references
+##' M. Binois, J. Huang, R. B. Gramacy, M. Ludkovski (2018+), Replication or exploration? Sequential design for stochastic simulation experiments,
+##' Technometrics (to appear).\cr 
+##' Preprint available on arXiv:1710.03206.
 ##' @export
-update_horizon <- function(model, current_horizon = NULL, previous_ratio = NULL, target = NULL, Wijs = NULL){
+horizon <- function(model, current_horizon = NULL, previous_ratio = NULL, target = NULL, Wijs = NULL){
   if(is.null(target)){
     mult_star <- allocate_mult(model = model, N = sum(model$mult), Wijs = Wijs)
     tab <- table(pmax(mult_star - model$mult, 0))
@@ -740,3 +811,22 @@ Wij <- function(mu1, mu2 = NULL, theta, type){
   }
 }
 
+##' Compute integral of the covariance kernel over a [0,1]^d domain
+##' @param mu1 input locations considered
+##' @param theta lengthscale hyperparameter of the kernel
+##' @param type kernel type, one of "\code{Gaussian}", "\code{Matern5_2}" or "\code{Matern3_2}", see \code{\link[hetGP]{cov_gen}}
+##' @noRd
+##' @references M. Binois, J. Huang, R. Gramacy, M. Ludkovski (2017+), Replication or exploration? Sequential design for stochastic simulation experiments.
+mi <- function(mu1, theta, type){
+  if(ncol(mu1) > 1 && length(theta) == 1) theta <- rep(theta, ncol(mu1))
+  
+  if(type == "Gaussian"){
+    return(mi_gauss_cpp(mu1, sqrt(theta)))
+  }
+  if(type == "Matern5_2"){
+    return(mi_mat52_cpp(mu1, theta))
+  }
+  if(type == "Matern3_2"){
+    return(mi_mat32_cpp(mu1, theta))
+  }
+}

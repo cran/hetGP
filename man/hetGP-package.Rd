@@ -16,9 +16,9 @@ and notably fast update functions when adding new observations.
 Important functions: \cr
 \code{\link[hetGP]{mleHetGP}} as the main function to build a model. \cr
 \code{\link[hetGP]{mleHomGP}} the equivalent for homoskedastic modeling. \cr
-\code{\link[hetGP]{crit_IMSE}} for adding a new design based on the Integrated Mean Square Prediction Error. \cr
-\code{\link[hetGP]{IMSE_nsteps_ahead}} for augmenting a design based on a lookahead heuristic to add replication, of which a simplified version is
-\code{\link[hetGP]{IMSE.search}}.
+\code{\link[hetGP]{crit_IMSPE}} for adding a new design based on the Integrated Mean Square Prediction Error. \cr
+\code{\link[hetGP]{IMSPE_optim}} for augmenting a design, possibly based on a lookahead heuristic to bias the search toward replication. \cr
+\code{\link[hetGP]{crit_optim}} is similar to \code{IMSPE_optim} but for the optimization or contour finding criterion available.
 }
 \note{
 The authors are grateful for support from National Science Foundation grant DMS-1521702 and DMS-1521743.
@@ -129,12 +129,12 @@ for(ii in 1:(N_tot - n_init)){
  Wijs <- hetGP:::Wij(mu1 = model$X0, theta = model$theta, type = model$covtype)
  
  ## Adapt the horizon based on the training rmspe/score
-   current_horizon <- update_horizon(model = model, Wijs = Wijs)
+   current_horizon <- horizon(model = model, Wijs = Wijs)
 
  if(current_horizon == -1){
-   opt <- IMSE.search(model = model, Wijs = Wijs)
+   opt <- IMSPE_optim(model = model, h = 0, Wijs = Wijs)
  }else{
-   opt <- IMSE_nsteps_ahead(model = model, h = current_horizon, Wijs = Wijs)
+   opt <- IMSPE_optim(model = model, h = current_horizon, Wijs = Wijs)
  }
  
  Xnew <- opt$par
@@ -168,8 +168,12 @@ mtext(side = 1, line = 2, 'x', cex = 0.8)
 }
 }
 \references{
-M. Binois, Robert B. Gramacy, M. Ludkovski (2017+), Practical heteroskedastic Gaussian process modeling for large simulation experiments, arXiv preprint arXiv:1611.05902. \cr \cr
-M. Binois, J. Huang, R. B. Gramacy, M. Ludkovski (2017+), Replication or exploration? Sequential design for stochastic simulation experiments
+M. Binois, Robert B. Gramacy, M. Ludkovski (2018), Practical heteroskedastic Gaussian process modeling for large simulation experiments,
+Journal of Computational and Graphical Statistics, 27(4), 808--821.\cr 
+Preprint available on arXiv:1611.05902. \cr \cr
+M. Binois, J. Huang, R. B. Gramacy, M. Ludkovski (2018+), Replication or exploration? Sequential design for stochastic simulation experiments,
+Technometrics (to appear).\cr 
+Preprint available on arXiv:1710.03206.
 }
 \author{
 Mickael Binois, Robert B. Gramacy

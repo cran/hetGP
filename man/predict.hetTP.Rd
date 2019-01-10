@@ -26,7 +26,7 @@ list with elements
 \item \code{mean}: kriging mean;
 \item \code{sd2}: kriging variance (filtered, e.g. without the nugget values)
 \item \code{nugs}: noise variance
-\item \code{sd2_var}: (optional) kriging variance of the noise process
+\item \code{sd2_var}: (optional) kriging variance of the noise process (i.e., on log-variances if \code{logN = TRUE})
 \item \code{cov}: (optional) predictive covariance matrix between x and xprime
 }
 }

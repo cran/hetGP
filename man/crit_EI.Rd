@@ -78,7 +78,11 @@ mtext(side = 2, line = 2, expression(f(x)), cex = 0.8)
 }
 \references{
 Mockus, J.; Tiesis, V. & Zilinskas, A. (1978).
-The application of Bayesian methods for seeking the extremum Towards Global Optimization, Amsterdam: Elsevier, 2, 2.\cr 
+The application of Bayesian methods for seeking the extremum Towards Global Optimization, Amsterdam: Elsevier, 2, 2.\cr \cr
+
+Vazquez E, Villemonteix J, Sidorkiewicz M, Walter E (2008). 
+Global Optimization Based on Noisy Evaluations: An Empirical Study of Two Statistical Approaches, 
+Journal of Physics: Conference Series, 135, IOP Publishing.\cr \cr
 
 A. Shah, A. Wilson, Z. Ghahramani (2014), Student-t processes as alternatives to Gaussian processes, Artificial Intelligence and Statistics, 877--885.
 }
