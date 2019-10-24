@@ -9,9 +9,9 @@ mleHetTP(X, Z, lower = NULL, upper = NULL,
   g_bounds = c(1e-06, 0.1), nu_bounds = c(2 + 0.001, 30), sigma2_bounds =
   c(sqrt(.Machine$double.eps), 10000)), settings = list(linkThetas =
   "joint", logN = TRUE, initStrategy = "residuals", checkHom = TRUE,
-  penalty = TRUE, trace = 0, return.matrices = TRUE, return.hom = FALSE),
-  covtype = c("Gaussian", "Matern5_2", "Matern3_2"), maxit = 100,
-  known = list(beta0 = 0), init = list(nu = 3),
+  penalty = TRUE, trace = 0, return.matrices = TRUE, return.hom = FALSE,
+  factr = 1e+09), covtype = c("Gaussian", "Matern5_2", "Matern3_2"),
+  maxit = 100, known = list(beta0 = 0), init = list(nu = 3),
   eps = sqrt(.Machine$double.eps))
 }
 \arguments{
@@ -51,7 +51,8 @@ Same as for \code{theta} if not provided.
   \item \code{trace} optional scalar (default to \code{0}). If positive, tracing information on the fitting process.
 If \code{1}, information is given about the result of the heterogeneous model optimization.
 Level \code{2} gives more details. Level {3} additionaly displays all details about initialization of hyperparameters.
-\item \code{return.matrices} boolean too include the inverse covariance matrix in the object for further use (e.g., prediction).   
+\item \code{return.matrices} boolean too include the inverse covariance matrix in the object for further use (e.g., prediction).
+\item Arguments \code{factr} (default to 1e9) and \code{pgtol} are available to be passed to \code{control} for L-BFGS-B in \code{\link[stats]{optim}}.   
 }}
 
 \item{covtype}{covariance kernel type, either \code{'Gaussian'}, \code{'Matern5_2'} or \code{'Matern3_2'}, see \code{\link[hetGP]{cov_gen}}}

@@ -68,6 +68,13 @@
   Pages                    = {1507--1515}
 }
 
+@TechReport{Boukouvalas2009,
+  Title                    = {Learning Heteroscedastic {G}aussian Processes for Complex Datasets},
+  Author                   = {Boukouvalas, Alexis and Cornford, Dan},
+  Institution              = {Neural Computing Research Group, Aston University},
+  Year                     = {2009}
+}
+
 
 @InCollection{Burnaev2015,
   Title                    = {Adaptive Design of Experiments Based on {G}aussian Processes},
@@ -95,11 +102,10 @@
   Publisher                = {Springer-Verlag},
   Year                     = {2013},
   Editor                   = {Ucinski, Dariusz and Atkinson, Anthony C. and Patan, Maciej},
-  Pages                    = {35-43},
+  Pages                    = {35--43},
   Series                   = {Contributions to Statistics},
   Doi                      = {10.1007/978-3-319-00218-7_5},
-  ISBN                     = {978-3-319-00217-0},
-  Url                      = {http://dx.doi.org/10.1007/978-3-319-00218-7_5}
+  ISBN                     = {978-3-319-00217-0}
 }
 
 
@@ -135,11 +141,25 @@
 
 @article{Chung2018,
   title={Parameter and Uncertainty Estimation for Dynamical Systems Using Surrogate Stochastic Processes},
-  author={Chung, MATTHIAS and Binois, MICKA{\"E}L and Gramacy, ROBERT B and Moquin, DAVID J and Smith, AMANDA P and Smith, AMBER M},
-  journal={arXiv preprint arXiv:1802.00852},
-  year={2018}
+  author={Chung, Matthias and Binois, Mickaël and Gramacy, Robert B and Bardsley, Johnathan M and Moquin, David J and Smith, Amanda P and Smith, Amber M},
+  journal={SIAM Journal on Scientific Computing},
+  volume={41},
+  number={4},
+  pages={A2212--A2238},
+  year={2019},
+  publisher={SIAM}
 }
 
+@Article{Dubrule1983,
+  Title                    = {Cross Validation of Kriging in a Unique Neighborhood},
+  Author                   = {Dubrule, Olivier},
+  Journal                  = {Mathematical Geology},
+  Year                     = {1983},
+  Number                   = {6},
+  Pages                    = {687--699},
+  Volume                   = {15},
+  Publisher                = {Springer}
+}
 
 @Article{mlegp,
   author = {Garrett M Dancik and Karin S Dorman},
@@ -153,10 +173,44 @@
 
 @Manual{kergp,
   title = {\pkg{kergp}: Gaussian Process Laboratory},
-  author = {Yves Deville and David Ginsbourger and Olivier Roustant. Contributors: Nicolas Durrande.},
+  author = {Yves Deville and David Ginsbourger and Olivier Roustant},
   year = {2018},
   note = {\proglang{R} package version 0.4.0},
   url = {https://CRAN.R-project.org/package=kergp},
+}
+
+@Article{Eddelbuettel2011,
+  title = {\pkg{Rcpp}: Seamless \proglang{R} and \proglang{C++} Integration},
+  author = {Dirk Eddelbuettel and Romain Fran\c{c}ois},
+  journal = {Journal of Statistical Software},
+  year = {2011},
+  volume = {40},
+  number = {8},
+  pages = {1--18},
+  url = {http://www.jstatsoft.org/v40/i08/},
+  doi = {10.18637/jss.v040.i08},
+}
+
+@Book{Eddelbuettel2013,
+  title = {Seamless \proglang{R} and \proglang{C++} Integration with \pkg{Rcpp}},
+  author = {Dirk Eddelbuettel},
+  publisher = {Springer-Verlag},
+  address = {New York},
+  year = {2013},
+  note = {ISBN 978-1-4614-6867-7},
+  doi = {10.1007/978-1-4614-6868-4},
+}
+
+@Article{Eddelbuettel2017,
+author = {Dirk Eddelbuettel and James Joseph Balamuta},
+title = {Extending \proglang{R} with \proglang{C++}: A Brief Introduction to \pkg{Rcpp}},
+journal = {The American Statistician},
+volume = {72},
+number = {1},
+pages = {28-36},
+year  = {2018},
+publisher = {Taylor & Francis},
+doi = {10.1080/00031305.2017.1375990},
 }
 
 
@@ -165,20 +219,10 @@
   Author                   = {Collin B. Erickson and Bruce E. Ankenman and Susan M. Sanchez},
   Journal                  = {European Journal of Operational Research},
   Year                     = {2017},
-  Doi                      = {https://doi.org/10.1016/j.ejor.2017.10.002},
+  doi                      = {10.1016/j.ejor.2017.10.002},
   ISSN                     = {0377-2217},
   Keywords                 = {Simulation, Gaussian processes, Stochastic kriging, Metamodels, Computer experiments},
-  Url                      = {http://www.sciencedirect.com/science/article/pii/S0377221717308962}
 }
-
-
-@Book{Forrester2008,
-  Title                    = {Engineering Design via Surrogate Modelling: A Practical Guide},
-  Author                   = {Forrester, Alexander and Sobester, Andras and Keane, Andy},
-  Publisher                = {John Wiley \& Sons},
-  Year                     = {2008}
-}
-
 
 @article{franck:gramacy:2018,
   title={Assessing {B}ayes Factor Surfaces Using Interactive Visualization and Computer Surrogate Modeling},
@@ -234,7 +278,7 @@
   journal = {Journal of the American Statistical Association},
   volume = {102},
   number = {477},
-  pages = {359-378},
+  pages = {359--378},
   year = {2007},
   doi = {10.1198/016214506000001437}
 }
@@ -347,7 +391,7 @@
   Title = {Adaptive Design and Analysis of Supercomputer Experiment},
   Year = 2009,
   Volume = {51},
-  Pages = {130-145}
+  Pages = {130--145}
 }
 
 
@@ -385,7 +429,6 @@ number = "2",
 pages = "237--262",
 publisher = "International Society for Bayesian Analysis",
 title = "Shrinkage Regression for Multivariate Inference with Missing Data, and an Application to Portfolio Balancing",
-url = "https://doi.org/10.1214/10-BA602",
 volume = "5",
 year = "2010"
 }
@@ -397,7 +440,7 @@ year = "2010"
   journal = {Operations Research},
   Volume = {54},
   Number = {1},
-  pages = {115-129},
+  pages = {115--129},
   Year = {2006},
 }
 
@@ -409,11 +452,9 @@ year = "2010"
   year      = {2018},
   volume    = {27},
   number    = {4},
-  pages     = {808-821},
+  pages     = {808--821},
   doi       = {10.1080/10618600.2018.1458625},
-  eprint    = {https://doi.org/10.1080/10618600.2018.1458625},
-  publisher = {Taylor \& Francis},
-  url       = {https://doi.org/10.1080/10618600.2018.1458625},
+  publisher = {Taylor \& Francis}
 }
 
 
@@ -432,16 +473,12 @@ year = "2010"
 author = {Mickaël Binois and Jiangeng Huang and Robert B. Gramacy and Mike Ludkovski},
 title = {Replication or Exploration? Sequential Design for Stochastic Simulation Experiments},
 journal = {Technometrics},
-volume = {0},
-number = {ja},
-pages = {1-43},
-year  = {2018},
+volume = {61},
+number = {1},
+pages = {7-23},
+year  = {2019},
 publisher = {Taylor & Francis},
-doi = {10.1080/00401706.2018.1469433},
-URL = {https://doi.org/10.1080/00401706.2018.1469433
-},
-eprint = {https://doi.org/10.1080/00401706.2018.1469433
-}
+doi = {10.1080/00401706.2018.1469433}
 }
 
 
@@ -452,6 +489,13 @@ eprint = {https://doi.org/10.1080/00401706.2018.1469433
   Year                     = {2016}
 }
 
+ @Manual{Ihaka2019,
+    title = {\pkg{colorspace}: A Toolbox for Manipulating and Assessing Colors and Palettes},
+    author = {Ross Ihaka and Paul Murrell and Kurt Hornik and Jason C. Fisher and Reto Stauffer and Claus O. Wilke and Claire D. McWhite and Achim Zeileis},
+    year = {2019},
+    note = {\proglang{R} package version 1.4-0},
+    url = {https://CRAN.R-project.org/package=colorspace},
+  }
 
 @Article{jacq:polson:rossi:2004,
   author =   {E.~Jacquier and N.G.~Polson and Peter E. Rossi},
@@ -459,7 +503,7 @@ eprint = {https://doi.org/10.1080/00401706.2018.1469433
   journal =    {J.~of Econometrics},
   year =   2004,
   volume =   122,
-  pages =    {185-212}
+  pages =    {185--212}
 }
 
 
@@ -471,8 +515,7 @@ eprint = {https://doi.org/10.1080/00401706.2018.1469433
   Number                   = {4},
   Pages                    = {455--492},
   Volume                   = {13},
-  Publisher                = {Springer-Verlag},
-  Url                      = {http://www.springerlink.com/index/M5878111M101017P.pdf}
+  Publisher                = {Springer-Verlag}
 }
 
 @INPROCEEDINGS{kersting:etal:2007,
@@ -481,7 +524,7 @@ eprint = {https://doi.org/10.1080/00401706.2018.1469433
     booktitle = {Proceedings of the International Conference on Machine Learning},
     year = {2007},
     editors = {Zoubin Ghahramani},
-    pages = {393-400},
+    pages = {393--400},
     address = {New York, NY},
     publisher = {ACM}
 }
@@ -541,7 +584,7 @@ eprint = {https://doi.org/10.1080/00401706.2018.1469433
   Author                   = {Mockus, Jonas and Tiesis, Vytautas and Zilinskas, Antanas},
   Journal                  = {Towards Global Optimization},
   Year                     = {1978},
-  Number                   = {117-129},
+  Number                   = {117--129},
   Pages                    = {2},
   Volume                   = {2},
   Publisher                = {Amsterdam: Elsevier}
@@ -620,6 +663,14 @@ eprint = {https://doi.org/10.1080/00401706.2018.1469433
   year={2017}
 }
 
+@Manual{RCore2019,
+  title = {\proglang{R}: A Language and Environment for Statistical Computing},
+  author = {{\proglang{R} Core Team}},
+  organization = {\proglang{R} Foundation for Statistical Computing},
+  address = {Vienna, Austria},
+  year = {2019},
+  url = {https://www.R-project.org/},
+}
 
 @article{Ranjan2008,
   title={Sequential Experiment Design for Contour Estimation from Complex Computer Codes},
@@ -688,9 +739,7 @@ eprint = {https://doi.org/10.1080/00401706.2018.1469433
   series = 	 {Proceedings of Machine Learning Research},
   address = 	 {Reykjavik, Iceland},
   month = 	 {22--25 Apr},
-  publisher = 	 {PMLR},
-  pdf = 	 {http://proceedings.mlr.press/v33/shah14.pdf},
-  url = 	 {http://proceedings.mlr.press/v33/shah14.html}
+  publisher = 	 {PMLR}
  }
 
  @Article{Shahriari2016,
@@ -741,8 +790,7 @@ eprint = {https://doi.org/10.1080/00401706.2018.1469433
   edition = {Fourth},
   address = {New York},
   year = {2002},
-  note = {ISBN 0-387-95457-0},
-  url = {http://www.stats.ox.ac.uk/pub/MASS4},
+  note = {ISBN 0-387-95457-0}
 }
 
 
@@ -774,3 +822,14 @@ eprint = {https://doi.org/10.1080/00401706.2018.1469433
   year={2017},
   organization={IEEE}
 }
+
+  @Article{Zeileis2009,
+    title = {Escaping {RGB}land: Selecting Colors for Statistical Graphics},
+    author = {Achim Zeileis and Kurt Hornik and Paul Murrell},
+    journal = {Computational Statistics \& Data Analysis},
+    year = {2009},
+    volume = {53},
+    number = {9},
+    pages = {3259--3270},
+    doi = {10.1016/j.csda.2008.11.033},
+  }

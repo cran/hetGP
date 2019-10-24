@@ -235,6 +235,8 @@ deriv_crit_IMSPE <- function(x, model, Wijs = NULL){
   tmp <- rep(NA, ncol(x))
   dlambda <- 0
   if(class(model) == 'hetGP') KgiD <- model$Kgi %*% (model$Delta - model$nmean)
+  if(length(model$theta) < length(x)) model$theta <- rep(model$theta, length(x))
+  if(class(model) == 'hetGP' && length(model$theta_g) < length(x)) model$theta_g <- rep(model$theta, length(x))
   
   Wig <- Wijs %*% g
   
@@ -270,7 +272,9 @@ deriv_crit_IMSPE <- function(x, model, Wijs = NULL){
 ##' In a similar fashion, \code{tol_dist} is the minimum relative change of IMSPE for adding a new design.
 ##' @param Wijs optional previously computed matrix of Wijs, see \code{\link[hetGP]{Wij}}
 ##' @param seed optional seed for the generation of designs with \code{\link[DiceDesign]{maximinSA_LHS}}
+##' @param ncores number of CPU available (> 1 mean parallel TRUE), see \code{\link[parallel]{mclapply}}
 ##' @importFrom DiceDesign lhsDesign maximinSA_LHS
+##' @importFrom parallel mclapply
 ##' @return list with \code{par}, \code{value} elements, and additional slot \code{new} (boolean if it is or not a new design) and \code{id} giving the index of the duplicated design. 
 ##' @noRd
 ##' @examples 
@@ -331,12 +335,12 @@ deriv_crit_IMSPE <- function(x, model, Wijs = NULL){
 ##' 
 IMSPE.search <- function(model, replicate = FALSE, Xcand = NULL, 
                         control = list(tol_dist = 1e-6, tol_diff = 1e-6, multi.start = 20,
-                                       maxit = 100, maximin = TRUE, Xstart = NULL), Wijs = NULL, seed = NULL){
-  
+                                       maxit = 100, maximin = TRUE, Xstart = NULL), Wijs = NULL, seed = NULL,
+                        ncores = 1){
   # Only search on existing designs
   if(replicate){
     ## Discrete optimization
-    res <- sapply(1:nrow(model$X0), crit_IMSPE, Wijs = Wijs, model = model, x = NULL)
+    res <- unlist(mclapply(1:nrow(model$X0), crit_IMSPE, Wijs = Wijs, model = model, x = NULL, mc.cores = ncores))
     
     return(list(par = model$X0[which.min(res),,drop = FALSE], value = min(res), new = FALSE, id = which.min(res)))
   }
@@ -370,19 +374,39 @@ IMSPE.search <- function(model, replicate = FALSE, Xcand = NULL,
     }else{
       if(is.null(seed)) seed <- sample(1:2^15, 1) ## To be changed?
       if(control$maximin){
-        Xstart <- maximinSA_LHS(lhsDesign(control$multi.start, d, seed = seed)$design)$design
+        if(d == 1){
+        # perturbed 1d equidistant points
+          Xstart <- matrix(seq(1/2, control$multi.start -1/2, length.out = control$multi.start) + runif(control$multi.start, min = -1/2, max = 1/2), ncol = 1)/control$multi.start
+        }else{
+          Xstart <- maximinSA_LHS(lhsDesign(control$multi.start, d, seed = seed)$design)$design
+        }
       }else{
         Xstart <- lhsDesign(control$multi.start, d, seed = seed)$design
       }
     }
     
     res <- list(par = NA, value = Inf, new = NA)
-    for(i in 1:nrow(Xstart)){
-      out <- optim(Xstart[i,, drop = FALSE], crit_IMSPE, method = "L-BFGS-B", lower = rep(0, d), upper = rep(1, d),
-                   Wijs = Wijs, model = model, control = list(maxit = control$maxit), gr = deriv_crit_IMSPE)
-      if(out$value < res$value)
-        res <- list(par = out$par, value = out$value, new = TRUE, id = NULL)
+    
+    local_opt_fun <- function(i){
+      out <- try(optim(Xstart[i,, drop = FALSE], crit_IMSPE, method = "L-BFGS-B", lower = rep(0, d), upper = rep(1, d),
+                   Wijs = Wijs, model = model, control = list(maxit = control$maxit), gr = deriv_crit_IMSPE))
+      if(class(out) == "try-error") return(NULL)
+      return(out)
     }
+    
+    all_res <- mclapply(1:nrow(Xstart), local_opt_fun, mc.cores = ncores)
+    res_min <- which.min(Reduce(c, lapply(all_res, function(x) x$value)))
+    res <- list(par = apply(all_res[[res_min]]$par, c(1, 2), function(x) max(min(x , 1), 0)),
+                value = all_res[[res_min]]$value, new = TRUE, id = NULL)
+    
+    # for(i in 1:nrow(Xstart)){
+    #   out <- optim(Xstart[i,, drop = FALSE], crit_IMSPE, method = "L-BFGS-B", lower = rep(0, d), upper = rep(1, d),
+    #                Wijs = Wijs, model = model, control = list(maxit = control$maxit), gr = deriv_crit_IMSPE)
+    #   if(out$value < res$value){
+    #     out$par <- apply(out$par, c(1,2), function(x) max(min(x , 1), 0))
+    #     res <- list(par = out$par, value = out$value, new = TRUE, id = NULL)
+    #   }
+    # }
     
     if(control$tol_dist > 0 && control$tol_diff > 0){
       ## Check if new design is not to close to existing design
@@ -409,7 +433,7 @@ IMSPE.search <- function(model, replicate = FALSE, Xcand = NULL,
     
   }else{
     ## Discrete optimization
-    res <- apply(Xcand, 1, crit_IMSPE, Wijs = Wijs, model = model)
+    res <- unlist(mclapply(Xcand, 1, crit_IMSPE, Wijs = Wijs, model = model, ncores = ncores))
     
     tmp <- which(duplicated(rbind(model$X0, Xcand[which.min(res),,drop = FALSE]), fromLast = TRUE))
     if(length(tmp) > 0) return(list(par = Xcand[which.min(res),,drop = FALSE], value = min(res), new = FALSE, id = tmp))
@@ -437,6 +461,7 @@ IMSPE.search <- function(model, replicate = FALSE, Xcand = NULL,
 #' Use \code{h = 0} for the myopic criterion, i.e., not looking ahead.
 ##' @param Wijs optional previously computed matrix of Wijs, see \code{\link[hetGP]{Wij}}
 ##' @param seed optional seed for the generation of designs with \code{\link[DiceDesign]{maximinSA_LHS}}
+##' @param ncores number of CPU available (> 1 mean parallel TRUE), see \code{\link[parallel]{mclapply}}
 ##' @details The domain needs to be [0, 1]^d for now.
 ##' @return list with elements:
 ##' \itemize{
@@ -485,7 +510,7 @@ IMSPE.search <- function(model, replicate = FALSE, Xcand = NULL,
 ##' nsteps <- 1 # Increase for better results
 ##' 
 ##' for(i in 1:nsteps){
-##'   res <- IMSPE_optim(model, control = list(multi.start = 100, maxit = 50))
+##'   res <- IMSPE_optim(model, control = list(multi.start = 30, maxit = 30))
 ##'   newX <- res$par
 ##'   newZ <- ftest(newX)
 ##'   model <- update(object = model, Xnew = newX, Znew = newZ)
@@ -525,8 +550,14 @@ IMSPE.search <- function(model, replicate = FALSE, Xcand = NULL,
 ##' 
 ##' nsteps <- 5 # Increase for more steps
 ##' 
+##' # To use parallel computation (turn off on Windows)
+##' library(parallel)
+##' parallel <- FALSE #TRUE #
+##' if(parallel) ncores <- detectCores() else ncores <- 1
+##' 
 ##' for(i in 1:nsteps){
-##'   res <- IMSPE_optim(model, h = 3, control = list(multi.start = 100, maxit = 50))
+##'   res <- IMSPE_optim(model, h = 3, control = list(multi.start = 100, maxit = 50),
+##'    ncores = ncores)
 ##'   
 ##'   # If a replicate is selected
 ##'   if(!res$path[[1]]$new) print("Add replicate")
@@ -552,17 +583,18 @@ IMSPE.search <- function(model, replicate = FALSE, Xcand = NULL,
 ##' }
 ##' }
 IMSPE_optim <- function(model, h = 2, Xcand = NULL, control = list(tol_dist = 1e-6, tol_diff = 1e-6, multi.start = 20, maxit = 100),
-                        Wijs = NULL, seed = NULL){
+                        Wijs = NULL, seed = NULL, ncores = 1){
   d <- ncol(model$X0)
   
-  if(max(abs(range(rbind(model$X0, Xcand)))) > 1) stop("IMSPE works only with [0,1]^d domain for now.")
+  if(max(rbind(model$X0, Xcand)) > 1) stop("IMSPE works only with [0,1]^d domain for now.")
+  if(max(rbind(model$X0, Xcand)) < 0) stop("IMSPE works only with [0,1]^d domain for now.")
   
   ## Precalculations
   if(is.null(Wijs)) Wijs <- Wij(mu1 = model$X0, theta = model$theta, type = model$covtype)
   
   
   ## A) Setting to beat: first new point then replicate h times
-  IMSPE_A <- IMSPE.search(model = model, control = control, Xcand = Xcand, Wijs = Wijs)
+  IMSPE_A <- IMSPE.search(model = model, control = control, Xcand = Xcand, Wijs = Wijs, ncores = ncores)
   new_designA <- IMSPE_A$par ## store first considered design to be added
   path_A <- list(IMSPE_A)
   
@@ -579,7 +611,7 @@ IMSPE_optim <- function(model, h = 2, Xcand = NULL, control = list(tol_dist = 1e
     
     for(i in 1:h){
       newmodelA <- update(object = newmodelA, Xnew = IMSPE_A$par, Znew = NA, maxit = 0)
-      IMSPE_A <- IMSPE.search(model = newmodelA, replicate = TRUE, control = control, Wijs = WijsA)
+      IMSPE_A <- IMSPE.search(model = newmodelA, replicate = TRUE, control = control, Wijs = WijsA, ncores = ncores)
       path_A <- c(path_A, list(IMSPE_A))
     }
 
@@ -591,14 +623,14 @@ IMSPE_optim <- function(model, h = 2, Xcand = NULL, control = list(tol_dist = 1e
   newmodelB <- model
   
   if(h == 0){
-    IMSPE_B <- IMSPE.search(model = newmodelB, replicate = TRUE, control = control, Wijs = Wijs)
+    IMSPE_B <- IMSPE.search(model = newmodelB, replicate = TRUE, control = control, Wijs = Wijs, ncores = ncores)
     new_designB <- IMSPE_B$par ## store considered design to be added
     
     # search from best replicate
     if(is.null(Xcand)){
       IMSPE_C <- IMSPE.search(model = newmodelB, Wijs = Wijs,
                             control = list(Xstart = IMSPE_B$par, maxit = control$maxit,
-                                           tol_dist = control$tol_dist, tol_diff = control$tol_diff))
+                                           tol_dist = control$tol_dist, tol_diff = control$tol_diff), ncores = ncores)
     }else{
       IMSPE_C <- IMSPE_B
     }
@@ -611,7 +643,7 @@ IMSPE_optim <- function(model, h = 2, Xcand = NULL, control = list(tol_dist = 1e
   }else{
     for(i in 1:h){
       ## Add new replicate
-      IMSPE_B <- IMSPE.search(model = newmodelB, replicate = TRUE, control = control, Wijs = Wijs)
+      IMSPE_B <- IMSPE.search(model = newmodelB, replicate = TRUE, control = control, Wijs = Wijs, ncores = ncores)
       
       if(i == 1){
         new_designB <- matrix(IMSPE_B$par, nrow = 1) ##store first considered design to add
@@ -622,7 +654,7 @@ IMSPE_optim <- function(model, h = 2, Xcand = NULL, control = list(tol_dist = 1e
       newmodelB <- update(object = newmodelB, Xnew = IMSPE_B$par, Znew = NA, maxit = 0)
       
       ## Add new design
-      IMSPE_C <- IMSPE.search(model = newmodelB, control = control, Xcand = Xcand, Wijs = Wijs)
+      IMSPE_C <- IMSPE.search(model = newmodelB, control = control, Xcand = Xcand, Wijs = Wijs, ncores = ncores)
       path_C <- list(IMSPE_C)
       
       if(i < h){
@@ -639,7 +671,7 @@ IMSPE_optim <- function(model, h = 2, Xcand = NULL, control = list(tol_dist = 1e
         for(j in i:(h-1)){
           ## Add remaining replicates
           newmodelC <- update(object = newmodelC, Xnew = IMSPE_C$par, Znew = NA, maxit = 0)
-          IMSPE_C <- IMSPE.search(model = newmodelC, replicate = TRUE, control = control, Wijs = WijsC)
+          IMSPE_C <- IMSPE.search(model = newmodelC, replicate = TRUE, control = control, Wijs = WijsC, ncores = ncores)
           path_C <- c(path_C, list(IMSPE_C))
         }
       }

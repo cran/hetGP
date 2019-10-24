@@ -74,7 +74,7 @@ crit_EI <- function(x, model, cst = NULL, preds = NULL){
   if(is.null(cst)) cst <- min(predict(model, x = model$X0)$mean)
   if(is.null(dim(x))) x <- matrix(x, nrow = 1)
   if(is.null(preds)) preds <- predict(model, x = x)
-
+  
   if(class(model) %in% c("homTP", "hetTP")){
     gamma <- (cst - preds$mean)/sqrt(preds$sd2)
     res <- (cst - preds$mean) * pt(gamma, df = model$nu + length(model$Z))
@@ -126,7 +126,7 @@ deriv_crit_EI <- function(x, model, cst = NULL, preds = NULL){
   }
   
   res[which(abs(res) < 1e-12)] <- 0 # for stability with optim
-
+  
   return(res)
 }
 
@@ -151,7 +151,7 @@ predict_gr <- function(object, x){
   if(class(object) %in% c("hetGP", "homGP")){
     return(list(mean = dm, sd2 = object$nu_hat * ds2))
   }else{
-   return(list(mean = object$sigma2 * dm, sd2 =  (object$nu + object$psi - 2) / (object$nu + length(object$Z) - 2) * object$sigma2^2 * ds2)) 
+    return(list(mean = object$sigma2 * dm, sd2 =  (object$nu + object$psi - 2) / (object$nu + length(object$Z) - 2) * object$sigma2^2 * ds2)) 
   }
 }
 
@@ -179,6 +179,7 @@ dlambda <- function(z, a){
 #' Also, \code{tol_dist} defines the minimum distance to an existing design for a new point to be added, otherwise the closest existing design is chosen.
 #' In a similar fashion, \code{tol_dist} is the minimum relative change of crit for adding a new design.
 #' @param seed optional seed for the generation of designs with \code{\link[DiceDesign]{maximinSA_LHS}}
+#' @param ncores number of CPU available (> 1 mean parallel TRUE), see \code{\link[parallel]{mclapply}}
 #' @importFrom DiceDesign lhsDesign maximinSA_LHS
 #' @return list with \code{par}, \code{value} elements, and additional slot \code{new} (boolean if it is or not a new design) and \code{id} giving the index of the duplicated design. 
 #' @noRd
@@ -241,12 +242,14 @@ dlambda <- function(z, a){
 #' 
 crit.search <- function(model, crit, ..., replicate = FALSE, Xcand = NULL, 
                         control = list(tol_dist = 1e-6, tol_diff = 1e-6, multi.start = 20,
-                                       maxit = 100, maximin = TRUE, Xstart = NULL), seed = NULL){
-  
+                                       maxit = 100, maximin = TRUE, Xstart = NULL), seed = NULL,
+                        ncores = 1){
   # Only search on existing designs
   if(replicate){
     ## Discrete optimization
-    res <- apply(model$X0, 1, crit, ... = ..., model = model)
+    res <- mclapply(1:nrow(model$X0), 
+                    function(i) match.fun(crit)(x = model$X0[i,,drop = FALSE], model = model, ... = ...), mc.cores = ncores)
+    res <- unlist(res)
     
     return(list(par = model$X0[which.max(res),,drop = FALSE], value = max(res), new = FALSE, id = which.max(res)))
   }
@@ -279,23 +282,41 @@ crit.search <- function(model, crit, ..., replicate = FALSE, Xcand = NULL,
     }else{
       if(is.null(seed)) seed <- sample(1:2^15, 1) ## To be changed?
       if(control$maximin){
-        Xstart <- maximinSA_LHS(lhsDesign(control$multi.start, d, seed = seed)$design)$design
+        if(d == 1){
+          # perturbed 1d equidistant points
+          Xstart <- matrix(seq(1/2, control$multi.start -1/2, length.out = control$multi.start) + runif(control$multi.start, min = -1/2, max = 1/2), ncol = 1)/control$multi.start
+        }else{
+          Xstart <- maximinSA_LHS(lhsDesign(control$multi.start, d, seed = seed)$design)$design
+        }
       }else{
         Xstart <- lhsDesign(control$multi.start, d, seed = seed)$design
       }
     }
     
     res <- list(par = NA, value = -Inf, new = NA)
-    for(i in 1:nrow(Xstart)){
+    
+    local_opt_fun <- function(i){
       out <- try(optim(Xstart[i,, drop = FALSE], crit, ... = ..., method = "L-BFGS-B", gr = gr, 
                        lower = rep(0, d), upper = rep(1, d),
                        model = model, control = list(maxit = control$maxit, fnscale = -1)))
-      if(class(out) != "try-error"){
-        if(out$value > res$value)
-          res <- list(par = out$par, value = out$value, new = TRUE, id = NULL)
-      }
-
+      if(class(out) == "try-error") return(NULL)
+      return(out)
     }
+    
+    all_res <- mclapply(1:nrow(Xstart), local_opt_fun, mc.cores = ncores)
+    res_max <- which.max(Reduce(c, lapply(all_res, function(x) x$value)))
+    res <- list(par = apply(all_res[[res_max]]$par, c(1, 2), function(x) max(min(x , 1), 0)),
+                value = all_res[[res_max]]$value, new = TRUE, id = NULL)
+    
+    # for(i in 1:nrow(Xstart)){
+    #   out <- try(optim(Xstart[i,, drop = FALSE], crit, ... = ..., method = "L-BFGS-B", gr = gr, 
+    #                    lower = rep(0, d), upper = rep(1, d),
+    #                    model = model, control = list(maxit = control$maxit, fnscale = -1)))
+    #   if(class(out) != "try-error"){
+    #     if(out$value > res$value)
+    #       res <- list(par = out$par, value = out$value, new = TRUE, id = NULL)
+    #   }
+    # }
     
     if(control$tol_dist > 0 || control$tol_diff > 0){
       ## Check if new design is not to close to existing design
@@ -324,7 +345,9 @@ crit.search <- function(model, crit, ..., replicate = FALSE, Xcand = NULL,
     
   }else{
     ## Discrete optimization
-    res <- apply(Xcand, 1, crit, ... = ..., model = model)
+    res <- mclapply(1:nrow(model$X0), 
+                    function(i) match.fun(crit)(x = Xcand[i,,drop = FALSE], model = model, ... = ...), mc.cores = ncores)
+    res <- unlist(res)
     
     tmp <- which(duplicated(rbind(model$X0, Xcand[which.max(res),,drop = FALSE]), fromLast = TRUE))
     if(length(tmp) > 0) return(list(par = Xcand[which.max(res),,drop = FALSE], value = max(res), new = FALSE, id = tmp))
@@ -352,6 +375,7 @@ crit.search <- function(model, crit, ..., replicate = FALSE, Xcand = NULL,
 #'  \item sequential crit searches starting by \code{1} to \code{h} replicates before adding a new point
 #' }
 #' Use \code{h = 0} for the myopic criterion, i.e., not looking ahead.
+#' @param ncores number of CPU available (> 1 mean parallel TRUE), see \code{\link[parallel]{mclapply}}
 #' @details 
 #' When looking ahead, the kriging believer heuristic is used,
 #'  meaning that the non-observed value is replaced by the mean prediction in the update.  
@@ -406,7 +430,7 @@ crit.search <- function(model, crit, ..., replicate = FALSE, Xcand = NULL,
 #' nsteps <- 1 # Increase for better results
 #' 
 #' for(i in 1:nsteps){
-#'   res <- crit_optim(model, crit = crit, h = 0, control = list(multi.start = 100, maxit = 50))
+#'   res <- crit_optim(model, crit = crit, h = 0, control = list(multi.start = 50, maxit = 30))
 #'   newX <- res$par
 #'   newZ <- ftest(newX)
 #'   model <- update(object = model, Xnew = newX, Znew = newZ)
@@ -445,11 +469,16 @@ crit.search <- function(model, crit, ..., replicate = FALSE, Xcand = NULL,
 #' Xgrid <- as.matrix(expand.grid(xgrid, xgrid))
 #' 
 #' nsteps <- 5 # Increase for more steps
-#' 
 #' crit <- "crit_EI"
 #' 
+#' # To use parallel computation (turn off on Windows)
+#' library(parallel)
+#' parallel <- FALSE #TRUE #
+#' if(parallel) ncores <- detectCores() else ncores <- 1
+#' 
 #' for(i in 1:nsteps){
-#'   res <- crit_optim(model, h = 3, crit = crit, control = list(multi.start = 100, maxit = 50))
+#'   res <- crit_optim(model, h = 3, crit = crit, ncores = ncores,
+#'                     control = list(multi.start = 100, maxit = 50))
 #'   
 #'   # If a replicate is selected
 #'   if(!res$path[[1]]$new) print("Add replicate")
@@ -471,13 +500,13 @@ crit.search <- function(model, crit, ..., replicate = FALSE, Xcand = NULL,
 #'   plot.axes = {axis(1); axis(2); points(model$X0, pch = 20)})
 #' }
 #' }
-crit_optim <- function(model, crit, ..., h = 2, Xcand = NULL, control = list(multi.start = 10, maxit = 100), seed = NULL){
+crit_optim <- function(model, crit, ..., h = 2, Xcand = NULL, control = list(multi.start = 10, maxit = 100), seed = NULL, ncores = 1){
   d <- ncol(model$X0)
   
   if(crit == "crit_IMSPE") stop("crit_IMSPE is intended to be optimized by IMSPE_optim")
   
   ## A) Setting to beat: first new point then replicate h times
-  crit_A <- crit.search(model = model, crit = crit, ... = ..., control = control, Xcand = Xcand, seed = seed)
+  crit_A <- crit.search(model = model, crit = crit, ... = ..., control = control, Xcand = Xcand, seed = seed, ncores = ncores)
   new_designA <- crit_A$par ## store first considered design to be added
   path_A <- list(crit_A)
   
@@ -486,7 +515,7 @@ crit_optim <- function(model, crit, ..., h = 2, Xcand = NULL, control = list(mul
     for(i in 1:h){
       ZnewA <- predict(newmodelA, crit_A$par)$mean
       newmodelA <- update(object = newmodelA, Xnew = crit_A$par, Znew = ZnewA, maxit = 0)
-      crit_A <- crit.search(model = newmodelA, crit = crit, ... = ..., replicate = TRUE, control = control, seed = seed)
+      crit_A <- crit.search(model = newmodelA, crit = crit, ... = ..., replicate = TRUE, control = control, seed = seed, ncores = ncores)
       path_A <- c(path_A, list(crit_A))
     }
   }
@@ -497,14 +526,14 @@ crit_optim <- function(model, crit, ..., h = 2, Xcand = NULL, control = list(mul
   newmodelB <- model
   
   if(h == 0){
-    crit_B <- crit.search(model = newmodelB, crit = crit, ... =..., replicate = TRUE, control = control, seed = seed)
+    crit_B <- crit.search(model = newmodelB, crit = crit, ... =..., replicate = TRUE, control = control, seed = seed, ncores = ncores)
     new_designB <- crit_B$par ## store considered design to be added
     
     # search from best replicate
     if(is.null(Xcand)){
       crit_C <- crit.search(model = newmodelB, crit = crit,
                             control = list(Xstart = crit_B$par, maxit = control$maxit,
-                                           tol_dist = control$tol_dist, tol_diff = control$tol_diff), seed = seed)
+                                           tol_dist = control$tol_dist, tol_diff = control$tol_diff), seed = seed, ncores = ncores)
     }else{
       crit_C <- crit_B
     }
@@ -517,7 +546,7 @@ crit_optim <- function(model, crit, ..., h = 2, Xcand = NULL, control = list(mul
   }else{
     for(i in 1:h){
       ## Add new replicate
-      crit_B <- crit.search(model = newmodelB, crit = crit, ... = ..., replicate = TRUE, control = control, seed = seed)
+      crit_B <- crit.search(model = newmodelB, crit = crit, ... = ..., replicate = TRUE, control = control, seed = seed, ncores = ncores)
       
       if(i == 1){
         new_designB <- matrix(crit_B$par, nrow = 1) ##store first considered design to add
@@ -529,7 +558,7 @@ crit_optim <- function(model, crit, ..., h = 2, Xcand = NULL, control = list(mul
       newmodelB <- update(object = newmodelB, Xnew = crit_B$par, Znew = ZnewB, maxit = 0)
       
       ## Add new design
-      crit_C <- crit.search(model = newmodelB, crit = crit, ... = ..., control = control, Xcand = Xcand, seed = seed)
+      crit_C <- crit.search(model = newmodelB, crit = crit, ... = ..., control = control, Xcand = Xcand, seed = seed, ncores = ncores)
       path_C <- list(crit_C)
       
       if(i < h){
@@ -539,7 +568,7 @@ crit_optim <- function(model, crit, ..., h = 2, Xcand = NULL, control = list(mul
           ## Add remaining replicates
           ZnewC <- predict(newmodelC, crit_C$par)$mean
           newmodelC <- update(object = newmodelC, Xnew = crit_C$par, Znew = ZnewC, maxit = 0)
-          crit_C <- crit.search(model = newmodelC, crit = crit, ... = ..., replicate = TRUE, control = control, seed = seed)
+          crit_C <- crit.search(model = newmodelC, crit = crit, ... = ..., replicate = TRUE, control = control, seed = seed, ncores = ncores)
           path_C <- c(path_C, list(crit_C))
         }
       }

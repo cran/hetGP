@@ -9,7 +9,8 @@ mleHomTP(X, Z, lower = NULL, upper = NULL, known = list(beta0 = 0),
   nu_bounds = c(2 + 0.001, 30), sigma2_bounds =
   c(sqrt(.Machine$double.eps), 10000)), init = list(nu = 3),
   covtype = c("Gaussian", "Matern5_2", "Matern3_2"), maxit = 100,
-  eps = sqrt(.Machine$double.eps), settings = list(return.Ki = TRUE))
+  eps = sqrt(.Machine$double.eps), settings = list(return.Ki = TRUE,
+  factr = 1e+09))
 }
 \arguments{
 \item{X}{matrix of all designs, one per row, or list with elements:
@@ -49,7 +50,8 @@ considering a GP with \code{\link[hetGP]{mleHomGP}} may be better.
 
 \item{eps}{jitter used in the inversion of the covariance matrix for numerical stability}
 
-\item{settings}{list with argument \code{return.Ki}, to include the inverse covariance matrix in the object for further use (e.g., prediction).}
+\item{settings}{list with argument \code{return.Ki}, to include the inverse covariance matrix in the object for further use (e.g., prediction).
+Arguments \code{factr} (default to 1e9) and \code{pgtol} are available to be passed to \code{control} for L-BFGS-B in \code{\link[stats]{optim}}.}
 }
 \value{
 a list which is given the S3 class "\code{homGP}", with elements:

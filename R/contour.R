@@ -1,5 +1,5 @@
-##' Computes MCU infill criterion
-##' @title Maximum Contour Uncertainty criterion
+##' Computes MEE infill criterion
+##' @title Maximum Empirical Error criterion
 ##' @param x matrix of new designs, one point per row (size n x d)
 ##' @param model \code{homGP} or \code{hetGP} model, including inverse matrices
 ##' @param thres for contour finding
@@ -45,11 +45,11 @@
 ##' Z <- ftest(X)
 ##' model <- mleHetGP(X, Z, lower = rep(0.001,2), upper = rep(1,2))
 ##' 
-##' critgrid <- apply(Xgrid, 1, crit_MCU, model = model)
+##' critgrid <- apply(Xgrid, 1, crit_MEE, model = model)
 ##' 
-##' filled.contour(matrix(critgrid, ngrid), color.palette = terrain.colors, main = "MCU criterion")
+##' filled.contour(matrix(critgrid, ngrid), color.palette = terrain.colors, main = "MEE criterion")
 ##' 
-crit_MCU <- function(x, model, thres = 0, preds = NULL){
+crit_MEE <- function(x, model, thres = 0, preds = NULL){
   
   if(is.null(dim(x))) x <- matrix(x, nrow = 1)
   if(is.null(preds)) preds <- predict(model, x = x)
@@ -290,9 +290,76 @@ crit_tMSE <- function(x, model, thres = 0, preds = NULL, seps = 0.05){
   if(is.null(dim(x))) x <- matrix(x, nrow = 1)
   if(is.null(preds) || is.null(preds$cov)) preds <- predict(model, x = x, xprime = x)
   
-  w <- 1/sqrt(2 * pi * (preds$sd2 + seps)) * exp(-0.5 * ((preds$mean - thres) / sqrt(preds$sd2 + seps))^2)
+  w <- 1/sqrt(2 * pi * (preds$sd2 + seps)) * exp(-0.5 * (preds$mean - thres)^2 / (preds$sd2 + seps))
   
   return(w * preds$sd2)
 }
 
 
+##' Computes MCU infill criterion
+##' @title Maximum Contour Uncertainty criterion
+##' @param x matrix of new designs, one point per row (size n x d)
+##' @param model \code{homGP} or \code{hetGP} model, including inverse matrices
+##' @param thres for contour finding
+##' @param gamma optional weight in -|f(x) - thres| + gamma * s(x). Default to 2.
+##' @param preds optional predictions at \code{x} to avoid recomputing if already done
+##' @export
+##' @importFrom stats pt pnorm dnorm
+##' @references
+##' Srinivas, N., Krause, A., Kakade, S, & Seeger, M. (2012). 
+##' Information-theoretic regret bounds for Gaussian process optimization 
+##' in the bandit setting, IEEE Transactions on Information Theory, 58, pp. 3250-3265.\cr \cr
+##' 
+##' Bogunovic, J., Scarlett, J., Krause, A. & Cevher, V. (2016). 
+##' Truncated variance reduction: A unified approach to Bayesian optimization and level-set estimation,
+##' in Advances in neural information processing systems, pp. 1507-1515. \cr \cr
+##' 
+##' Lyu, X., Binois, M. & Ludkovski, M. (2018). 
+##' Evaluating Gaussian Process Metamodels and Sequential Designs for Noisy Level Set Estimation. arXiv:1807.06712. \cr
+##' 
+##' @examples 
+##' ## Infill criterion example
+##' set.seed(42)
+##' branin <- function(x){
+##'   m <- 54.8104; s <- 51.9496
+##'   if(is.null(dim(x))) x <- matrix(x, nrow = 1)
+##'   xx <- 15 * x[,1] - 5; y <- 15 * x[,2]
+##'   f <- (y - 5.1 * xx^2/(4 * pi^2) + 5 * xx/pi - 6)^2 + 10 * (1 - 1/(8 * pi)) * cos(xx) + 10
+##'   f <- (f - m)/s
+##'   return(f)
+##' }
+##' 
+##' ftest <- function(x, sd = 0.1){
+##'   if(is.null(dim(x))) x <- matrix(x, nrow = 1)
+##'   return(apply(x, 1, branin) + rnorm(nrow(x), sd = sd))
+##' }
+##' 
+##' ngrid <- 101; xgrid <- seq(0, 1, length.out = ngrid)
+##' Xgrid <- as.matrix(expand.grid(xgrid, xgrid))
+##' Zgrid <- ftest(Xgrid)
+##' 
+##' n <- 20
+##' N <- 500
+##' X <- Xgrid[sample(1:nrow(Xgrid), n),]
+##' X <- X[sample(1:n, N, replace = TRUE),]
+##' Z <- ftest(X)
+##' model <- mleHetGP(X, Z, lower = rep(0.001,2), upper = rep(1,2))
+##' 
+##' critgrid <- apply(Xgrid, 1, crit_MCU, model = model)
+##' 
+##' filled.contour(matrix(critgrid, ngrid), color.palette = terrain.colors, main = "MEE criterion")
+##' 
+crit_MCU <- function(x, model, thres = 0, gamma = 2, preds = NULL){
+  
+  if(is.null(dim(x))) x <- matrix(x, nrow = 1)
+  if(is.null(preds)) preds <- predict(model, x = x)
+  
+
+  ## TP case
+  if(class(model) %in% c("homTP", "hetTP")){
+    return(-abs(preds$mean - thres) + gamma * sqrt(preds$sd2))
+  }
+  
+  ## GP case
+  return(-abs(preds$mean - thres) + gamma * sqrt(preds$sd2))
+}

@@ -122,6 +122,7 @@ dlogLikHomTP <- function(X0, Z0, Z, mult, theta, g, nu, sigma2, beta0 = 0, covty
 ##' @param maxit maximum number of iteration for L-BFGS-B of \code{\link[stats]{optim}}
 ##' @param eps jitter used in the inversion of the covariance matrix for numerical stability
 ##' @param settings list with argument \code{return.Ki}, to include the inverse covariance matrix in the object for further use (e.g., prediction).
+##' Arguments \code{factr} (default to 1e9) and \code{pgtol} are available to be passed to \code{control} for L-BFGS-B in \code{\link[stats]{optim}}.
 ##' @return a list which is given the S3 class "\code{homGP}", with elements:
 ##' \itemize{
 ##' \item \code{theta}: maximum likelihood estimate of the lengthscale parameter(s),
@@ -191,7 +192,7 @@ mleHomTP <- function(X, Z, lower = NULL, upper = NULL, known = list(beta0 = 0),
                                          sigma2_bounds = c(sqrt(.Machine$double.eps), 1e4)),
                      init = list(nu = 3), covtype = c("Gaussian", "Matern5_2", "Matern3_2"), maxit = 100,
                      eps = sqrt(.Machine$double.eps),
-                     settings = list(return.Ki = TRUE)){
+                     settings = list(return.Ki = TRUE, factr = 1e9)){
   
   if(typeof(X)=="list"){
     X0 <- X$X0
@@ -225,6 +226,7 @@ mleHomTP <- function(X, Z, lower = NULL, upper = NULL, known = list(beta0 = 0),
   tic <- proc.time()[3]
   
   if(is.null(settings$return.Ki)) settings$return.Ki <- TRUE
+  if(is.null(settings$factr)) settings$factr <- 1e9
   if(is.null(noiseControl$g_bounds)) noiseControl$g_bounds <- c(sqrt(.Machine$double.eps), 1e4)
   if(is.null(noiseControl$sigma2_bounds)) noiseControl$sigma2_bounds <- c(sqrt(.Machine$double.eps), 1e4)
   if(is.null(noiseControl$nu_bounds)) noiseControl$nu_bounds <- c(2 + 1e-3, 30)
@@ -350,7 +352,8 @@ mleHomTP <- function(X, Z, lower = NULL, upper = NULL, known = list(beta0 = 0),
     envtmp <- environment()
     out <- try(optim(par = parinit, fn = fn, gr = gr, method = "L-BFGS-B", lower = lowerOpt, upper = upperOpt, theta = known[["theta"]], 
                  nu = known$nu, sigma2 = known$sigma2, g = known$g, env = envtmp,
-                 X0 = X0, Z0 = Z0, Z = Z, mult = mult, beta0 = beta0, control = list(fnscale = -1, maxit = maxit, factr = 1e9)))
+                 X0 = X0, Z0 = Z0, Z = Z, mult = mult, beta0 = beta0,
+                 control = list(fnscale = -1, maxit = maxit, factr = settings$factr, pgtol = settings$pgtol)))
     ## Catch errors when at least one likelihood evaluation worked
     if(class(out) == "try-error")
       out <- list(par = envtmp$arg_max, value = envtmp$max_loglik, counts = NA,
@@ -446,9 +449,13 @@ plot.homTP <- function(x, ...){
   LOOpreds <- LOO_preds(x)
   plot(x$Z, LOOpreds$mean[rep(1:nrow(x$X0), times = x$mult)], xlab = "Observed values", ylab = "Predicted values",
        main = "Leave-one-out predictions")
+  arrows(x0 = LOOpreds$mean + sqrt(LOOpreds$sd2) * qt(0.05, df = x$nu + nrow(x$X0)),
+         x1 = LOOpreds$mean + sqrt(LOOpreds$sd2) * qt(0.95, df = x$nu + nrow(x$X0)),
+         y0 = LOOpreds$mean, length = 0, col = "blue")
   points(x$Z0[which(x$mult > 1)], LOOpreds$mean[which(x$mult > 1)], pch = 20, col = 2)
   abline(a = 0, b = 1, lty = 3)
-  legend("topleft", pch = c(1, 20), col = c(1, 2), legend = c("observations", "averages (if > 1 observation)"))
+  legend("topleft", pch = c(1, 20, NA), lty = c(NA, NA, 1), col = c(1, 2, 4),
+         legend = c("observations", "averages (if > 1 observation)", "LOO prediction interval"))
 }
 
 ##' Student-t process predictions using a homoskedastic noise GP object (of class \code{homGP})
@@ -880,7 +887,8 @@ dlogLikHetTP <- function(X0, Z0, Z, mult, Delta, theta, nu, sigma2, g, k_theta_g
 ##'   \item \code{trace} optional scalar (default to \code{0}). If positive, tracing information on the fitting process.
 ##' If \code{1}, information is given about the result of the heterogeneous model optimization.
 ##' Level \code{2} gives more details. Level {3} additionaly displays all details about initialization of hyperparameters.
-##' \item \code{return.matrices} boolean too include the inverse covariance matrix in the object for further use (e.g., prediction).   
+##' \item \code{return.matrices} boolean too include the inverse covariance matrix in the object for further use (e.g., prediction).
+##' \item Arguments \code{factr} (default to 1e9) and \code{pgtol} are available to be passed to \code{control} for L-BFGS-B in \code{\link[stats]{optim}}.   
 ##' }
 ##' @param eps jitter used in the inversion of the covariance matrix for numerical stability
 ##' @param init,known optional lists of starting values for mle optimization or that should not be optimized over, respectively.
@@ -1086,7 +1094,7 @@ mleHetTP <- function(X, Z, lower = NULL, upper = NULL,
                      noiseControl = list(k_theta_g_bounds = c(1, 100), g_max = 1e4, g_bounds = c(1e-6, 0.1),
                                          nu_bounds = c(2 + 1e-3, 30), sigma2_bounds = c(sqrt(.Machine$double.eps), 1e4)),
                      settings = list(linkThetas = 'joint', logN = TRUE, initStrategy = 'residuals', checkHom = TRUE,
-                                     penalty = TRUE, trace = 0, return.matrices = TRUE, return.hom = FALSE), 
+                                     penalty = TRUE, trace = 0, return.matrices = TRUE, return.hom = FALSE, factr = 1e9), 
                      covtype = c("Gaussian", "Matern5_2", "Matern3_2"), maxit = 100, known = list(beta0 = 0),
                      init = list(nu = 3), eps = sqrt(.Machine$double.eps)){
   
@@ -1156,6 +1164,9 @@ mleHetTP <- function(X, Z, lower = NULL, upper = NULL,
   
   if(is.null(settings$initStrategy))
     settings$initStrategy <- 'residuals'
+  
+  if(is.null(settings$factr))
+    settings$factr <- 1e9
   
   penalty <- TRUE
   if(!is.null(settings$penalty))
@@ -1315,7 +1326,8 @@ mleHetTP <- function(X, Z, lower = NULL, upper = NULL,
                        init = list(theta = init$theta, g = g_init, nu = init$nu, sigma2 = init$sigma2),
                        upper = upper, covtype = covtype, maxit = maxit,
                        noiseControl = list(g_bounds = c(noiseControl$g_min, noiseControl$g_max),
-                                           nu_bounds = noiseControl$nu_bounds), eps = eps, settings = list(return.Ki = rKI))
+                                           nu_bounds = noiseControl$nu_bounds), eps = eps, 
+                       settings = list(return.Ki = rKI, factr = settings$factr, pgtol = settings$pgtol))
     
     ## Update init values
     if(is.null(known$theta)) init$theta <- modHom$theta
@@ -1398,7 +1410,7 @@ mleHetTP <- function(X, Z, lower = NULL, upper = NULL,
       modNugs <- mleHomGP(X = list(X0 = X0, Z0 = nugs_est0, mult = mult), Z = nugs_est,
                           lower = noiseControl$lowerTheta_g, upper = noiseControl$upperTheta_g,
                           init = list(theta = init$theta_g, g =  init$g), covtype = covtype, noiseControl = noiseControl,
-                          maxit = maxit, eps = eps, settings = list(return.Ki = F))
+                          maxit = maxit, eps = eps, settings = list(return.Ki = F, factr = settings$factr, pgtol = settings$pgtol))
       prednugs <- suppressWarnings(predict(x = X0, object = modNugs))
       
     }else{
@@ -1412,7 +1424,7 @@ mleHetTP <- function(X, Z, lower = NULL, upper = NULL,
                           Z = nugs_est0,
                           lower = noiseControl$lowerTheta_g, upper = noiseControl$upperTheta_g,
                           init = list(theta = init$theta_g, g =  init$g), covtype = covtype, noiseControl = noiseControl,
-                          maxit = maxit, eps = eps, settings = list(return.Ki = F))
+                          maxit = maxit, eps = eps, settings = list(return.Ki = F, factr = settings$factr, pgtol = settings$pgtol))
       prednugs <- suppressWarnings(predict(x = X0, object = modNugs))
     }
     
@@ -1651,7 +1663,7 @@ mleHetTP <- function(X, Z, lower = NULL, upper = NULL,
       modHom_tmp <- mleHomTP(X = list(X0 = X0, Z0 = Z0, mult = mult), Z = Z, lower = lower, upper = upper, upper,
                              known = list(theta = known[["theta"]], g = known$g_H, nu = known$nu, sigma2 = known$sigma2, beta0 = 0),
                              covtype = covtype, init = init,
-                             noiseControl = noiseControl, eps = eps)
+                             noiseControl = noiseControl, eps = eps, settings = list(return.Ki = F))
       
       hom_ll <- modHom_tmp$ll
     } 
@@ -1661,7 +1673,9 @@ mleHetTP <- function(X, Z, lower = NULL, upper = NULL,
     out <- try(optim(par = parinit, fn = fn, gr = gr, method = "L-BFGS-B", lower = lowerOpt, upper = upperOpt,
                  X0 = X0, Z0 = Z0, Z = Z, mult = mult, logN = logN, Delta = known$Delta, theta = known$theta,
                  g = known$g, k_theta_g = known$k_theta_g, theta_g = known$theta_g, hom_ll = hom_ll, env = envtmp,
-                 nu = known$nu, beta0 = known$beta0, sigma2 = known$sigma2, control = list(fnscale = -1, maxit = maxit, factr = 1e9)))
+                 nu = known$nu, beta0 = known$beta0, sigma2 = known$sigma2, 
+                 control = list(fnscale = -1, maxit = maxit, factr = settings$factr, pgtol = settings$pgtol)))
+    
     ## Catch errors when at least one likelihood evaluation worked
     if(class(out) == "try-error")
       out <- list(par = envtmp$arg_max, value = envtmp$max_loglik, counts = NA,
@@ -2001,9 +2015,13 @@ plot.hetTP <- function(x, ...){
   LOOpreds <- LOO_preds(x)
   plot(x$Z, LOOpreds$mean[rep(1:nrow(x$X0), times = x$mult)], xlab = "Observed values", ylab = "Predicted values",
        main = "Leave-one-out predictions")
+  arrows(x0 = LOOpreds$mean + sqrt(LOOpreds$sd2) * qt(0.05, df = x$nu + nrow(x$X0)),
+         x1 = LOOpreds$mean + sqrt(LOOpreds$sd2) * qt(0.95, df = x$nu + nrow(x$X0)),
+         y0 = LOOpreds$mean, length = 0, col = "blue")
   points(x$Z0[which(x$mult > 1)], LOOpreds$mean[which(x$mult > 1)], pch = 20, col = 2)
   abline(a = 0, b = 1, lty = 3)
-  legend("topleft", pch = c(1, 20), col = c(1, 2), legend = c("observations", "averages (if > 1 observation)"))
+  legend("topleft", pch = c(1, 20, NA), lty = c(NA, NA, 1), col = c(1, 2, 4),
+         legend = c("observations", "averages (if > 1 observation)", "LOO prediction interval"))
 }
 
 ## ' Rebuild inverse covariance matrices of \code{hetTP} (e.g., if exported without inverse matrices \code{Kgi} and/or \code{Ki})

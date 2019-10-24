@@ -62,18 +62,60 @@ sirSimulate <- function(S0 = 1990, I0 = 10, M = S0 + I0, beta = 0.75, gamma = 0.
   return(list(maxI = maxI, totT = curT[count], totI = S0-curS[count],S=curS,I=curI,R=M-curS-curI,T=curT))
 }
 
-##' 1d test function
-##' @param x scalar or matrix (size n x 1) in [0,1]
-##' @export
-##' @references 
-##' A. Forrester, A. Sobester, A. Keane (2008), Engineering design via surrogate modelling: a practical guide, John Wiley & Sons
-##' @examples 
-##' plot(f1d)
+#' 1d test function (1)
+#' @param x scalar or matrix (size n x 1) in [0,1]
+#' @export
+#' @references 
+#' A. Forrester, A. Sobester, A. Keane (2008), Engineering design via surrogate modelling: a practical guide, John Wiley & Sons
+#' @examples 
+#' plot(f1d)
 f1d <- function(x){
   if(is.null(dim(x))) x <- matrix(x, ncol = 1)
   return(((x*6-2)^2)*sin((x*6-2)*2))
-} 
+}
 
+#' Noisy 1d test function (1)
+#' Add Gaussian noise with variance r(x) = scale * (1.1 + sin(2 pi x))^2 to \code{\link[hetGP]{f1d}}
+#' @param x scalar or matrix (size n x 1) in [0,1]
+#' @param scale scalar in [0, Inf] to control the signal to noise ratio
+#' @export
+#' @examples 
+#' X <- matrix(seq(0, 1, length.out = 101), ncol = 1)
+#' Xr <- X[sort(sample(x = 1:101, size = 500, replace = TRUE)),, drop = FALSE]
+#' plot(Xr, f1d_n(Xr))
+#' lines(X, f1d(X), col = "red", lwd = 2)
+f1d_n <- function(x, scale = 1){
+  if(is.null(dim(x))) x <- matrix(x, ncol = 1)
+  return(rnorm(n = nrow(x), mean = f1d(x), sd = scale *  (1.1 + sin(2 *pi* x))^2))
+}
+
+#' 1d test function (2)
+#' @param x scalar or matrix (size n x 1) in [0,1]
+#' @export
+#' @references 
+#' A. Boukouvalas, and D. Cornford (2009), Learning heteroscedastic Gaussian processes for complex datasets, Technical report. \cr \cr
+#' M. Yuan, and  G. Wahba (2004), Doubly penalized likelihood estimator in heteroscedastic regression, Statistics and Probability Letters 69, 11-20.
+#' @examples 
+#' plot(f1d2)
+f1d2 <- function(x){
+  if(is.null(dim(x))) x <- matrix(x, ncol = 1)
+  return(2 * (exp(-30*(x-0.25)^2) + sin(pi * x^2)) - 2)
+}
+
+#' Noisy 1d test function (2)
+#' Add Gaussian noise with variance r(x) = scale * (exp(sin(2 pi x)))^2 to \code{\link[hetGP]{f1d2}}
+#' @param x scalar or matrix (size n x 1) in [0,1]
+#' @param scale scalar in [0, Inf] to control the signal to noise ratio
+#' @export
+#' @examples 
+#' X <- matrix(seq(0, 1, length.out = 101), ncol = 1)
+#' Xr <- X[sort(sample(x = 1:101, size = 500, replace = TRUE)),, drop = FALSE]
+#' plot(Xr, f1d2_n(Xr))
+#' lines(X, f1d2(X), col = "red", lwd = 2)
+f1d2_n <- function(x, scale = 1){
+  if(is.null(dim(x))) x <- matrix(x, ncol = 1)
+  return(rnorm(n = nrow(x), mean = f1d2(x), sd = scale *  (exp(sin(2*pi*x)))))
+}
 
 ##' Portfolio value at risk test problem
 ##' @title Portfolio simulation

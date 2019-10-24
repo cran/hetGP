@@ -2,7 +2,7 @@
 % Please edit documentation in R/TestFunctions.R
 \name{f1d}
 \alias{f1d}
-\title{1d test function}
+\title{1d test function (1)}
 \usage{
 f1d(x)
 }
@@ -10,7 +10,7 @@ f1d(x)
 \item{x}{scalar or matrix (size n x 1) in [0,1]}
 }
 \description{
-1d test function
+1d test function (1)
 }
 \examples{
 plot(f1d)

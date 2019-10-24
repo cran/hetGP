@@ -5,7 +5,8 @@
 \title{Criterion optimization}
 \usage{
 crit_optim(model, crit, ..., h = 2, Xcand = NULL,
-  control = list(multi.start = 10, maxit = 100), seed = NULL)
+  control = list(multi.start = 10, maxit = 100), seed = NULL,
+  ncores = 1)
 }
 \arguments{
 \item{model}{\code{homGP} or \code{hetGP} model}
@@ -31,6 +32,8 @@ Also, \code{tol_dist} defines the minimum distance to an existing design for a n
 In a similar fashion, \code{tol_dist} is the minimum relative change of crit for adding a new design.}
 
 \item{seed}{optional seed for the generation of LHS designs with \code{\link[DiceDesign]{maximinSA_LHS}}}
+
+\item{ncores}{number of CPU available (> 1 mean parallel TRUE), see \code{\link[parallel]{mclapply}}}
 }
 \value{
 list with elements:
@@ -87,7 +90,7 @@ plot.axes = {axis(1); axis(2); points(model$X0, pch = 20)})
 nsteps <- 1 # Increase for better results
 
 for(i in 1:nsteps){
-  res <- crit_optim(model, crit = crit, h = 0, control = list(multi.start = 100, maxit = 50))
+  res <- crit_optim(model, crit = crit, h = 0, control = list(multi.start = 50, maxit = 30))
   newX <- res$par
   newZ <- ftest(newX)
   model <- update(object = model, Xnew = newX, Znew = newZ)
@@ -126,11 +129,16 @@ xgrid <- seq(0,1, length.out = ngrid)
 Xgrid <- as.matrix(expand.grid(xgrid, xgrid))
 
 nsteps <- 5 # Increase for more steps
-
 crit <- "crit_EI"
 
+# To use parallel computation (turn off on Windows)
+library(parallel)
+parallel <- FALSE #TRUE #
+if(parallel) ncores <- detectCores() else ncores <- 1
+
 for(i in 1:nsteps){
-  res <- crit_optim(model, h = 3, crit = crit, control = list(multi.start = 100, maxit = 50))
+  res <- crit_optim(model, h = 3, crit = crit, ncores = ncores,
+                    control = list(multi.start = 100, maxit = 50))
   
   # If a replicate is selected
   if(!res$path[[1]]$new) print("Add replicate")

@@ -6,7 +6,7 @@
 \usage{
 IMSPE_optim(model, h = 2, Xcand = NULL, control = list(tol_dist =
   1e-06, tol_diff = 1e-06, multi.start = 20, maxit = 100), Wijs = NULL,
-  seed = NULL)
+  seed = NULL, ncores = 1)
 }
 \arguments{
 \item{model}{\code{homGP} or \code{hetGP} model}
@@ -29,6 +29,8 @@ In a similar fashion, \code{tol_dist} is the minimum relative change of IMSPE fo
 \item{Wijs}{optional previously computed matrix of Wijs, see \code{\link[hetGP]{Wij}}}
 
 \item{seed}{optional seed for the generation of designs with \code{\link[DiceDesign]{maximinSA_LHS}}}
+
+\item{ncores}{number of CPU available (> 1 mean parallel TRUE), see \code{\link[parallel]{mclapply}}}
 }
 \value{
 list with elements:
@@ -83,7 +85,7 @@ plot.axes = {axis(1); axis(2); points(model$X0, pch = 20)})
 nsteps <- 1 # Increase for better results
 
 for(i in 1:nsteps){
-  res <- IMSPE_optim(model, control = list(multi.start = 100, maxit = 50))
+  res <- IMSPE_optim(model, control = list(multi.start = 30, maxit = 30))
   newX <- res$par
   newZ <- ftest(newX)
   model <- update(object = model, Xnew = newX, Znew = newZ)
@@ -123,8 +125,14 @@ Xgrid <- as.matrix(expand.grid(xgrid, xgrid))
 
 nsteps <- 5 # Increase for more steps
 
+# To use parallel computation (turn off on Windows)
+library(parallel)
+parallel <- FALSE #TRUE #
+if(parallel) ncores <- detectCores() else ncores <- 1
+
 for(i in 1:nsteps){
-  res <- IMSPE_optim(model, h = 3, control = list(multi.start = 100, maxit = 50))
+  res <- IMSPE_optim(model, h = 3, control = list(multi.start = 100, maxit = 50),
+   ncores = ncores)
   
   # If a replicate is selected
   if(!res$path[[1]]$new) print("Add replicate")

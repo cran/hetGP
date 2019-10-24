@@ -210,21 +210,17 @@ sehet.out <- (unlist(t(Ztrain.out)) - mhet.out)^2
 sc.out <- - sehet.out/s2het.out - log(s2het.out)
 mean(sc.out)
 
+\dontrun{
 ## then using the model trained from the "adaptive" 
 ## sequential design, with comparison from the "batch" 
-## one above
+## one above, using the scores function
 out.a <- rebuild(out.a)
-phet.a <- predict(out.a, Xtest)
-phets2.a <- phet.a$sd2 + phet.a$nugs
-mhet.a <- as.numeric(t(matrix(rep(phet.a$mean, 10), ncol=10)))
-s2het.a <- as.numeric(t(matrix(rep(phets2.a, 10), ncol=10)))
-sehet.a <- (unlist(t(Ztest)) - mhet.a)^2
-sc.a <- - sehet.a/s2het.a - log(s2het.a)
-c(batch=mean(sc), adaptive=mean(sc.a))
+sc.a <- scores(out.a, Xtest = Xtest, Ztest = Ztest)
+c(batch=mean(sc), adaptive=sc.a)
 
 ## an example of one iteration of sequential design
-\dontrun{
-  Wijs <- hetGP:::Wij(out.a$X0, theta=out.a$theta, type=out.a$covtype)
+
+  Wijs <- Wij(out.a$X0, theta=out.a$theta, type=out.a$covtype)
   h <- horizon(out.a, Wijs=Wijs)
   control = list(tol_dist=1e-4, tol_diff=1e-4, multi.start=30, maxit=100)
   opt <- IMSPE_optim(out.a, h, Wijs=Wijs, control=control)

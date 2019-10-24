@@ -1,3 +1,16 @@
+## hetGP 1.1.2
+
+## change / hetGP 1.1.1
+  * arguments factr and pgtol can now be passed to optim via settings
+  * prevent optim from returning values not strictly inside [0,1] with IMSPE
+  * update contour functions: MCU is now MEE, a new MCU is defined following updates in the paper
+  * parallel computation with mclapply available with IMSPE_optim and crit_optim
+  * add predictive variance to plot method
+  * add score function
+  * new 1d test function + noisy versions
+  * add generic loglikelihood function
+  * update vignette
+  
 ## hetGP 1.1.1
 
 ## change / hetGP 1.1.0

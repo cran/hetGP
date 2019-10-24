@@ -8,9 +8,9 @@ mleHetGP(X, Z, lower = NULL, upper = NULL,
   noiseControl = list(k_theta_g_bounds = c(1, 100), g_max = 100, g_bounds
   = c(1e-06, 1)), settings = list(linkThetas = "joint", logN = TRUE,
   initStrategy = "residuals", checkHom = TRUE, penalty = TRUE, trace = 0,
-  return.matrices = TRUE, return.hom = FALSE), covtype = c("Gaussian",
-  "Matern5_2", "Matern3_2"), maxit = 100, known = NULL, init = NULL,
-  eps = sqrt(.Machine$double.eps))
+  return.matrices = TRUE, return.hom = FALSE, factr = 1e+09),
+  covtype = c("Gaussian", "Matern5_2", "Matern3_2"), maxit = 100,
+  known = NULL, init = NULL, eps = sqrt(.Machine$double.eps))
 }
 \arguments{
 \item{X}{matrix of all designs, one per row, or list with elements:
@@ -48,7 +48,8 @@ Same as for \code{theta} if not provided.
 If \code{1}, information is given about the result of the heterogeneous model optimization.
 Level \code{2} gives more details. Level {3} additionaly displays all details about initialization of hyperparameters.
 \item \code{return.matrices} boolean to include the inverse covariance matrix in the object for further use (e.g., prediction).
-\item \code{return.hom} boolean to include homoskedastic GP models used for initialization (i.e., \code{modHom} and \code{modNugs}).   
+\item \code{return.hom} boolean to include homoskedastic GP models used for initialization (i.e., \code{modHom} and \code{modNugs}).
+\item \code{factr} (default to 1e9) and \code{pgtol} are available to be passed to \code{control} for L-BFGS-B in \code{\link[stats]{optim}}.   
 }}
 
 \item{covtype}{covariance kernel type, either \code{'Gaussian'}, \code{'Matern5_2'} or \code{'Matern3_2'}, see \code{\link[hetGP]{cov_gen}}}

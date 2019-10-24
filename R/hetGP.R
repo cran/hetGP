@@ -127,6 +127,7 @@ dlogLikHom <- function(X0, Z0, Z, mult, theta, g, beta0 = NULL, covtype = "Gauss
 ##' @param maxit maximum number of iteration for L-BFGS-B of \code{\link[stats]{optim}}
 ##' @param eps jitter used in the inversion of the covariance matrix for numerical stability
 ##' @param settings list with argument \code{return.Ki}, to include the inverse covariance matrix in the object for further use (e.g., prediction).
+##' Arguments \code{factr} (default to 1e9) and \code{pgtol} are available to be passed to \code{control} for L-BFGS-B in \code{\link[stats]{optim}}. 
 ##' @return a list which is given the S3 class "\code{homGP}", with elements:
 ##' \itemize{
 ##' \item \code{theta}: maximum likelihood estimate of the lengthscale parameter(s),
@@ -158,6 +159,7 @@ dlogLikHom <- function(X0, Z0, Z, mult, theta, g, beta0 = NULL, covtype = "Gauss
 ##' Journal of Computational and Graphical Statistics, 27(4), 808--821.\cr 
 ##' Preprint available on arXiv:1611.05902. \cr \cr
 ##' @export
+## ' @importFrom numDeriv hessian
 ##' @examples
 ##' ##------------------------------------------------------------
 ##' ## Example 1: Homoskedastic GP modeling on the motorcycle data
@@ -193,7 +195,7 @@ mleHomGP <- function(X, Z, lower = NULL, upper = NULL, known = NULL,
                      noiseControl = list(g_bounds = c(sqrt(.Machine$double.eps), 1e2)),
                      init = NULL,
                      covtype = c("Gaussian", "Matern5_2", "Matern3_2"),
-                     maxit = 100, eps = sqrt(.Machine$double.eps), settings = list(return.Ki = TRUE)){
+                     maxit = 100, eps = sqrt(.Machine$double.eps), settings = list(return.Ki = TRUE, factr = 1e7)){
   
   if(typeof(X)=="list"){
     X0 <- X$X0
@@ -292,6 +294,7 @@ mleHomGP <- function(X, Z, lower = NULL, upper = NULL, known = NULL,
   }
   
   ## Both known
+  envtmp <- environment()
   if(!is.null(known$g) && !is.null(known[["theta"]])){
     theta_out <- known[["theta"]]
     g_out <- known$g
@@ -310,9 +313,9 @@ mleHomGP <- function(X, Z, lower = NULL, upper = NULL, known = NULL,
       upperOpt <- c(upperOpt, g_max)
     }
     
-    envtmp <- environment()
     out <- try(optim(par = parinit, fn = fn, gr = gr, method = "L-BFGS-B", lower = lowerOpt, upper = upperOpt, theta = known[["theta"]], g = known$g,
-                     X0 = X0, Z0 = Z0, Z = Z, mult = mult, beta0 = beta0, control = list(fnscale = -1, maxit = maxit, factr = 1e9), env = envtmp))
+                     X0 = X0, Z0 = Z0, Z = Z, mult = mult, beta0 = beta0,
+                     control = list(fnscale = -1, maxit = maxit, factr = settings$factr, pgtol = settings$pgtol), env = envtmp))
     ## Catch errors when at least one likelihood evaluation worked
     if(class(out) == "try-error")
       out <- list(par = envtmp$arg_max, value = envtmp$max_loglik, counts = NA,
@@ -332,11 +335,23 @@ mleHomGP <- function(X, Z, lower = NULL, upper = NULL, known = NULL,
   
   nu <- 1/N * ((crossprod(Z - beta0) - crossprod((Z0 - beta0) * mult, Z0 - beta0))/g_out + psi_0)
   
+  # # Get hessian of our cost function/
+  # if (is.null(known[["theta"]])) {
+  #   # Jacobian is more precise numerically but doesn't seem to work for some reason
+  #   #hess <- jacobian(func = gr, x = out$par, theta = known[["theta"]], g = known$g,
+  #   #             X0 = X0, Z0 = Z0, Z = Z, mult = mult, beta0 = beta0, env = envtmp)
+  #   fwrap <- function(par, ...) fn(c(par, out$par[length(out$par)]), ...)
+  #   hess <- hessian(func = fwrap, x = out$par[1:(length(out$par)-1)], theta = known[["theta"]], g = known$g,
+  #                   X0 = X0, Z0 = Z0, Z = Z, mult = mult, beta0 = beta0, env = NULL)
+  # } else {
+  #   hess <- NULL
+  # }
+  
   res <- list(theta = theta_out, g = g_out, nu_hat = as.numeric(nu), ll = out$value, nit_opt = out$counts,
               beta0 = beta0, trendtype = trendtype, covtype = covtype, msg = out$message, eps = eps,
               X0 = X0, Z0 = Z0, Z = Z, mult = mult, call = match.call(),
               used_args = list(lower = lower, upper = upper, known = known, noiseControl = noiseControl),
-              time = proc.time()[3] - tic)
+              time = proc.time()[3] - tic) # hess = hess)
   
   if(settings$return.Ki) res <- c(res, list(Ki = Ki))
   
@@ -380,14 +395,19 @@ print.homGP <- function(x, ...){
 
 ##' @method plot homGP
 ##' @export
-##' @importFrom graphics abline legend plot points
+##' @importFrom graphics abline legend plot points arrows
+##' @importFrom stats qnorm
 plot.homGP <- function(x, ...){
   LOOpreds <- LOO_preds(x)
   plot(x$Z, LOOpreds$mean[rep(1:nrow(x$X0), times = x$mult)], xlab = "Observed values", ylab = "Predicted values",
        main = "Leave-one-out predictions")
+  arrows(x0 = LOOpreds$mean + sqrt(LOOpreds$sd2) * qnorm(0.05),
+         x1 = LOOpreds$mean + sqrt(LOOpreds$sd2) * qnorm(0.95),
+         y0 = LOOpreds$mean, length = 0, col = "blue")
   points(x$Z0[which(x$mult > 1)], LOOpreds$mean[which(x$mult > 1)], pch = 20, col = 2)
   abline(a = 0, b = 1, lty = 3)
-  legend("topleft", pch = c(1, 20), col = c(1, 2), legend = c("observations", "averages (if > 1 observation)"))
+  legend("topleft", pch = c(1, 20, NA), lty = c(NA, NA, 1), col = c(1, 2, 4),
+         legend = c("observations", "averages (if > 1 observation)", "LOO prediction interval"))
 }
 
 ##' Gaussian process predictions using a homoskedastic noise GP object (of class \code{homGP})
@@ -1082,7 +1102,8 @@ compareGP <- function(model1, model2){
 ##' If \code{1}, information is given about the result of the heterogeneous model optimization.
 ##' Level \code{2} gives more details. Level {3} additionaly displays all details about initialization of hyperparameters.
 ##' \item \code{return.matrices} boolean to include the inverse covariance matrix in the object for further use (e.g., prediction).
-##' \item \code{return.hom} boolean to include homoskedastic GP models used for initialization (i.e., \code{modHom} and \code{modNugs}).   
+##' \item \code{return.hom} boolean to include homoskedastic GP models used for initialization (i.e., \code{modHom} and \code{modNugs}).
+##' \item \code{factr} (default to 1e9) and \code{pgtol} are available to be passed to \code{control} for L-BFGS-B in \code{\link[stats]{optim}}.   
 ##' }
 ##' @param eps jitter used in the inversion of the covariance matrix for numerical stability
 ##' @param init,known optional lists of starting values for mle optimization or that should not be optimized over, respectively.
@@ -1292,7 +1313,7 @@ compareGP <- function(model1, model2){
 mleHetGP <- function(X, Z, lower = NULL, upper = NULL,
                      noiseControl = list(k_theta_g_bounds = c(1, 100), g_max = 1e2, g_bounds = c(1e-6, 1)),
                      settings = list(linkThetas = 'joint', logN = TRUE, initStrategy = 'residuals', checkHom = TRUE,
-                                     penalty = TRUE, trace = 0, return.matrices = TRUE, return.hom = FALSE), 
+                                     penalty = TRUE, trace = 0, return.matrices = TRUE, return.hom = FALSE, factr = 1e9), 
                      covtype = c("Gaussian", "Matern5_2", "Matern3_2"), maxit = 100, known = NULL, init = NULL, eps = sqrt(.Machine$double.eps)){
   
   if(typeof(X)=="list"){
@@ -1360,6 +1381,9 @@ mleHetGP <- function(X, Z, lower = NULL, upper = NULL,
   
   if(is.null(settings$initStrategy))
     settings$initStrategy <- 'residuals'
+  
+  if(is.null(settings$factr))
+    settings$factr <- 1e9
   
   penalty <- TRUE
   if(!is.null(settings$penalty))
@@ -1499,7 +1523,8 @@ mleHetGP <- function(X, Z, lower = NULL, upper = NULL,
     modHom <- mleHomGP(X = list(X0 = X0, Z0 = Z0, mult = mult), Z = Z, lower = lower,
                        known = list(theta = known[["theta"]], g = known$g_H, beta0 = known$beta0),
                        upper = upper, init = list(theta = init$theta, g = g_init), covtype = covtype, maxit = maxit,
-                       noiseControl = list(g_bounds = c(noiseControl$g_min, noiseControl$g_max)), eps = eps, settings = list(return.Ki = rKI))
+                       noiseControl = list(g_bounds = c(noiseControl$g_min, noiseControl$g_max)), eps = eps,
+                       settings = list(return.Ki = rKI, factr = settings$factr, pgtol = settings$pgtol))
     
     if(is.null(known[["theta"]]))
       init$theta <- modHom$theta
@@ -1579,7 +1604,7 @@ mleHetGP <- function(X, Z, lower = NULL, upper = NULL,
       modNugs <- mleHomGP(X = list(X0 = X0, Z0 = nugs_est0, mult = mult), Z = nugs_est,
                           lower = noiseControl$lowerTheta_g, upper = noiseControl$upperTheta_g,
                           init = list(theta = init$theta_g, g =  init$g), covtype = covtype, noiseControl = noiseControl,
-                          maxit = maxit, eps = eps, settings = list(return.Ki = F))
+                          maxit = maxit, eps = eps, settings = list(return.Ki = F, factr = settings$factr, pgtol = settings$pgtol))
       prednugs <- suppressWarnings(predict(x = X0, object = modNugs))
       
     }else{
@@ -1592,7 +1617,7 @@ mleHetGP <- function(X, Z, lower = NULL, upper = NULL,
       modNugs <- mleHomGP(X = list(X0 = X0, Z0 = nugs_est0, mult = rep(1, nrow(X0))), Z = nugs_est0,
                           lower = noiseControl$lowerTheta_g, upper = noiseControl$upperTheta_g,
                           init = list(theta = init$theta_g, g =  init$g), covtype = covtype, noiseControl = noiseControl,
-                          maxit = maxit, eps = eps, settings = list(return.Ki = F))
+                          maxit = maxit, eps = eps, settings = list(return.Ki = F, factr = settings$factr, pgtol = settings$pgtol))
       prednugs <- suppressWarnings(predict(x = X0, object = modNugs))
     }
     
@@ -1804,7 +1829,8 @@ mleHetGP <- function(X, Z, lower = NULL, upper = NULL,
       ## Compute reference homoskedastic likelihood, with fixed theta for speed
       modHom_tmp <- mleHomGP(X = list(X0 = X0, Z0 = Z0, mult = mult), Z = Z, lower = lower, upper = upper, upper,
                              known = list(theta = known[["theta"]], g = known$g_H, beta0 = known$beta0), covtype = covtype, init = init,
-                             noiseControl = list(g_bounds = c(noiseControl$g_min, noiseControl$g_max)), eps = eps)
+                             noiseControl = list(g_bounds = c(noiseControl$g_min, noiseControl$g_max)), eps = eps,
+                             settings = list(return.Ki = F))
       
       hom_ll <- modHom_tmp$ll
     } 
@@ -1815,7 +1841,7 @@ mleHetGP <- function(X, Z, lower = NULL, upper = NULL,
                      mult = mult, logN = logN, SiNK = SiNK,
                      Delta = known$Delta, theta = known[["theta"]], g = known$g, k_theta_g = known$k_theta_g, theta_g = known$theta_g,
                      pX = known$pX, beta0 = known$beta0, hom_ll = hom_ll, env = envtmp,
-                     control = list(fnscale = -1, maxit = maxit, factr = 1e9)))
+                     control = list(fnscale = -1, maxit = maxit, factr = settings$factr, pgtol = settings$pgtol)))
     
     ## Catch errors when at least one likelihood evaluation worked
     if(class(out) == "try-error")
@@ -1887,7 +1913,7 @@ mleHetGP <- function(X, Z, lower = NULL, upper = NULL,
   }
   if(!is.null(modHom)){
     if(modHom$ll >= ll_non_pen){
-      if(trace >= 0) cat("Homoskedastic model has higher log-likelihood: ", modHom$ll, " compared to ", ll_non_pen, "\n")
+      if(trace >= 0) cat("Homoskedastic model has higher log-likelihood: \n", modHom$ll, " compared to ", ll_non_pen, "\n")
       if(settings$checkHom){
         if(trace >= 0) cat("Return homoskedastic model \n")
         return(modHom)
@@ -2150,11 +2176,14 @@ plot.hetGP <- function(x, ...){
   LOOpreds <- LOO_preds(x)
   plot(x$Z, LOOpreds$mean[rep(1:nrow(x$X0), times = x$mult)], xlab = "Observed values", ylab = "Predicted values",
        main = "Leave-one-out predictions")
+  arrows(x0 = LOOpreds$mean + sqrt(LOOpreds$sd2) * qnorm(0.05),
+         x1 = LOOpreds$mean + sqrt(LOOpreds$sd2) * qnorm(0.95),
+         y0 = LOOpreds$mean, length = 0, col = "blue")
   points(x$Z0[which(x$mult > 1)], LOOpreds$mean[which(x$mult > 1)], pch = 20, col = 2)
   abline(a = 0, b = 1, lty = 3)
-  legend("topleft", pch = c(1, 20), col = c(1, 2), legend = c("observations", "averages (if > 1 observation)"))
+  legend("topleft", pch = c(1, 20, NA), lty = c(NA, NA, 1), col = c(1, 2, 4),
+         legend = c("observations", "averages (if > 1 observation)", "LOO prediction interval"))
 }
-
 
 ## ' Rebuild inverse covariance matrices of \code{hetGP} (e.g., if exported without inverse matrices \code{Kgi} and/or \code{Ki})
 ## ' @param object \code{hetGP} model without slots \code{Ki} and/or \code{Kgi} (inverse covariance matrices)
@@ -2264,6 +2293,79 @@ find_reps <- function(X, Z, return.Zlist = TRUE, rescale = FALSE, normalize = FA
                 Zlist = Zlist, inputBounds = inputBounds, outputStats = outputStats))
   return(list(X0 = X0, Z0 = unlist(lapply(Zlist, mean)), mult = mult, Z = unlist(Zlist), inputBounds = inputBounds,
               outputStats = outputStats))
+}
+
+#' @title Generic Log-likelihood function
+#' This function can be used to compute loglikelihood for homGP/hetGP models
+#' @details For hetGP, this is not the joint log-likelihood, only the likelihood of the mean process.
+#' @param X0 unique designs
+#' @param Z0 averaged observations
+#' @param Z replicated observations (sorted with respect to X0)
+#' @param mult number of replicates at each Xi
+#' @param Delta vector of nuggets corresponding to each X0i or pXi, that are smoothed to give Lambda
+#' @param logN should exponentiated variance be used
+#' @param theta scale parameter for the mean process, either one value (isotropic) or a vector (anistropic)
+#' @param k_theta_g constant used for linking nuggets lengthscale to mean process lengthscale, i.e., theta_g[k] = k_theta_g * theta[k], alternatively theta_g can be used
+#' @param theta_g either one value (isotropic) or a vector (anistropic), alternative to using k_theta_g
+#' @param g nugget of the nugget process
+#' @param beta0 mean, if not provided, the MLE estimator is used
+#' @param eps minimal value of elements of Lambda
+#' @param covtype covariance kernel type
+#' @keywords internal
+#' @export
+logLikH <- function(X0, Z0, Z, mult, theta, g, Delta = NULL, k_theta_g = NULL, theta_g = NULL, logN = FALSE,
+                    beta0 = NULL, eps = sqrt(.Machine$double.eps), covtype = "Gaussian"){
+  
+  if(is.null(Delta)){
+    return(logLikHom(X0 = X0, Z0 = Z0, Z = Z, mult = mult, theta = theta, g = g, beta0 = beta0, covtype = covtype, eps = eps))
+  }else{
+    if(!is.null(k_theta_g)) theta_g <- NULL
+    return(logLikHet(X0 = X0, Z0 = Z0, Z = Z, mult = mult, theta = theta, Delta = Delta, g = g, k_theta_g = k_theta_g,
+                     theta_g = theta_g, logN = logN, penalty = FALSE, hom_ll = NULL, trace = 0))
+  }
+}
+
+#' @title Score and RMSE function
+#' To asses the performance of the prediction, this function computes the root mean squared error and proper score function (also known as negative log-probability density).
+#' @references 
+#' T. Gneiting, and A. Raftery (2007). Strictly Proper Scoring Rules, Prediction, and Estimation, Journal of the American Statistical Association, 102(477), 359-378.
+#' @param model \code{homGP} or \code{hetGP} model, including inverse matrices
+#' @param Xtest matrix of new design locations
+#' @param Ztest corresponding vector of observations, or alternatively, 
+#' a matrix of size [nrow(Xtest) x number of replicates], a list of size nrow(Xtest) with a least one value per element
+#' @param return.rmse if \code{TRUE}, return the root mean squared error
+#' @export
+scores <- function(model, Xtest, Ztest, return.rmse = FALSE){
+  p <- predict(model, Xtest)
+  ps2 <- p$sd2 + p$nugs
+  
+  if(is.list(Ztest)){
+    s2 <- m <- Ztest
+    for(i in 1:length(Ztest)) {
+      m[[i]] <- rep(p$mean[i], length(m[[i]]))
+      s2[[i]] <- rep(ps2[i], length(s2[[i]]))
+    }
+    m <- unlist(t(m))
+    s2 <- unlist(t(s2))
+    se <- (unlist(t(Ztest)) - m)^2
+    sc <- - se/s2 - log(s2)
+  }
+  
+  if(is.vector(ncol(Ztest))){
+    se <- (Ztest - p$mean)^2
+    sc <- -se/ps2 - log(ps2)
+  }
+  
+  if(is.matrix(Ztest)){
+    nc <- ncol(Ztest)
+    m <- as.numeric(t(matrix(rep(p$mean, nc), ncol = nc)))
+    s2 <- as.numeric(t(matrix(rep(ps2, nc), ncol = nc)))
+    se <- (unlist(t(Ztest)) - m)^2
+    sc <- - se/s2 - log(s2)
+  }
+  
+  if(return.rmse) return(list(sc = mean(sc), rmse = sqrt(mean(se))))
+  return(mean(sc)) 
 }
 
 #' Defines lower bound for lengthscale parameters based on a low quantile of non-zero distances between points in the design.
