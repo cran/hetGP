@@ -4,8 +4,14 @@
 \alias{find_reps}
 \title{Data preprocessing}
 \usage{
-find_reps(X, Z, return.Zlist = TRUE, rescale = FALSE,
-  normalize = FALSE, inputBounds = NULL)
+find_reps(
+  X,
+  Z,
+  return.Zlist = TRUE,
+  rescale = FALSE,
+  normalize = FALSE,
+  inputBounds = NULL
+)
 }
 \arguments{
 \item{X}{matrix of design locations, one point per row}

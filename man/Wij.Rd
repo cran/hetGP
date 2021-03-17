@@ -17,5 +17,8 @@ Wij(mu1, mu2 = NULL, theta, type)
 Compute double integral of the covariance kernel over a [0,1]^d domain
 }
 \references{
-M. Binois, J. Huang, R. Gramacy, M. Ludkovski (2017+), Replication or exploration? Sequential design for stochastic simulation experiments.
+M. Binois, J. Huang, R. B. Gramacy, M. Ludkovski (2019), 
+Replication or exploration? Sequential design for stochastic simulation experiments,
+Technometrics, 61(1), 7-23.\cr 
+Preprint available on arXiv:1710.03206.
 }

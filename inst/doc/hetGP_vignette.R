@@ -1,4 +1,4 @@
-## ----include=FALSE-------------------------------------------------------
+## ----include=FALSE------------------------------------------------------------
 library("knitr")
 ## cache can be set to TRUE 
 opts_chunk$set(
@@ -119,8 +119,8 @@ for(i in 1:nrow(Xbar)) {
 Y <- apply(X, 1, sirEval)
 
 ## ----sirfit---------------------------------------------------------
-fit <- mleHetGP(X, Y, lower = rep(0.05, 2), upper = rep(10, 2), 
-  settings = list(linkThetas = "none"), covtype = "Matern5_2", maxit = 1e4)
+fit <- mleHetGP(X, Y, covtype = "Matern5_2", lower = rep(0.05, 2),
+  upper = rep(10, 2), settings = list(linkThetas = "none"),  maxit = 1e4)
 
 ## ----sirpred, echo = FALSE------------------------------------------
 xx <- seq(0, 1, length = 100)
@@ -203,7 +203,7 @@ data("ato")
 c(n = nrow(Xtrain), N = length(unlist(Ztrain)), time = out$time)
 
 ## ----atotestscore---------------------------------------------------
-sc <- scores(out, Xtest, matrix(unlist(Ztest), byrow = TRUE, ncol = 10))
+sc <- scores(model = out, Xtest = Xtest, Ztest = Ztest)
 
 ## ----atotrainscore--------------------------------------------------
 sc.out <- scores(model = out, Xtest = Xtrain.out, Ztest = Ztrain.out)
@@ -345,7 +345,8 @@ for(i in 1:490) {
   X <- c(X, opt$par)
   Ynew <- fr(opt$par)
   Y <- c(Y, Ynew)
-  mod.a <- update(mod.a, Xnew = opt$par, Znew = Ynew, ginit = mod.a$g * 1.01)
+  mod.a <- update(mod.a, Xnew = opt$par, Znew = Ynew, 
+    ginit = mod.a$g * 1.01)
   if(i %% 25 == 0) { 
     mod2 <- mleHetGP(X = list(X0 = mod.a$X0, Z0 = mod.a$Z0,
       mult = mod.a$mult), Z = mod.a$Z, lower = 0.0001, upper = 1)
@@ -357,7 +358,7 @@ for(i in 1:490) {
 p.a <- predict(mod.a, matrix(xgrid, ncol = 1))
 pvar.a <- p.a$sd2 + p.a$nugs
 
-## ----adapfig, echo = FALSE, fig.height=4, fig.width=8, out.width="6in", out.height="3in", fig.align='center', fig.cap="\\label{fig:adapt}{\\em Left:} Horizons chosen per iteration; {\\em right:} final design and predictions versus the truth, similar to Figure \\ref{fig:forr}."----
+## ----adapfig, echo = FALSE, fig.height=5, fig.width=10, out.width="6in", out.height="3in", fig.align='center', fig.cap="\\label{fig:adapt}{\\em Left:} Horizons chosen per iteration; {\\em right:} final design and predictions versus the truth, similar to Figure \\ref{fig:forr}."----
 par(mfrow = c(1, 2))
 plot(h, main = "Horizon", xlab = "Iteration")
 plot(xgrid, f1d2(xgrid), type = "l", xlab = "x", ylab = "y",
@@ -365,11 +366,11 @@ plot(xgrid, f1d2(xgrid), type = "l", xlab = "x", ylab = "y",
 lines(xgrid, qnorm(0.05, f1d2(xgrid), fn(xgrid)), col = 1, lty = 2)
 lines(xgrid, qnorm(0.95, f1d2(xgrid), fn(xgrid)), col = 1, lty = 2)
 points(X, Y)
-segments(mod$X0, rep(0, nrow(mod$X0)) - 4, mod$X0, mod$mult * 0.25 - 4, 
+segments(mod.a$X0, rep(0, nrow(mod.a$X0)) - 4, mod.a$X0, mod.a$mult * 0.25 - 4, 
   col = "gray")
-lines(xgrid, p$mean, col = 2)
-lines(xgrid, qnorm(0.05, p$mean, sqrt(pvar.a)), col = 2, lty = 2)
-lines(xgrid, qnorm(0.95, p$mean, sqrt(pvar.a)), col = 2, lty = 2)
+lines(xgrid, p.a$mean, col = 2)
+lines(xgrid, qnorm(0.05, p.a$mean, sqrt(pvar.a)), col = 2, lty = 2)
+lines(xgrid, qnorm(0.95, p.a$mean, sqrt(pvar.a)), col = 2, lty = 2)
 
 ## ----adaptn, echo=FALSE, results='hide'-----------------------------
 nrow(mod.a$X0)
@@ -377,10 +378,10 @@ nrow(mod.a$X0)
 ## ----rmsescore------------------------------------------------------
 ytrue <- f1d2(xgrid)
 yy <- fr(xgrid)
-rbind(rmse = c(h5 = mean((ytrue - p$mean)^2), 
-  ha = mean((ytrue - p.a$mean)^2)), 
-  score = c(h5 = - mean((yy - p$mean)^2 / pvar + log(pvar)), 
-  ha = -mean((yy - p.a$mean)^2 / pvar.a + log(pvar.a))))
+rbind(rmse = c(h5 = mean((ytrue - p$mean)^2),
+  ha = mean((ytrue - p.a$mean)^2)),
+  score = c(h5 = scores(mod, matrix(xgrid), yy), 
+  ha = scores(mod.a, matrix(xgrid), yy)))
 
 ## ----atoatime-------------------------------------------------------
 c(n = nrow(out.a$X0), N = length(out.a$Z), time = out.a$time)

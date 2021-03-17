@@ -4,8 +4,7 @@
 \alias{predict.hetGP}
 \title{Gaussian process predictions using a heterogeneous noise GP object (of class \code{hetGP})}
 \usage{
-\method{predict}{hetGP}(object, x, noise.var = FALSE, xprime = NULL,
-  nugs.only = FALSE, ...)
+\method{predict}{hetGP}(object, x, noise.var = FALSE, xprime = NULL, nugs.only = FALSE, ...)
 }
 \arguments{
 \item{object}{an object of class \code{hetGP}; e.g., as returned by \code{\link[hetGP]{mleHetGP}}}

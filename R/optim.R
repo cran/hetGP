@@ -6,7 +6,7 @@
 #' @param preds optional predictions at \code{x} to avoid recomputing if already done
 #' @note This is a beta version at this point.
 #' @details 
-#' \code{cst} is classically the observed minimum in the determininistic case. 
+#' \code{cst} is classically the observed minimum in the deterministic case. 
 #' In the noisy case, the min of the predictive mean works fine.
 #'  
 #' @references
@@ -41,7 +41,7 @@
 #' 
 #' n_init <- 10 # number of unique designs
 #' N_init <- 100 # total number of points
-#' X <- seq(0, 1, length.out = 10)
+#' X <- seq(0, 1, length.out = n_init)
 #' X <- matrix(X[sample(1:n_init, N_init, replace = TRUE)], ncol = 1)
 #' Z <- ftest(X)
 #' 
@@ -159,12 +159,77 @@ predict_gr <- function(object, x){
 #' @param z input location
 #' @param a degree of freedom parameter
 #' @noRd
-#' @example 
+#' @examples
 #' # grad(dt, x = 0.55, df = 3.6)
 #' # dlambda(0.55, 3.6)
 dlambda <- function(z, a){
   return(-(a + 1) * gamma((a + 1)/2)/(sqrt(pi * a) * a * gamma(a/2)) * z * ((a + z^2)/a)^(-(a +3)/2))
 }
+
+#' Fast approximated batch-Expected Improvement criterion (for minimization)
+#' @title Parallel Expected improvement
+#' @param x matrix of new designs representing the batch of q points,
+#'  one point per row (size q x d)
+#' @param model \code{homGP} or \code{hetGP} model, including inverse matrices.
+#' @param cst optional plugin value used in the EI, see details
+#' @param preds optional predictions at \code{x} to avoid recomputing if already done (must include the predictive covariance, i.e., the \code{cov} slot)
+#' @details 
+#' \code{cst} is classically the observed minimum in the deterministic case. 
+#' In the noisy case, the min of the predictive mean works fine.
+#' @note This is a beta version at this point. It may work for for TP models as well.
+#' @references 
+#' M. Binois (2015), Uncertainty quantification on Pareto fronts and high-dimensional strategies in Bayesian optimization, with applications in multi-objective automotive design.
+#' Ecole Nationale Superieure des Mines de Saint-Etienne, PhD thesis.
+#' @export
+#' @importFrom stats cov2cor
+#' @examples 
+#' ## Optimization example (noiseless)
+#' set.seed(42)
+#' 
+#' ## Test function defined in [0,1]
+#' ftest <- f1d
+#' 
+#' n_init <- 5 # number of unique designs
+#' X <- seq(0, 1, length.out = n_init)
+#' X <- matrix(X, ncol = 1)
+#' Z <- ftest(X)
+#' 
+#' ## Predictive grid
+#' ngrid <- 51
+#' xgrid <- seq(0,1, length.out = ngrid)
+#' Xgrid <- matrix(xgrid, ncol = 1)
+#' 
+#' model <- mleHomGP(X = X, Z = Z, lower = 0.01, upper = 1, known = list(g = 2e-8))
+#' 
+#' # Regular EI function
+#' cst <- min(model$Z0)
+#' EIgrid <- crit_EI(Xgrid, model, cst = cst)
+#' plot(xgrid, EIgrid, type = "l")
+#' abline(v = X, lty = 2) # observations
+#' 
+#' # Create batch (based on regular EI peaks)
+#' xbatch <- matrix(c(0.37, 0.17, 0.7), 3, 1)
+#' abline(v = xbatch, col = "red")
+#' fqEI <- crit_qEI(xbatch, model, cst = cst)
+#' 
+#' # Compare with Monte Carlo qEI
+#' preds <- predict(model, xbatch, xprime = xbatch)
+#' nsim <- 1e4
+#' simus <- matrix(rnorm(3 * nsim), nsim) %*% chol(preds$cov)
+#' simus <- simus + matrix(preds$mean, nrow = nsim, ncol = 3, byrow = TRUE)
+#' MCqEI <- mean(apply(cst - simus, 1, function(x) max(c(x, 0))))
+#' 
+crit_qEI <- function(x, model, cst = NULL, preds = NULL){
+  if(is.null(cst)) cst <- min(predict(model, x = model$X0)$mean)
+  if(is.null(dim(x))) x <- matrix(x, nrow = 1)
+  if(is.null(preds) || is.null(preds$cov)) preds <- predict(model, x = x, xprime = x)
+  
+  cormat <- cov2cor(preds$cov)
+  res <- qEI_cpp(mu = -preds$mean, s = sqrt(preds$sd2), cor = cormat, threshold = -cst)
+  
+  return(res) 
+}
+
 
 #' Search for best reduction in a criterion 
 #' @title Criterion minimization
@@ -362,7 +427,7 @@ crit.search <- function(model, crit, ..., replicate = FALSE, Xcand = NULL,
 #' @param crit considered criterion, one of \code{"crit_cSUR"}, \code{"crit_EI"}, \code{"crit_ICU"},
 #'  \code{"crit_MCU"} and \code{"crit_tMSE"}. Note that \code{crit_IMSPE} has its dedicated method, see \code{\link[hetGP]{IMSPE_optim}}.
 #' @param ... additional parameters of the criterion
-##' @param Xcand optional discrete set of candidates (otherwise a maximin LHS is used to initialise continuous search)
+##' @param Xcand optional discrete set of candidates (otherwise a maximin LHS is used to initialize continuous search)
 #' @param control list in case \code{Xcand == NULL}, with elements \code{multi.start},
 #' to perform a multi-start optimization based on \code{\link[stats]{optim}}, with \code{maxit} iterations each.
 #' Also, \code{tol_dist} defines the minimum distance to an existing design for a new point to be added, otherwise the closest existing design is chosen.
@@ -386,8 +451,9 @@ crit.search <- function(model, crit, ..., replicate = FALSE, Xcand = NULL,
 #' \item \code{path}: list of elements list(\code{par}, \code{value}, \code{new}) at each step \code{h}
 #' }
 #' @references
-#' M. Binois, J. Huang, R. B. Gramacy, M. Ludkovski (2018+), Replication or exploration? Sequential design for stochastic simulation experiments,
-#' Technometrics (to appear).\cr 
+#' M. Binois, J. Huang, R. B. Gramacy, M. Ludkovski (2019), 
+#' Replication or exploration? Sequential design for stochastic simulation experiments,
+#' Technometrics, 61(1), 7-23.\cr 
 #' Preprint available on arXiv:1710.03206.
 #' @export 
 #' @examples

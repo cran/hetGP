@@ -4,8 +4,7 @@
 \alias{cov_gen}
 \title{Correlation function of selected type, supporting both isotropic and product forms}
 \usage{
-cov_gen(X1, X2 = NULL, theta, type = c("Gaussian", "Matern5_2",
-  "Matern3_2"))
+cov_gen(X1, X2 = NULL, theta, type = c("Gaussian", "Matern5_2", "Matern3_2"))
 }
 \arguments{
 \item{X1}{matrix of design locations, one point per row}

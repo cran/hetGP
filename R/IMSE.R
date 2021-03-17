@@ -1,15 +1,15 @@
-##' IMSPE of a given design
-##' @title Integrated Mean Square Prediction Error
-##' @param X \code{hetGP} or \code{homGP} model. Alternatively, one can provide a matrix of unique designs considered
-##' @param theta lengthscales
-##' @param Lambda diagonal matrix for the noise
-##' @param mult number of replicates at each design
-##' @param covtype either "Gaussian", "Matern3_2" or "Matern5_2"
-##' @param nu variance parameter
-##' @param eps numerical nugget
-##' @details
-##' One can provide directly a model of class \code{hetGP} or \code{homGP}, or provide \code{X} and all other arguments
-##' @export
+#' IMSPE of a given design
+#' @title Integrated Mean Square Prediction Error
+#' @param X \code{hetGP} or \code{homGP} model. Alternatively, one can provide a matrix of unique designs considered
+#' @param theta lengthscales
+#' @param Lambda diagonal matrix for the noise
+#' @param mult number of replicates at each design
+#' @param covtype either "Gaussian", "Matern3_2" or "Matern5_2"
+#' @param nu variance parameter
+#' @param eps numerical nugget
+#' @details
+#' One can provide directly a model of class \code{hetGP} or \code{homGP}, or provide \code{X} and all other arguments
+#' @export
 IMSPE <- function(X, theta = NULL, Lambda = NULL, mult = NULL, covtype = NULL, nu= NULL, eps = sqrt(.Machine$double.eps)){
   if(class(X) %in% c("homGP", "hetGP")){
     Wij <- Wij(mu1 = X$X0, theta = X$theta, type = X$covtype)
@@ -23,51 +23,51 @@ IMSPE <- function(X, theta = NULL, Lambda = NULL, mult = NULL, covtype = NULL, n
   }
 }
 
-##' Compute the integrated mean square prediction error after adding a new design
-##' @title Sequential IMSPE criterion
-##' @param x matrix for the new design (size 1 x d)
-##' @param Wijs optional previously computed matrix of Wijs, to avoid recomputing it; see \code{\link[hetGP]{Wij}}
-##' @param model \code{homGP} or \code{hetGP} model, including inverse matrices
-##' @param id instead of providing \code{x}, one can provide the index of a considered existing design 
-##' @export
-##' @details The computations are scale free, i.e., values are not multiplied by \code{nu_hat} from \code{homGP} or \code{hetGP}.
-##' Currently this function ignores the extra terms related to the estimation of the mean.
-##' @seealso \code{\link[hetGP]{deriv_crit_IMSPE}} for the derivative
-##' @examples
-##' ## One-d toy example
-##' 
-##' set.seed(42)
-##' ftest <- function(x, coef = 0.1) return(sin(2*pi*x) + rnorm(1, sd = coef))
-##' 
-##' n <- 9
-##' designs <- matrix(seq(0.1, 0.9, length.out = n), ncol = 1)
-##' X <- matrix(designs[rep(1:n, sample(1:10, n, replace = TRUE)),])
-##' Z <- apply(X, 1, ftest)
-##' 
-##' prdata <- find_reps(X, Z, inputBounds = matrix(c(0,1), nrow = 2, ncol = 1))
-##' Z <- prdata$Z
-##' plot(prdata$X0[rep(1:n, times = prdata$mult),], prdata$Z, xlab = "x", ylab = "Y")
-##' 
-##' model <- mleHetGP(X = list(X0 = prdata$X0, Z0 = prdata$Z0, mult = prdata$mult),
-##'                   Z = Z, lower = 0.1, upper = 5)
-##' 
-##' ngrid <- 501
-##' xgrid <- matrix(seq(0,1, length.out = ngrid), ncol = 1)
-##' 
-##' ## Precalculations
-##' Wijs <- Wij(mu1 = model$X0, theta = model$theta, type = model$covtype)
-##' 
+#' Compute the integrated mean square prediction error after adding a new design
+#' @title Sequential IMSPE criterion
+#' @param x matrix for the new design (size 1 x d)
+#' @param Wijs optional previously computed matrix of Wijs, to avoid recomputing it; see \code{\link[hetGP]{Wij}}
+#' @param model \code{homGP} or \code{hetGP} model, including inverse matrices
+#' @param id instead of providing \code{x}, one can provide the index of a considered existing design 
+#' @export
+#' @details The computations are scale free, i.e., values are not multiplied by \code{nu_hat} from \code{homGP} or \code{hetGP}.
+#' Currently this function ignores the extra terms related to the estimation of the mean.
+#' @seealso \code{\link[hetGP]{deriv_crit_IMSPE}} for the derivative
+#' @examples
+#' ## One-d toy example
+#' 
+#' set.seed(42)
+#' ftest <- function(x, coef = 0.1) return(sin(2*pi*x) + rnorm(1, sd = coef))
+#' 
+#' n <- 9
+#' designs <- matrix(seq(0.1, 0.9, length.out = n), ncol = 1)
+#' X <- matrix(designs[rep(1:n, sample(1:10, n, replace = TRUE)),])
+#' Z <- apply(X, 1, ftest)
+#' 
+#' prdata <- find_reps(X, Z, inputBounds = matrix(c(0,1), nrow = 2, ncol = 1))
+#' Z <- prdata$Z
+#' plot(prdata$X0[rep(1:n, times = prdata$mult),], prdata$Z, xlab = "x", ylab = "Y")
+#' 
+#' model <- mleHetGP(X = list(X0 = prdata$X0, Z0 = prdata$Z0, mult = prdata$mult),
+#'                   Z = Z, lower = 0.1, upper = 5)
+#' 
+#' ngrid <- 501
+#' xgrid <- matrix(seq(0,1, length.out = ngrid), ncol = 1)
+#' 
+#' ## Precalculations
+#' Wijs <- Wij(mu1 = model$X0, theta = model$theta, type = model$covtype)
+#' 
 ## ' nref <- 2000
 ## ' # library(DiceDesign)
 ## ' # Xref <- maximinSA_LHS(lhsDesign(nref, nvar)$design)$design
-##' 
-##' t0 <- Sys.time()
-##' 
-##' IMSPE_grid <- apply(xgrid, 1, crit_IMSPE, Wijs = Wijs, model = model)
-##' 
-##' t1 <- Sys.time()
-##' print(t1 - t0)
-##' 
+#' 
+#' t0 <- Sys.time()
+#' 
+#' IMSPE_grid <- apply(xgrid, 1, crit_IMSPE, Wijs = Wijs, model = model)
+#' 
+#' t1 <- Sys.time()
+#' print(t1 - t0)
+#' 
 ## ' ## Older version with candidate points (Warning: compare for fixed zero mean)
 ## ' Xref <- xgrid
 ## ' # deprecated, for testing only
@@ -78,42 +78,42 @@ IMSPE <- function(X, theta = NULL, Lambda = NULL, mult = NULL, covtype = NULL, n
 ## ' print(t2-t1)
 ## ' 
 ## ' par(mfrow = c(1,2))
-##' plot(xgrid, IMSPE_grid * model$nu_hat, xlab = "x", ylab = "crit_IMSPE values")
-##' abline(v = designs)
+#' plot(xgrid, IMSPE_grid * model$nu_hat, xlab = "x", ylab = "crit_IMSPE values")
+#' abline(v = designs)
 ## ' plot(xgrid, IMSPE_disc_grid / ngrid)
 ## ' abline(v = designs)
 ## ' par(mfrow = c(1,1))
-##' 
-##' ###############################################################################
-##' ## Bi-variate case
-##' 
-##' nvar <- 2 
-##' 
-##' set.seed(2)
-##' ftest <- function(x, coef = 0.1) return(sin(2*pi*sum(x)) + rnorm(1, sd = coef))
-##' 
-##' n <- 16 # must be a square
-##' xgrid0 <- seq(0.1, 0.9, length.out = sqrt(n))
-##' designs <- as.matrix(expand.grid(xgrid0, xgrid0))
-##' X <- designs[rep(1:n, sample(1:10, n, replace = TRUE)),]
-##' Z <- apply(X, 1, ftest)
-##' 
-##' prdata <- find_reps(X, Z, inputBounds = matrix(c(0,1), nrow = 2, ncol = 1))
-##' Z <- prdata$Z
-##' 
-##' model <- mleHetGP(X = list(X0 = prdata$X0, Z0 = prdata$Z0, mult = prdata$mult), Z = Z, 
-##'  lower = rep(0.1, nvar), upper = rep(1, nvar))
-##' ngrid <- 51
-##' xgrid <- seq(0,1, length.out = ngrid)
-##' Xgrid <- as.matrix(expand.grid(xgrid, xgrid))
-##' ## Precalculations
-##' Wijs <- Wij(mu1 = model$X0, theta = model$theta, type = model$covtype)
-##' t0 <- Sys.time()
-##' 
-##' IMSPE_grid <- apply(Xgrid, 1, crit_IMSPE, Wijs = Wijs, model = model)
-##' filled.contour(x = xgrid, y = xgrid, matrix(IMSPE_grid, ngrid),
-##'                nlevels = 20, color.palette = terrain.colors,
-##'                main = "Sequential IMSPE values")
+#' 
+#' ###############################################################################
+#' ## Bi-variate case
+#' 
+#' nvar <- 2 
+#' 
+#' set.seed(2)
+#' ftest <- function(x, coef = 0.1) return(sin(2*pi*sum(x)) + rnorm(1, sd = coef))
+#' 
+#' n <- 16 # must be a square
+#' xgrid0 <- seq(0.1, 0.9, length.out = sqrt(n))
+#' designs <- as.matrix(expand.grid(xgrid0, xgrid0))
+#' X <- designs[rep(1:n, sample(1:10, n, replace = TRUE)),]
+#' Z <- apply(X, 1, ftest)
+#' 
+#' prdata <- find_reps(X, Z, inputBounds = matrix(c(0,1), nrow = 2, ncol = 1))
+#' Z <- prdata$Z
+#' 
+#' model <- mleHetGP(X = list(X0 = prdata$X0, Z0 = prdata$Z0, mult = prdata$mult), Z = Z, 
+#'  lower = rep(0.1, nvar), upper = rep(1, nvar))
+#' ngrid <- 51
+#' xgrid <- seq(0,1, length.out = ngrid)
+#' Xgrid <- as.matrix(expand.grid(xgrid, xgrid))
+#' ## Precalculations
+#' Wijs <- Wij(mu1 = model$X0, theta = model$theta, type = model$covtype)
+#' t0 <- Sys.time()
+#' 
+#' IMSPE_grid <- apply(Xgrid, 1, crit_IMSPE, Wijs = Wijs, model = model)
+#' filled.contour(x = xgrid, y = xgrid, matrix(IMSPE_grid, ngrid),
+#'                nlevels = 20, color.palette = terrain.colors,
+#'                main = "Sequential IMSPE values")
 ## ' filled.contour(x = xgrid, y = xgrid, matrix(IMSPE_grid, ngrid), nlevels = 20, color.palette = terrain.colors)
 crit_IMSPE <- function(x, model, id = NULL, Wijs = NULL){
 
@@ -184,13 +184,13 @@ c2 <- function(x, sigma, w, type){
   }
 }
 
-##' Derivative of crit_IMSPE
-##' @param x matrix for the new design (size 1 x d)
-##' @param model \code{homGP} or \code{hetGP} model
-##' @param Wijs optional previously computed matrix of Wijs, see \code{\link[hetGP]{Wij}}
-##' @return Derivative of the sequential IMSPE with respect to \code{x}
-##' @seealso \code{\link[hetGP]{crit_IMSPE}} for the criterion
-##' @export
+#' Derivative of crit_IMSPE
+#' @param x matrix for the new design (size 1 x d)
+#' @param model \code{homGP} or \code{hetGP} model
+#' @param Wijs optional previously computed matrix of Wijs, see \code{\link[hetGP]{Wij}}
+#' @return Derivative of the sequential IMSPE with respect to \code{x}
+#' @seealso \code{\link[hetGP]{crit_IMSPE}} for the criterion
+#' @export
 ## ' @examples
 ## ' \dontrun{
 ## ' nvar <- 2
@@ -261,78 +261,78 @@ deriv_crit_IMSPE <- function(x, model, Wijs = NULL){
   return(-tmp)
 }
 
-##' Search for best reduction in IMSPE 
-##' @title IMSPE minimization
-##' @param model \code{homGP} or \code{hetGP} model
-##' @param replicate if \code{TRUE}, search only on existing designs
-##' @param Xcand optional set of of candidates for discrete search
-##' @param control list in case \code{Xcand == NULL}, with elements \code{multi.start},
-##' to perform a multi-start optimization based on \code{\link[stats]{optim}}, with \code{maxit} iterations each.
-##' Also, \code{tol_dist} defines the minimum distance to an existing design for a new point to be added, otherwise the closest existing design is chosen.
-##' In a similar fashion, \code{tol_dist} is the minimum relative change of IMSPE for adding a new design.
-##' @param Wijs optional previously computed matrix of Wijs, see \code{\link[hetGP]{Wij}}
-##' @param seed optional seed for the generation of designs with \code{\link[DiceDesign]{maximinSA_LHS}}
-##' @param ncores number of CPU available (> 1 mean parallel TRUE), see \code{\link[parallel]{mclapply}}
-##' @importFrom DiceDesign lhsDesign maximinSA_LHS
-##' @importFrom parallel mclapply
-##' @return list with \code{par}, \code{value} elements, and additional slot \code{new} (boolean if it is or not a new design) and \code{id} giving the index of the duplicated design. 
-##' @noRd
-##' @examples 
-##' ###############################################################################
-##' ## Bi-variate example
-##' ###############################################################################
-##' 
-##' nvar <- 2 
-##' 
-##' set.seed(42)
-##' ftest <- function(x, coef = 0.1) return(sin(2*pi*sum(x)) + rnorm(1, sd = coef))
-##' 
-##' n <- 25 # must be a square
-##' xgrid0 <- seq(0.1, 0.9, length.out = sqrt(n))
-##' designs <- as.matrix(expand.grid(xgrid0, xgrid0))
-##' X <- designs[rep(1:n, sample(1:10, n, replace = TRUE)),]
-##' Z <- apply(X, 1, ftest)
-##' 
-##' model <- mleHomGP(X, Z, lower = rep(0.1, nvar), upper = rep(1, nvar))
-##' 
-##' ngrid <- 51
-##' xgrid <- seq(0,1, length.out = ngrid)
-##' Xgrid <- as.matrix(expand.grid(xgrid, xgrid))
-##' 
-##' preds <- predict(x = Xgrid, object =  model)
-##' 
-##' ## Initial plots
-##' contour(x = xgrid,  y = xgrid, z = matrix(preds$mean, ngrid),
-##'         main = "Predicted mean", nlevels = 20)
-##' points(model$X0, col = 'blue', pch = 20)
-##' 
-##' IMSPE_grid <- apply(Xgrid, 1, crit_IMSPE, model = model)
-##' filled.contour(x = xgrid, y = xgrid, matrix(IMSPE_grid, ngrid),
-##'                nlevels = 20, color.palette = terrain.colors, 
-##'                main = "Initial IMSPE criterion landscape",
-##' plot.axes = {axis(1); axis(2); points(model$X0, pch = 20)})
-##' 
-##' ## Sequential IMSPE search
-##' nsteps <- 1 # Increase for better results
-##' 
-##' for(i in 1:nsteps){
-##'   res <- IMSPE.search(model, control = list(multi.start = 100, maxit = 50))
-##'   newX <- res$par
-##'   newZ <- ftest(newX)
-##'   model <- update(object = model, Xnew = newX, Znew = newZ)
-##' }
-##' 
-##' ## Final plots
-##' contour(x = xgrid,  y = xgrid, z = matrix(preds$mean, ngrid),
-##'         main = "Predicted mean", nlevels = 20)
-##' points(model$X0, col = 'blue', pch = 20)
-##' 
-##' IMSPE_grid <- apply(Xgrid, 1, crit_IMSPE, model = model)
-##' filled.contour(x = xgrid, y = xgrid, matrix(IMSPE_grid, ngrid),
-##'                nlevels = 20, color.palette = terrain.colors, 
-##'                main = "Final IMSPE criterion landscape",
-##' plot.axes = {axis(1); axis(2); points(model$X0, pch = 20)})
-##' 
+#' Search for best reduction in IMSPE 
+#' @title IMSPE minimization
+#' @param model \code{homGP} or \code{hetGP} model
+#' @param replicate if \code{TRUE}, search only on existing designs
+#' @param Xcand optional set of of candidates for discrete search
+#' @param control list in case \code{Xcand == NULL}, with elements \code{multi.start},
+#' to perform a multi-start optimization based on \code{\link[stats]{optim}}, with \code{maxit} iterations each.
+#' Also, \code{tol_dist} defines the minimum distance to an existing design for a new point to be added, otherwise the closest existing design is chosen.
+#' In a similar fashion, \code{tol_dist} is the minimum relative change of IMSPE for adding a new design.
+#' @param Wijs optional previously computed matrix of Wijs, see \code{\link[hetGP]{Wij}}
+#' @param seed optional seed for the generation of designs with \code{\link[DiceDesign]{maximinSA_LHS}}
+#' @param ncores number of CPU available (> 1 mean parallel TRUE), see \code{\link[parallel]{mclapply}}
+#' @importFrom DiceDesign lhsDesign maximinSA_LHS
+#' @importFrom parallel mclapply
+#' @return list with \code{par}, \code{value} elements, and additional slot \code{new} (boolean if it is or not a new design) and \code{id} giving the index of the duplicated design. 
+#' @noRd
+#' @examples 
+#' ###############################################################################
+#' ## Bi-variate example
+#' ###############################################################################
+#' 
+#' nvar <- 2 
+#' 
+#' set.seed(42)
+#' ftest <- function(x, coef = 0.1) return(sin(2*pi*sum(x)) + rnorm(1, sd = coef))
+#' 
+#' n <- 25 # must be a square
+#' xgrid0 <- seq(0.1, 0.9, length.out = sqrt(n))
+#' designs <- as.matrix(expand.grid(xgrid0, xgrid0))
+#' X <- designs[rep(1:n, sample(1:10, n, replace = TRUE)),]
+#' Z <- apply(X, 1, ftest)
+#' 
+#' model <- mleHomGP(X, Z, lower = rep(0.1, nvar), upper = rep(1, nvar))
+#' 
+#' ngrid <- 51
+#' xgrid <- seq(0,1, length.out = ngrid)
+#' Xgrid <- as.matrix(expand.grid(xgrid, xgrid))
+#' 
+#' preds <- predict(x = Xgrid, object =  model)
+#' 
+#' ## Initial plots
+#' contour(x = xgrid,  y = xgrid, z = matrix(preds$mean, ngrid),
+#'         main = "Predicted mean", nlevels = 20)
+#' points(model$X0, col = 'blue', pch = 20)
+#' 
+#' IMSPE_grid <- apply(Xgrid, 1, crit_IMSPE, model = model)
+#' filled.contour(x = xgrid, y = xgrid, matrix(IMSPE_grid, ngrid),
+#'                nlevels = 20, color.palette = terrain.colors, 
+#'                main = "Initial IMSPE criterion landscape",
+#' plot.axes = {axis(1); axis(2); points(model$X0, pch = 20)})
+#' 
+#' ## Sequential IMSPE search
+#' nsteps <- 1 # Increase for better results
+#' 
+#' for(i in 1:nsteps){
+#'   res <- IMSPE.search(model, control = list(multi.start = 100, maxit = 50))
+#'   newX <- res$par
+#'   newZ <- ftest(newX)
+#'   model <- update(object = model, Xnew = newX, Znew = newZ)
+#' }
+#' 
+#' ## Final plots
+#' contour(x = xgrid,  y = xgrid, z = matrix(preds$mean, ngrid),
+#'         main = "Predicted mean", nlevels = 20)
+#' points(model$X0, col = 'blue', pch = 20)
+#' 
+#' IMSPE_grid <- apply(Xgrid, 1, crit_IMSPE, model = model)
+#' filled.contour(x = xgrid, y = xgrid, matrix(IMSPE_grid, ngrid),
+#'                nlevels = 20, color.palette = terrain.colors, 
+#'                main = "Final IMSPE criterion landscape",
+#' plot.axes = {axis(1); axis(2); points(model$X0, pch = 20)})
+#' 
 IMSPE.search <- function(model, replicate = FALSE, Xcand = NULL, 
                         control = list(tol_dist = 1e-6, tol_diff = 1e-6, multi.start = 20,
                                        maxit = 100, maximin = TRUE, Xstart = NULL), Wijs = NULL, seed = NULL,
@@ -433,7 +433,13 @@ IMSPE.search <- function(model, replicate = FALSE, Xcand = NULL,
     
   }else{
     ## Discrete optimization
-    res <- unlist(mclapply(Xcand, 1, crit_IMSPE, Wijs = Wijs, model = model, ncores = ncores))
+    
+    # redefine crit_IMSPE for use with mclapply
+    crit_IMSPE_mcl <- function(i, model, Wijs, Xcand){
+      crit_IMSPE(x = Xcand[i,,drop = F], model = model, Wijs = Wijs)
+    }
+    # res <- unlist(apply(Xcand, 1, crit_IMSPE, Wijs = Wijs, model = model))
+    res <- unlist(mclapply(1:nrow(Xcand), crit_IMSPE_mcl, Xcand = Xcand, Wijs = Wijs, model = model, mc.cores = ncores))
     
     tmp <- which(duplicated(rbind(model$X0, Xcand[which.min(res),,drop = FALSE]), fromLast = TRUE))
     if(length(tmp) > 0) return(list(par = Xcand[which.min(res),,drop = FALSE], value = min(res), new = FALSE, id = tmp))
@@ -445,13 +451,13 @@ IMSPE.search <- function(model, replicate = FALSE, Xcand = NULL,
 
 
 #' Search for the best value of the IMSPE criterion, possibly using a h-steps lookahead strategy to favor designs with replication
-##' @title IMSPE optimization
-##' @param model \code{homGP} or \code{hetGP} model
-##' @param Xcand optional discrete set of candidates (otherwise a maximin LHS is used to initialise continuous search)
-##' @param control list in case \code{Xcand == NULL}, with elements \code{multi.start},
-##' to perform a multi-start optimization based on \code{\link[stats]{optim}}, with \code{maxit} iterations each.
-##' Also, \code{tol_dist} defines the minimum distance to an existing design for a new point to be added, otherwise the closest existing design is chosen.
-##' In a similar fashion, \code{tol_dist} is the minimum relative change of IMSPE for adding a new design.
+#' @title IMSPE optimization
+#' @param model \code{homGP} or \code{hetGP} model
+#' @param Xcand optional discrete set of candidates (otherwise a maximin LHS is used to initialise continuous search)
+#' @param control list in case \code{Xcand == NULL}, with elements \code{multi.start},
+#' to perform a multi-start optimization based on \code{\link[stats]{optim}}, with \code{maxit} iterations each.
+#' Also, \code{tol_dist} defines the minimum distance to an existing design for a new point to be added, otherwise the closest existing design is chosen.
+#' In a similar fashion, \code{tol_dist} is the minimum relative change of IMSPE for adding a new design.
 #' @param h horizon for multi-step ahead framework.
 #' The decision is made between:
 #' \itemize{
@@ -459,129 +465,133 @@ IMSPE.search <- function(model, replicate = FALSE, Xcand = NULL,
 #'  \item sequential crit searches starting by \code{1} to \code{h} replicates before adding a new point
 #' }
 #' Use \code{h = 0} for the myopic criterion, i.e., not looking ahead.
-##' @param Wijs optional previously computed matrix of Wijs, see \code{\link[hetGP]{Wij}}
-##' @param seed optional seed for the generation of designs with \code{\link[DiceDesign]{maximinSA_LHS}}
-##' @param ncores number of CPU available (> 1 mean parallel TRUE), see \code{\link[parallel]{mclapply}}
-##' @details The domain needs to be [0, 1]^d for now.
-##' @return list with elements:
-##' \itemize{
-##' \item \code{par}: best first design,
-##' \item \code{value}: IMSPE h-steps ahead starting from adding \code{par},
-##' \item \code{path}: list of elements list(\code{par}, \code{value}, \code{new}) at each step \code{h}
-##' }
-##' @references M. Binois, J. Huang, R. Gramacy, M. Ludkovski (2017+), Replication or exploration? Sequential design for stochastic simulation experiments. arXiv preprint arXiv:1710.03206.
-##' @export 
-##' @examples
-##' ###############################################################################
-##' ## Bi-variate example (myopic version)
-##' ###############################################################################
-##' 
-##' nvar <- 2 
-##' 
-##' set.seed(42)
-##' ftest <- function(x, coef = 0.1) return(sin(2*pi*sum(x)) + rnorm(1, sd = coef))
-##' 
-##' n <- 25 # must be a square
-##' xgrid0 <- seq(0.1, 0.9, length.out = sqrt(n))
-##' designs <- as.matrix(expand.grid(xgrid0, xgrid0))
-##' X <- designs[rep(1:n, sample(1:10, n, replace = TRUE)),]
-##' Z <- apply(X, 1, ftest)
-##' 
-##' model <- mleHomGP(X, Z, lower = rep(0.1, nvar), upper = rep(1, nvar))
-##' 
-##' ngrid <- 51
-##' xgrid <- seq(0,1, length.out = ngrid)
-##' Xgrid <- as.matrix(expand.grid(xgrid, xgrid))
-##' 
-##' preds <- predict(x = Xgrid, object =  model)
-##' 
-##' ## Initial plots
-##' contour(x = xgrid,  y = xgrid, z = matrix(preds$mean, ngrid),
-##'         main = "Predicted mean", nlevels = 20)
-##' points(model$X0, col = 'blue', pch = 20)
-##' 
-##' IMSPE_grid <- apply(Xgrid, 1, crit_IMSPE, model = model)
-##' filled.contour(x = xgrid, y = xgrid, matrix(IMSPE_grid, ngrid),
-##'                nlevels = 20, color.palette = terrain.colors, 
-##'                main = "Initial IMSPE criterion landscape",
-##' plot.axes = {axis(1); axis(2); points(model$X0, pch = 20)})
-##' 
-##' ## Sequential IMSPE search
-##' nsteps <- 1 # Increase for better results
-##' 
-##' for(i in 1:nsteps){
-##'   res <- IMSPE_optim(model, control = list(multi.start = 30, maxit = 30))
-##'   newX <- res$par
-##'   newZ <- ftest(newX)
-##'   model <- update(object = model, Xnew = newX, Znew = newZ)
-##' }
-##' 
-##' ## Final plots
-##' contour(x = xgrid,  y = xgrid, z = matrix(preds$mean, ngrid),
-##'         main = "Predicted mean", nlevels = 20)
-##' points(model$X0, col = 'blue', pch = 20)
-##' 
-##' IMSPE_grid <- apply(Xgrid, 1, crit_IMSPE, model = model)
-##' filled.contour(x = xgrid, y = xgrid, matrix(IMSPE_grid, ngrid),
-##'                nlevels = 20, color.palette = terrain.colors, 
-##'                main = "Final IMSPE criterion landscape",
-##' plot.axes = {axis(1); axis(2); points(model$X0, pch = 20)})
-##' 
-##' ###############################################################################
-##' ## Bi-variate example (look-ahead version)
-##' ###############################################################################
-##' \dontrun{ 
-##' nvar <- 2 
-##' 
-##' set.seed(42)
-##' ftest <- function(x, coef = 0.1) return(sin(2*pi*sum(x)) + rnorm(1, sd = coef))
-##' 
-##' n <- 25 # must be a square
-##' xgrid0 <- seq(0.1, 0.9, length.out = sqrt(n))
-##' designs <- as.matrix(expand.grid(xgrid0, xgrid0))
-##' X <- designs[rep(1:n, sample(1:10, n, replace = TRUE)),]
-##' Z <- apply(X, 1, ftest)
-##' 
-##' model <- mleHomGP(X, Z, lower = rep(0.1, nvar), upper = rep(1, nvar))
-##' 
-##' ngrid <- 51
-##' xgrid <- seq(0,1, length.out = ngrid)
-##' Xgrid <- as.matrix(expand.grid(xgrid, xgrid))
-##' 
-##' nsteps <- 5 # Increase for more steps
-##' 
-##' # To use parallel computation (turn off on Windows)
-##' library(parallel)
-##' parallel <- FALSE #TRUE #
-##' if(parallel) ncores <- detectCores() else ncores <- 1
-##' 
-##' for(i in 1:nsteps){
-##'   res <- IMSPE_optim(model, h = 3, control = list(multi.start = 100, maxit = 50),
-##'    ncores = ncores)
-##'   
-##'   # If a replicate is selected
-##'   if(!res$path[[1]]$new) print("Add replicate")
-##'   
-##'   newX <- res$par
-##'   newZ <- ftest(newX)
-##'   model <- update(object = model, Xnew = newX, Znew = newZ)
-##'   
-##'   ## Plots 
-##'   preds <- predict(x = Xgrid, object =  model)
-##'   contour(x = xgrid,  y = xgrid, z = matrix(preds$mean, ngrid),
-##'           main = "Predicted mean", nlevels = 20)
-##'   points(model$X0, col = 'blue', pch = 20)
-##'   points(newX, col = "red", pch = 20)
-##'   
-##'   ## Precalculations
-##'   Wijs <- Wij(mu1 = model$X0, theta = model$theta, type = model$covtype)
-##'   
-##'   IMSPE_grid <- apply(Xgrid, 1, crit_IMSPE, Wijs = Wijs, model = model)
-##'   filled.contour(x = xgrid, y = xgrid, matrix(IMSPE_grid, ngrid),
-##'                  nlevels = 20, color.palette = terrain.colors,
-##'   plot.axes = {axis(1); axis(2); points(model$X0, pch = 20)})
-##' }
-##' }
+#' @param Wijs optional previously computed matrix of Wijs, see \code{\link[hetGP]{Wij}}
+#' @param seed optional seed for the generation of designs with \code{\link[DiceDesign]{maximinSA_LHS}}
+#' @param ncores number of CPU available (> 1 mean parallel TRUE), see \code{\link[parallel]{mclapply}}
+#' @details The domain needs to be [0, 1]^d for now.
+#' @return list with elements:
+#' \itemize{
+#' \item \code{par}: best first design,
+#' \item \code{value}: IMSPE h-steps ahead starting from adding \code{par},
+#' \item \code{path}: list of elements list(\code{par}, \code{value}, \code{new}) at each step \code{h}
+#' }
+#' @references 
+#' M. Binois, J. Huang, R. B. Gramacy, M. Ludkovski (2019), 
+#' Replication or exploration? Sequential design for stochastic simulation experiments,
+#' Technometrics, 61(1), 7-23.\cr 
+#' Preprint available on arXiv:1710.03206.
+#' @export 
+#' @examples
+#' ###############################################################################
+#' ## Bi-variate example (myopic version)
+#' ###############################################################################
+#' 
+#' nvar <- 2 
+#' 
+#' set.seed(42)
+#' ftest <- function(x, coef = 0.1) return(sin(2*pi*sum(x)) + rnorm(1, sd = coef))
+#' 
+#' n <- 25 # must be a square
+#' xgrid0 <- seq(0.1, 0.9, length.out = sqrt(n))
+#' designs <- as.matrix(expand.grid(xgrid0, xgrid0))
+#' X <- designs[rep(1:n, sample(1:10, n, replace = TRUE)),]
+#' Z <- apply(X, 1, ftest)
+#' 
+#' model <- mleHomGP(X, Z, lower = rep(0.1, nvar), upper = rep(1, nvar))
+#' 
+#' ngrid <- 51
+#' xgrid <- seq(0,1, length.out = ngrid)
+#' Xgrid <- as.matrix(expand.grid(xgrid, xgrid))
+#' 
+#' preds <- predict(x = Xgrid, object =  model)
+#' 
+#' ## Initial plots
+#' contour(x = xgrid,  y = xgrid, z = matrix(preds$mean, ngrid),
+#'         main = "Predicted mean", nlevels = 20)
+#' points(model$X0, col = 'blue', pch = 20)
+#' 
+#' IMSPE_grid <- apply(Xgrid, 1, crit_IMSPE, model = model)
+#' filled.contour(x = xgrid, y = xgrid, matrix(IMSPE_grid, ngrid),
+#'                nlevels = 20, color.palette = terrain.colors, 
+#'                main = "Initial IMSPE criterion landscape",
+#' plot.axes = {axis(1); axis(2); points(model$X0, pch = 20)})
+#' 
+#' ## Sequential IMSPE search
+#' nsteps <- 1 # Increase for better results
+#' 
+#' for(i in 1:nsteps){
+#'   res <- IMSPE_optim(model, control = list(multi.start = 30, maxit = 30))
+#'   newX <- res$par
+#'   newZ <- ftest(newX)
+#'   model <- update(object = model, Xnew = newX, Znew = newZ)
+#' }
+#' 
+#' ## Final plots
+#' contour(x = xgrid,  y = xgrid, z = matrix(preds$mean, ngrid),
+#'         main = "Predicted mean", nlevels = 20)
+#' points(model$X0, col = 'blue', pch = 20)
+#' 
+#' IMSPE_grid <- apply(Xgrid, 1, crit_IMSPE, model = model)
+#' filled.contour(x = xgrid, y = xgrid, matrix(IMSPE_grid, ngrid),
+#'                nlevels = 20, color.palette = terrain.colors, 
+#'                main = "Final IMSPE criterion landscape",
+#' plot.axes = {axis(1); axis(2); points(model$X0, pch = 20)})
+#' 
+#' ###############################################################################
+#' ## Bi-variate example (look-ahead version)
+#' ###############################################################################
+#' \dontrun{ 
+#' nvar <- 2 
+#' 
+#' set.seed(42)
+#' ftest <- function(x, coef = 0.1) return(sin(2*pi*sum(x)) + rnorm(1, sd = coef))
+#' 
+#' n <- 25 # must be a square
+#' xgrid0 <- seq(0.1, 0.9, length.out = sqrt(n))
+#' designs <- as.matrix(expand.grid(xgrid0, xgrid0))
+#' X <- designs[rep(1:n, sample(1:10, n, replace = TRUE)),]
+#' Z <- apply(X, 1, ftest)
+#' 
+#' model <- mleHomGP(X, Z, lower = rep(0.1, nvar), upper = rep(1, nvar))
+#' 
+#' ngrid <- 51
+#' xgrid <- seq(0,1, length.out = ngrid)
+#' Xgrid <- as.matrix(expand.grid(xgrid, xgrid))
+#' 
+#' nsteps <- 5 # Increase for more steps
+#' 
+#' # To use parallel computation (turn off on Windows)
+#' library(parallel)
+#' parallel <- FALSE #TRUE #
+#' if(parallel) ncores <- detectCores() else ncores <- 1
+#' 
+#' for(i in 1:nsteps){
+#'   res <- IMSPE_optim(model, h = 3, control = list(multi.start = 100, maxit = 50),
+#'    ncores = ncores)
+#'   
+#'   # If a replicate is selected
+#'   if(!res$path[[1]]$new) print("Add replicate")
+#'   
+#'   newX <- res$par
+#'   newZ <- ftest(newX)
+#'   model <- update(object = model, Xnew = newX, Znew = newZ)
+#'   
+#'   ## Plots 
+#'   preds <- predict(x = Xgrid, object =  model)
+#'   contour(x = xgrid,  y = xgrid, z = matrix(preds$mean, ngrid),
+#'           main = "Predicted mean", nlevels = 20)
+#'   points(model$X0, col = 'blue', pch = 20)
+#'   points(newX, col = "red", pch = 20)
+#'   
+#'   ## Precalculations
+#'   Wijs <- Wij(mu1 = model$X0, theta = model$theta, type = model$covtype)
+#'   
+#'   IMSPE_grid <- apply(Xgrid, 1, crit_IMSPE, Wijs = Wijs, model = model)
+#'   filled.contour(x = xgrid, y = xgrid, matrix(IMSPE_grid, ngrid),
+#'                  nlevels = 20, color.palette = terrain.colors,
+#'   plot.axes = {axis(1); axis(2); points(model$X0, pch = 20)})
+#' }
+#' }
 IMSPE_optim <- function(model, h = 2, Xcand = NULL, control = list(tol_dist = 1e-6, tol_diff = 1e-6, multi.start = 20, maxit = 100),
                         Wijs = NULL, seed = NULL, ncores = 1){
   d <- ncol(model$X0)
@@ -685,62 +695,62 @@ IMSPE_optim <- function(model, h = 2, Xcand = NULL, control = list(tol_dist = 1e
 }
 
 
-##' Allocation of replicates on existing design locations, based on (29) from (Ankenman et al, 2010)
-##' @title Allocation of replicates on existing designs
-##' @param model \code{hetGP} model
-##' @param N total budget of replication to allocate
-##' @param Wijs optional previously computed matrix of \code{Wijs}, see \code{\link[hetGP]{Wij}}
-##' @param use.Ki should \code{Ki} from \code{model} be used? 
-##' Using the inverse of C (covariance matrix only, without noise, using \code{\link[MASS]{ginv}}) is also possible
-##' @return vector with approximated best number of replicates per design
-##' @references B. Ankenman, B. Nelson, J. Staum (2010), Stochastic kriging for simulation metamodeling, Operations research, pp. 371--382, 58
-##' @export
-##' @examples
-##' ##------------------------------------------------------------
-##' ## Example: Heteroskedastic GP modeling on the motorcycle data
-##' ##------------------------------------------------------------
-##' set.seed(32)
-##' 
-##' ## motorcycle data
-##' library(MASS)
-##' X <- matrix(mcycle$times, ncol = 1)
-##' Z <- mcycle$accel
-##' nvar <- 1
-##' 
-##' data_m <- find_reps(X, Z, rescale = TRUE)
-##' 
-##' plot(rep(data_m$X0, data_m$mult), data_m$Z, ylim = c(-160, 90),
-##'      ylab = 'acceleration', xlab = "time")
-##' 
-##' 
-##' ## Model fitting
-##' model <- mleHetGP(X = list(X0 = data_m$X0, Z0 = data_m$Z0, mult = data_m$mult),
-##'                   Z = Z, lower = rep(0.1, nvar), upper = rep(5, nvar),
-##'                   covtype = "Matern5_2")
-##' ## Compute best allocation                  
-##' A <- allocate_mult(model, N = 1000)
-##' 
-##' ## Create a prediction grid and obtain predictions
-##' xgrid <- matrix(seq(0, 1, length.out = 301), ncol = 1) 
-##' predictions <- predict(x = xgrid, object =  model)
-##' 
-##' ## Display mean predictive surface
-##' lines(xgrid, predictions$mean, col = 'red', lwd = 2)
-##' ## Display 95% confidence intervals
-##' lines(xgrid, qnorm(0.05, predictions$mean, sqrt(predictions$sd2)), col = 2, lty = 2)
-##' lines(xgrid, qnorm(0.95, predictions$mean, sqrt(predictions$sd2)), col = 2, lty = 2)
-##' ## Display 95% prediction intervals
-##' lines(xgrid, qnorm(0.05, predictions$mean, sqrt(predictions$sd2 + predictions$nugs)), 
-##' col = 3, lty = 2)
-##' lines(xgrid, qnorm(0.95, predictions$mean, sqrt(predictions$sd2 + predictions$nugs)), 
-##' col = 3, lty = 2)
-##' 
-##' par(new = TRUE)
-##' plot(NA,NA, xlim = c(0,1), ylim = c(0,max(A)), axes = FALSE, ylab = "", xlab = "")
-##' segments(x0 = model$X0, x1 = model$X0, 
-##' y0 = rep(0, nrow(model$X)), y1 = A, col = 'grey')
-##' axis(side = 4)
-##' mtext(side = 4, line = 2, expression(a[i]), cex = 0.8)       
+#' Allocation of replicates on existing design locations, based on (29) from (Ankenman et al, 2010)
+#' @title Allocation of replicates on existing designs
+#' @param model \code{hetGP} model
+#' @param N total budget of replication to allocate
+#' @param Wijs optional previously computed matrix of \code{Wijs}, see \code{\link[hetGP]{Wij}}
+#' @param use.Ki should \code{Ki} from \code{model} be used? 
+#' Using the inverse of C (covariance matrix only, without noise, using \code{\link[MASS]{ginv}}) is also possible
+#' @return vector with approximated best number of replicates per design
+#' @references B. Ankenman, B. Nelson, J. Staum (2010), Stochastic kriging for simulation metamodeling, Operations research, pp. 371--382, 58
+#' @export
+#' @examples
+#' ##------------------------------------------------------------
+#' ## Example: Heteroskedastic GP modeling on the motorcycle data
+#' ##------------------------------------------------------------
+#' set.seed(32)
+#' 
+#' ## motorcycle data
+#' library(MASS)
+#' X <- matrix(mcycle$times, ncol = 1)
+#' Z <- mcycle$accel
+#' nvar <- 1
+#' 
+#' data_m <- find_reps(X, Z, rescale = TRUE)
+#' 
+#' plot(rep(data_m$X0, data_m$mult), data_m$Z, ylim = c(-160, 90),
+#'      ylab = 'acceleration', xlab = "time")
+#' 
+#' 
+#' ## Model fitting
+#' model <- mleHetGP(X = list(X0 = data_m$X0, Z0 = data_m$Z0, mult = data_m$mult),
+#'                   Z = Z, lower = rep(0.1, nvar), upper = rep(5, nvar),
+#'                   covtype = "Matern5_2")
+#' ## Compute best allocation                  
+#' A <- allocate_mult(model, N = 1000)
+#' 
+#' ## Create a prediction grid and obtain predictions
+#' xgrid <- matrix(seq(0, 1, length.out = 301), ncol = 1) 
+#' predictions <- predict(x = xgrid, object =  model)
+#' 
+#' ## Display mean predictive surface
+#' lines(xgrid, predictions$mean, col = 'red', lwd = 2)
+#' ## Display 95% confidence intervals
+#' lines(xgrid, qnorm(0.05, predictions$mean, sqrt(predictions$sd2)), col = 2, lty = 2)
+#' lines(xgrid, qnorm(0.95, predictions$mean, sqrt(predictions$sd2)), col = 2, lty = 2)
+#' ## Display 95% prediction intervals
+#' lines(xgrid, qnorm(0.05, predictions$mean, sqrt(predictions$sd2 + predictions$nugs)), 
+#' col = 3, lty = 2)
+#' lines(xgrid, qnorm(0.95, predictions$mean, sqrt(predictions$sd2 + predictions$nugs)), 
+#' col = 3, lty = 2)
+#' 
+#' par(new = TRUE)
+#' plot(NA,NA, xlim = c(0,1), ylim = c(0,max(A)), axes = FALSE, ylab = "", xlab = "")
+#' segments(x0 = model$X0, x1 = model$X0, 
+#' y0 = rep(0, nrow(model$X)), y1 = A, col = 'grey')
+#' axis(side = 4)
+#' mtext(side = 4, line = 2, expression(a[i]), cex = 0.8)       
 allocate_mult <- function(model, N, Wijs = NULL, use.Ki = FALSE){
   
   ## Precalculations
@@ -769,32 +779,33 @@ allocate_mult <- function(model, N, Wijs = NULL, use.Ki = FALSE){
   return(res)
 }
 
-##' Adapt the look-ahead horizon depending on the replicate allocation or a target ratio
-##' @title Adapt horizon
-##' @param model \code{hetGP} or \code{homGP} model
-##' @param current_horizon horizon used for the previous iteration, see details
-##' @param previous_ratio ratio before adding the previous new design
-##' @param target scalar in ]0,1] for desired n/N
-##' @param Wijs optional previously computed matrix of Wijs, see \code{\link[hetGP]{Wij}}
-##' @return randomly selected horizon for next iteration (adpative) if no \code{target} is provided, 
-##' otherwise returns the update horizon value.
-##' @details 
-##' If \code{target} is provided, along with \code{previous_ratio} and \code{current_horizon}:
-##' \itemize{
-##' \item the horizon is increased by one if more replicates are needed but a new ppint has been added at the previous iteration,
-##' \item the horizon is decreased by one if new points are needed but a replicate has been added at the previous iteration,
-##' \item otherwise it is unchanged.
-##' }
-##' 
-##' If no \code{target} is provided, \code{\link[hetGP]{allocate_mult}} is used to obtain the best allocation of the existing replicates,
-##' then the new horizon is sampled from the difference between the actual allocation and the best one, bounded below by 0.
-##' See (Binois et al. 2017).
-##' 
-##' @references
-##' M. Binois, J. Huang, R. B. Gramacy, M. Ludkovski (2018+), Replication or exploration? Sequential design for stochastic simulation experiments,
-##' Technometrics (to appear).\cr 
-##' Preprint available on arXiv:1710.03206.
-##' @export
+#' Adapt the look-ahead horizon depending on the replicate allocation or a target ratio
+#' @title Adapt horizon
+#' @param model \code{hetGP} or \code{homGP} model
+#' @param current_horizon horizon used for the previous iteration, see details
+#' @param previous_ratio ratio before adding the previous new design
+#' @param target scalar in ]0,1] for desired n/N
+#' @param Wijs optional previously computed matrix of Wijs, see \code{\link[hetGP]{Wij}}
+#' @return randomly selected horizon for next iteration (adpative) if no \code{target} is provided, 
+#' otherwise returns the update horizon value.
+#' @details 
+#' If \code{target} is provided, along with \code{previous_ratio} and \code{current_horizon}:
+#' \itemize{
+#' \item the horizon is increased by one if more replicates are needed but a new ppint has been added at the previous iteration,
+#' \item the horizon is decreased by one if new points are needed but a replicate has been added at the previous iteration,
+#' \item otherwise it is unchanged.
+#' }
+#' 
+#' If no \code{target} is provided, \code{\link[hetGP]{allocate_mult}} is used to obtain the best allocation of the existing replicates,
+#' then the new horizon is sampled from the difference between the actual allocation and the best one, bounded below by 0.
+#' See (Binois et al. 2017).
+#' 
+#' @references
+#' M. Binois, J. Huang, R. B. Gramacy, M. Ludkovski (2019), 
+#' Replication or exploration? Sequential design for stochastic simulation experiments,
+#' Technometrics, 61(1), 7-23.\cr 
+#' Preprint available on arXiv:1710.03206.
+#' @export
 horizon <- function(model, current_horizon = NULL, previous_ratio = NULL, target = NULL, Wijs = NULL){
   if(is.null(target)){
     mult_star <- allocate_mult(model = model, N = sum(model$mult), Wijs = Wijs)
@@ -817,12 +828,16 @@ horizon <- function(model, current_horizon = NULL, previous_ratio = NULL, target
   return(current_horizon)
 }
 
-##' Compute double integral of the covariance kernel over a [0,1]^d domain
-##' @param mu1,mu2 input locations considered
-##' @param theta lengthscale hyperparameter of the kernel
-##' @param type kernel type, one of "\code{Gaussian}", "\code{Matern5_2}" or "\code{Matern3_2}", see \code{\link[hetGP]{cov_gen}}
-##' @export
-##' @references M. Binois, J. Huang, R. Gramacy, M. Ludkovski (2017+), Replication or exploration? Sequential design for stochastic simulation experiments.
+#' Compute double integral of the covariance kernel over a [0,1]^d domain
+#' @param mu1,mu2 input locations considered
+#' @param theta lengthscale hyperparameter of the kernel
+#' @param type kernel type, one of "\code{Gaussian}", "\code{Matern5_2}" or "\code{Matern3_2}", see \code{\link[hetGP]{cov_gen}}
+#' @export
+#' @references 
+#' M. Binois, J. Huang, R. B. Gramacy, M. Ludkovski (2019), 
+#' Replication or exploration? Sequential design for stochastic simulation experiments,
+#' Technometrics, 61(1), 7-23.\cr 
+#' Preprint available on arXiv:1710.03206.
 Wij <- function(mu1, mu2 = NULL, theta, type){
   if(ncol(mu1) > 1 && length(theta) == 1) theta <- rep(theta, ncol(mu1))
   
@@ -843,12 +858,15 @@ Wij <- function(mu1, mu2 = NULL, theta, type){
   }
 }
 
-##' Compute integral of the covariance kernel over a [0,1]^d domain
-##' @param mu1 input locations considered
-##' @param theta lengthscale hyperparameter of the kernel
-##' @param type kernel type, one of "\code{Gaussian}", "\code{Matern5_2}" or "\code{Matern3_2}", see \code{\link[hetGP]{cov_gen}}
-##' @noRd
-##' @references M. Binois, J. Huang, R. Gramacy, M. Ludkovski (2017+), Replication or exploration? Sequential design for stochastic simulation experiments.
+#' Compute integral of the covariance kernel over a [0,1]^d domain
+#' @param mu1 input locations considered
+#' @param theta lengthscale hyperparameter of the kernel
+#' @param type kernel type, one of "\code{Gaussian}", "\code{Matern5_2}" or "\code{Matern3_2}", see \code{\link[hetGP]{cov_gen}}
+#' @noRd
+#' @references 
+#' Replication or exploration? Sequential design for stochastic simulation experiments,
+#' Technometrics, 61(1), 7-23.\cr 
+#' Preprint available on arXiv:1710.03206.
 mi <- function(mu1, theta, type){
   if(ncol(mu1) > 1 && length(theta) == 1) theta <- rep(theta, ncol(mu1))
   

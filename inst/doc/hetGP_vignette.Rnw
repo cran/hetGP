@@ -140,7 +140,7 @@ black-box functions; see, for example, \citet{Sacks1989}.  Gaussian process
 (GP) interpolators are popular in this setting. Recently, determinism has
 become less common for more complex simulators, e.g., those relying on agents.
 Stochastic simulation has opened up many avenues for inquiry in the applied
-sciences.  Data in geostatistics \citep{banerjee2004hierarchical} and machine
+sciences.  In data in geostatistics \citep{banerjee2004hierarchical} and machine
 learning \citep{Rasmussen2006}, where high-fidelity modeling also involves
 GPs, not only is noise common but frequently regression tasks involve
 signal-to-noise ratios that may be low or changing over the input space. In
@@ -150,10 +150,10 @@ the variance is at least as important as the mean. Yet GPs buckle under the
 weight of even modestly big data.  Moreover, few options for heteroskedastic
 modeling exist.
 
-Replication, that is, repeating experimental runs at the same design with
+Replication, meaning repetition of experimental runs at the same design with
 different realizations or measurements, provides a powerful tool for
 separating signal from noise, offering a pure look at (local) variability.
-Replication can also yields computational savings in inference, and thus holds
+Replication can also yield computational savings in inference, and thus holds
 the potential to capture input-dependent dynamics in variance in GP
 regression. For example, in the operations research community, stochastic
 kriging \cite[SK;][]{Ankenman2010} offers approximate methods that exploit
@@ -212,7 +212,7 @@ latent variance approach to joint GP likelihood-based inference to accommodate
 heteroskedastic processes. Section \ref{sec:seqdes} covers sequential design
 for \pkg{hetGP} models targeting reduction in prediction error, Bayesian
 optimization, and contour finding. Emphasis is on considerations in
-implementation, and example of use in practice, throughout.  We conclude in
+implementation, and examples of use in practice, throughout.  We conclude in
 Section \ref{sec:summary} with a brief summary and discussion.
 
 \section{Gaussian process modeling under replication}
@@ -248,12 +248,12 @@ multivariate normal (MVN) distributions, assuming that the data comes from a GP 
 community, one commonly takes a mean-zero GP formulation, moving all the
 modeling action to the covariance structure, which is usually specified as a
 decreasing function of distance. The formulation below uses a scaled
-separable (or anisotropic) Gaussian kernel.
+separable (or anisotropic) Gaussian kernel:
 \begin{align}
 \mathbf{Y}_N &\sim \mathcal{N}_N(0, \nu \KN) \label{eq:k} \\
 \mbox{with} \quad \KN&=(K_{\theta}(\x_i, \x_j) + \tau^2 \delta_{i=j})_{1 \leq i,j \leq N}, ~\mbox{and}~
-K_{\theta}(\cdot, \cdot) = 
-\exp\left\{ - \sum_{k=1}^d \frac{(x_k - x'_k)^2}{\theta_k} \right\} \nonumber
+K_{\theta}(\x_i, \x_j) = 
+\exp\left\{ - \sum_{k=1}^d \frac{(x_k - x'_k)^2}{\theta_k} \right\}. \nonumber
 \end{align}
 {\em Lengthscale}s $\boldsymbol{\theta} = (\theta_1,\dots,\theta_p)$ govern
 the rate of decay of correlation as a function of coordinate-wise distance;
@@ -266,7 +266,7 @@ forms for the correlation kernel $K_\theta(\cdot, \cdot)$ are prevalent, and we
 shall discuss several others and their ``hyperparameters'' in due course. 
 Although we shall mostly assume a constant zero trend throughout for notational
 conciseness, extensions like polynomial trends are relatively straightforward.
-For example, the \pkg{hetGP} allows a constant mean to be estimated, which can
+For example, the \pkg{hetGP} package allows a constant mean to be estimated, which can
 be helpful when GPs are used to smooth latent variances, as discussed in more
 detail in Section \ref{sec:hetGP}.
 
@@ -407,8 +407,8 @@ Ki <- solve(cov_gen(X, theta = out$par[1:2]) + diag(out$par[3], nrow(X)))
 nuhat <- drop(t(y) %*% Ki %*% y / nrow(X))
 @
 
-Actual prediction requires a set of test inputs, below a
-regular grid in two dimensions.
+Actual prediction requires a set of test inputs.  Below a
+regular grid in two dimensions is used.
 
 <<xx>>=
 xx <- seq(-2, 4, length = 40)
@@ -478,7 +478,7 @@ So to conclude this warm-up, GPs are relatively simple to specify, and
 inference involves a few dozen lines of code to define an objective
 (log-likelihood) and its gradient, and a library routine for optimization.
 Where do the challenges lie? Increasingly, data in geostatistics, machine
-learning, and computer simulation experiments involves signal-to-noise ratios
+learning, and computer simulation experiments involve signal-to-noise ratios
 that may be low and/or possibly changing over the input space.  Stochastic
 (computer) simulators, from physics, business, and epidemiology, may exhibit
 both of those features simultaneously, but let's start with the first one
@@ -507,7 +507,7 @@ where $\veck_n(\x) = (K_\theta(\x, \xu_1), \dots, K_\theta(\x,
 \xu_n))^\top$, $\Sn = [\hat{\boldsymbol{\sigma}}_{1:n}^2] \An^{-1} =
 \mathrm{Diag}(\hat{\sigma}_1^2/a_1, \dots, \hat{\sigma}_n^2/a_n)$, $\Cn =
 \left(K_\theta(\xu_i, \xu_j)_{1 \leq i, j \leq n} \right)$, and $a_i \gg 1$.
-This is the basis of the stochastic kriging predictor
+This is the basis of the stochastic kriging (SK) predictor
 \citep{Ankenman2010}, which is implemented as an option in the
 \pkg{DiceKriging} and
 \pkg{mleGP} packages on CRAN.  The simplicity of this setup is attractive.
@@ -595,21 +595,22 @@ $\mathcal{O}(n^3)$ time, too, facilitating numerical schemes such as L-BFGS-B:
 \end{align}
 The potential computational benefit of such a mapping, which can be several
 orders of magnitude depending on the proportion of replication, has been
-illustrated using \pkg{hetGP} library calls in \citep[Appendix
-A.2.,][]{hetGP1}, and thus we shall not duplicate these here.  However, we
-will remark that the implementation, which is not detailed in that Appendix,
-is similar to that outlined in Section \ref{sec:rev}: define negative log
-likelihood (\code{nLL}) and gradient (\code{gnLL}) via Equations
-\ref{eq:ellw}--\ref{eq:dellw}, plug those into \code{optim} and, conditional
-on hyperparameters thus inferred, apply predictive equations
-(\ref{eq:mu}--\ref{eq:s2}).  See \code{mleHomGP} and \code{predict.homGP},
-respectively.  Under the hood of those user-focused functions, you'll find three important
-subroutines (not all exported to the namespace, but potentially worth inspecting):
+illustrated using \pkg{hetGP} library calls in Appendix A.2 of \citet{hetGP1},
+and thus we shall not duplicate these here.  However, we will remark that the
+implementation, which is not detailed in that Appendix, is similar to that
+outlined in Section \ref{sec:rev}: define negative log likelihood (\code{nLL})
+and gradient (\code{gnLL}) via Equation~(\ref{eq:ellw}) and
+Equation~(\ref{eq:dellw}), plug those into \code{optim} and, conditional on
+hyperparameters thus inferred, apply predictive
+Equations~(\ref{eq:mu}--\ref{eq:s2}).  See \code{mleHomGP} and
+\code{predict.homGP}, respectively.  Under the hood of those user-focused
+functions, you'll find three important subroutines (not all exported to the
+namespace, but potentially worth inspecting):
 \begin{itemize}
   \item \code{find_reps}: pre-processing to find replicates and organize sufficient statistics.  
-  \item \code{hetGP:::logLikHom}: implementing Equation \ref{eq:ellw} using those sufficient
+  \item \code{hetGP:::logLikHom}: implementing Equation~(\ref{eq:ellw}) using those sufficient
   statistics (accessible with \code{logLikH});
-  \item \code{hetGP:::dlogLikHom}: implementing Equation \ref{eq:dellw} similarly.
+  \item \code{hetGP:::dlogLikHom}: implementing Equation~(\ref{eq:dellw}) similarly.
 \end{itemize}
 The latter two are careful to apply an optimized sequence of linear algebra
 subroutines, and deploy custom \pkg{Rcpp} subroutines when vectorization
@@ -649,7 +650,7 @@ so-called motorcycle accident data, available in \pkg{MASS}
 \citep{Venables2002}. These data arise from a series of simulation experiments
 measuring the acceleration on the helmet of a motorcycle rider before and
 after an impact, triggering a whiplash-like effect. Actually, the motorcycle
-data contains replicates, only about two-thirds of the inputs are unique.
+data contains replicates; only about two-thirds of the inputs are unique.
 Ordinary homoskedastic GPs are notoriously inadequate on this example.
 Consider the following fit via \code{mleHomGP}, in comparison to the
 heteroskedastic alternative \code{mleHetGP} described next, both with a
@@ -732,9 +733,9 @@ heteroskedasticity ``for free'' via independently calculated moments $\Sn =
 \mathrm{Diag}(\hat{\sigma}^2_1, \dots, \hat{\sigma}^2_n)$, but that is useless
 out of sample.  By fitting each $\hat{\sigma}_i^2$ separately there is no
 pooling effect for interpolation.  \citet{Ankenman2010} suggest the quick fix of 
-fitting a second GP to the variance observations with ``data,''
+fitting a second GP to the variance observations with ``data''
 %\[
-$(\bar{\x}_1, \hat{\sigma}_1^2), (\bar{\x}_2, \hat{\sigma}_2^2), \dots, (\bar{\x}_n, \hat{\sigma}_n^2)$,
+$(\bar{\x}_1, \hat{\sigma}_1^2), (\bar{\x}_2, \hat{\sigma}_2^2), \dots, (\bar{\x}_n, \hat{\sigma}_n^2)$
 %\]
 to obtain a smoothed variance for use out of sample.
 
@@ -810,7 +811,7 @@ derivative with respect to the latent $\Deltan$ values follows
 \frac{\partial \tilde{\ell}}{\partial \Lan} = \Cg \Ug^{-1} \frac{\partial \ell}{\partial \Lan} - \frac{\Ug^{-1}\Deltan}{\hat{\nu}_{(g)}}\\
 \mbox{ where } \quad \frac{\partial \ell}{\partial \lambda_i} &= \frac{N}{2} 
 \times \frac{\frac{ (a_i - 1) \hat{\sigma}_i^2} {\lambda_i^2} + \frac{(\Un^{-1} \bar{\vecY}_n)^2_i}{a_i}}{\hat{\nu}_N} 
-- \frac{a_i - 1}{2\lambda_i} - \frac{1}{2a_i} (\Un)_{i, i}^{-1}
+- \frac{a_i - 1}{2\lambda_i} - \frac{1}{2a_i} (\Un)_{i, i}^{-1}.
 \end{align*}
 Just like in Section \ref{sec:gp}, implementation is fairly straightforward
 once this likelihood and derivative are coded.  Wrapper \code{mleHetGP} feeds
@@ -857,7 +858,7 @@ similar \code{optim} calls.  One additional mathematical detail is worth
 noting, namely that we employ a different parameterization of $\KN = \sigma^2
 \mathbf{C}_N + \tau^2 \mathbb{I}_N$ in this case, because the plugin value of
 $\hat{\nu}$ does not apply here. But this parameterization of the covariance
-enables enables an SK variant of this model (similar to that of
+enables an SK variant of this model (similar to that of
 \cite{Xie2017}), by setting \code{log = FALSE} in
 \code{settings} and giving the empirical variance estimates in
 \code{Delta} with \code{known} (or \code{init} for initialization) in
@@ -967,10 +968,10 @@ predictive variance.
 The heteroskedastic setup entertained in \pkg{hetGP} relies on several key
 points: careful initialization of the latent variables, linking of lengthscale
 hyperparameters between latent GP and main GP, and safeguards on the variance
-GP component of the likelihood, namely, the variance smoothness
+GP component of the likelihood, namely the variance smoothness
 regularization/penalty term. A default initialization procedure, provided in
-Algorithm \ref{alg:initGP} and invoked via (\code{settings$initStrategy =
-"residual"}), utilizes known or initial values of hyperparameters that can be
+Algorithm \ref{alg:initGP} and invoked via \code{settings$initStrategy =
+"residual"}, utilizes known or initial values of hyperparameters that can be
 passed as a list to \code{known} and \code{init}, with elements \code{theta}
 for the main GP lengthscale, \code{theta\_g} for the latent GP ones,
 \code{g\_H} the nugget parameter for an homoskedastic GP (i.e., $\tau^2$),
@@ -1043,10 +1044,10 @@ function to compare two models on the same data based on their likelihood.
 
 \paragraph{Updating an existing model.}
 
-In sequential design tasks, data is coming point by point, or in batches.
+In sequential design tasks, data are coming point by point, or in batches.
 Instead of re-estimating all hyperparameters every time this happens, the
 \code{update} function is engineered to re-use previous values as much as
-possible. Specifically, initializing $\boldsymbol{\Delta}_{n+1}$ condition upon
+possible. Specifically, initializing $\boldsymbol{\Delta}_{n+1}$ conditions upon
 previous $\Deltan$ values; it is also possible to make this more
 robust by fusing $\lambda_{n+1}$'s prediction with the empirical variance estimation, as proposed by
 \citet{hetGP2}, with \code{method = "mixed"}. Since \code{g} may already be
@@ -1118,8 +1119,8 @@ a scalar multiple $k>1$ of the latter.  That can be undone, however, as we do
 below primarily for illustrative purposes.
 
 <<sirfit>>=
-fit <- mleHetGP(X, Y, lower = rep(0.05, 2), upper = rep(10, 2), 
-  settings = list(linkThetas = "none"), covtype = "Matern5_2", maxit = 1e4)
+fit <- mleHetGP(X, Y, covtype = "Matern5_2", lower = rep(0.05, 2),
+  upper = rep(10, 2), settings = list(linkThetas = "none"),  maxit = 1e4)
 @
 
 Around $\Sexpr{signif(fit$time, 2)}$ seconds are needed to train the model. 
@@ -1160,7 +1161,7 @@ the sensitivity of model selection to those settings.
 
 As a simple warmup example, consider an experiment described by
 \citet[][Section 3.3--3.4]{gramacy:pantaleo:2010} involving BF calculations to
-determine whether data is leptokurtic (Student-$t$ errors) or not (simply
+determine whether data are leptokurtic (Student-$t$ errors) or not (simply
 Gaussian) as a function of the prior parameterization on the Student-$t$
 degrees of freedom parameter, which they took to be $\nu \sim
 \mathrm{Exp}(\theta = 0.1)$.  Their intention was to be diffuse, but
@@ -1179,7 +1180,7 @@ hyperparameter setting were collected. Each
 $\mathrm{BF}_{\mathrm{St}\mathcal{N}}$ evaluation, utilizing $T=100000$ MCMC
 samples, takes about 36 minutes to obtain on a 4.2 GHz Intel Core i7
 processor, leading to a total runtime of about 120 hours to collect all 200
-values saved.  The data is provided with the \pkg{hetGP} package.
+values saved.  The data are provided with the \pkg{hetGP} package.
 
 <<loadbf>>=
 data("bfs")
@@ -1211,7 +1212,7 @@ Predictive evaluations were then extracted on a grid in the input space.
 The results are shown in Figure \ref{fig:visbf}.
 In the figure, each open circle is a $\mathrm{BF}_{\mathrm{St}\mathcal{N}}$
 evaluation, plotted in $\log_{10}-\log_e$ space. In the left panel of the
-figure figure, in addition to showing full posterior uncertainty (on $Y(\x)|D_N$),
+figure, in addition to showing full posterior uncertainty (on $Y(\x)|D_N$),
 we highlight a key advantage of the heteroskedastic framework inferential
 framework implemented \pkg{hetGP}: the ability to provide error bars on both
 the prediction of the (latent random) mean (field)  $f$.  The right panel in
@@ -1259,7 +1260,7 @@ variability in BFs in the hyperparameter space.  Responses are gathered on a
 space-filling design in $\alpha \times \beta$-space, via a Latin hypercube
 sample of size 80, using a recently updated version of the \pkg{monomvn}
 library to accommodate the Gamma prior, with replicates obtained at each
-input setting, for a total of 400 runs. The data is also provided by the
+input setting, for a total of 400 runs. The data are also provided by the
 \code{bfs} data object in \pkg{hetGP}.
 
 <<loadbf2>>=
@@ -1377,7 +1378,7 @@ observed at each of those locations.  Higher scores are better.
 A function \code{scores} in \pkg{hetGP} computes scores and root mean squared error (RMSE).
 
 <<atotestscore>>=
-sc <- scores(out, Xtest, matrix(unlist(Ztest), byrow = TRUE, ncol = 10))
+sc <- scores(model = out, Xtest = Xtest, Ztest = Ztest)
 @
 
 
@@ -1414,7 +1415,7 @@ sensible and that replication will help separate signal from noise (and yield
 computational advantages).   Model-based designs, such as maximum entropy and
 related criteria, are almost never appropriate in this setting. Such designs,
 since they condition on the model, are hyperparameter sensitive; and before
-data is collected, we have little to go on to choose good settings for those
+data are collected, we have little to go on to choose good settings for those
 values. This situation is exacerbated in the heteroskedastic case,
 requiring the setting of latent inputs and additional hyperparameters.  A far
 better approach is to take things one step at a time: start with a small
@@ -1459,7 +1460,7 @@ the notation in this regard.
 
 In general, the integral in Equation~(\ref{eq:imspe})  requires numerical
 evaluation~\citep{seo00,gra:lee:2009,Gauthier2014,Gorodetsky2016,Pratola2017}.
-For example, the \pkg{tgp} package (option \code{Ds2x=TRUE}) sums over a
+For example, the \pkg{tgp} package (option \code{Ds2x = TRUE}) sums over a
 reference set, as well as averaging over the posterior distribution of (treed)
 Gaussian process parameterization.  However, conditional on GP
 hyperparameters, and when the study region $D$ is an easily integrable domain
@@ -1470,7 +1471,7 @@ for particular cases (and approximations), we are not aware of examples
 providing the level of specificity and generality in derivation, or
 implementation in code as provided in \pkg{hetGP}.
 
-The essence is as follows.
+Let $X$ be uniformly sampled in $D$. The essence is as follows.
 \begin{align}
 I_{n+1} & = \E \{ \sigma^2_{n+1}(X) \} = \nu \E \{K_\theta(X, X) - \veck_{n+1}(X)^\top \mathbf{K}_{n+1}^{-1} \veck_{n+1}(X)\} \label{eq:imspecf} \\
 &= \nu \E \{K_\theta(X,X)\} - \nu \mathrm{tr}(\mathbf{K}_{n+1}^{-1} \mathbf{W}_{n+1}), \nonumber
@@ -1831,7 +1832,8 @@ for(i in 1:490) {
   X <- c(X, opt$par)
   Ynew <- fr(opt$par)
   Y <- c(Y, Ynew)
-  mod.a <- update(mod.a, Xnew = opt$par, Znew = Ynew, ginit = mod.a$g * 1.01)
+  mod.a <- update(mod.a, Xnew = opt$par, Znew = Ynew, 
+    ginit = mod.a$g * 1.01)
   if(i %% 25 == 0) { 
     mod2 <- mleHetGP(X = list(X0 = mod.a$X0, Z0 = mod.a$Z0,
       mult = mod.a$mult), Z = mod.a$Z, lower = 0.0001, upper = 1)
@@ -1850,7 +1852,7 @@ horizon over the iterations of sequential design. The right panel shows the
 final design and predictions, versus the truth, matching Figure \ref{fig:forr}
 for the fixed horizon ($h=5$) case.
 
-<<adapfig, echo = FALSE, fig.height=4, fig.width=8, out.width="6in", out.height="3in", fig.align='center', fig.cap="\\label{fig:adapt}{\\em Left:} Horizons chosen per iteration; {\\em right:} final design and predictions versus the truth, similar to Figure \\ref{fig:forr}.">>=
+<<adapfig, echo = FALSE, fig.height=5, fig.width=10, out.width="6in", out.height="3in", fig.align='center', fig.cap="\\label{fig:adapt}{\\em Left:} Horizons chosen per iteration; {\\em right:} final design and predictions versus the truth, similar to Figure \\ref{fig:forr}.">>=
 par(mfrow = c(1, 2))
 plot(h, main = "Horizon", xlab = "Iteration")
 plot(xgrid, f1d2(xgrid), type = "l", xlab = "x", ylab = "y",
@@ -1858,11 +1860,11 @@ plot(xgrid, f1d2(xgrid), type = "l", xlab = "x", ylab = "y",
 lines(xgrid, qnorm(0.05, f1d2(xgrid), fn(xgrid)), col = 1, lty = 2)
 lines(xgrid, qnorm(0.95, f1d2(xgrid), fn(xgrid)), col = 1, lty = 2)
 points(X, Y)
-segments(mod$X0, rep(0, nrow(mod$X0)) - 4, mod$X0, mod$mult * 0.25 - 4, 
+segments(mod.a$X0, rep(0, nrow(mod.a$X0)) - 4, mod.a$X0, mod.a$mult * 0.25 - 4, 
   col = "gray")
-lines(xgrid, p$mean, col = 2)
-lines(xgrid, qnorm(0.05, p$mean, sqrt(pvar.a)), col = 2, lty = 2)
-lines(xgrid, qnorm(0.95, p$mean, sqrt(pvar.a)), col = 2, lty = 2)
+lines(xgrid, p.a$mean, col = 2)
+lines(xgrid, qnorm(0.05, p.a$mean, sqrt(pvar.a)), col = 2, lty = 2)
+lines(xgrid, qnorm(0.95, p.a$mean, sqrt(pvar.a)), col = 2, lty = 2)
 @
 
 The left panel of the figure reveals that a horizon of $h=5$ is indeed not
@@ -1881,10 +1883,10 @@ noisy analog.
 <<rmsescore>>=
 ytrue <- f1d2(xgrid)
 yy <- fr(xgrid)
-rbind(rmse = c(h5 = mean((ytrue - p$mean)^2), 
-  ha = mean((ytrue - p.a$mean)^2)), 
-  score = c(h5 = - mean((yy - p$mean)^2 / pvar + log(pvar)), 
-  ha = -mean((yy - p.a$mean)^2 / pvar.a + log(pvar.a))))
+rbind(rmse = c(h5 = mean((ytrue - p$mean)^2),
+  ha = mean((ytrue - p.a$mean)^2)),
+  score = c(h5 = scores(mod, matrix(xgrid), yy), 
+  ha = scores(mod.a, matrix(xgrid), yy)))
 @
 
 Although speculating on the precise outcome of this comparison is difficult
@@ -1953,7 +1955,7 @@ both \code{horizon} and \code{IMSPE_optim}. Modifying the
 default setup may be done with \code{control}, a list with elements
 \code{multistart = 20} for the number of \code{optim} calls to be run starting
 from a maximin LHS design of this size, up to \code{maxit} iterations, and
-\code{tol_dist} (resp. \code{tol_diff}) defining the minimal distance (resp.
+\code{tol_dist} (resp.\ \code{tol_diff}) defining the minimal distance (resp.\
 criterion difference) with respect to existing designs under which replication
 is preferred. This task may be performed in parallel with the \code{ncores}
 argument.
@@ -1987,7 +1989,7 @@ So far we have focused on constructing a globally accurate surrogate
 model, but it is also common to target specific regions of interest. Examples
 include global minima or level sets \citep{Bogunovic2016}. 
 
-\paragraph{Bayesian optimization.} Starting with optimization, namely, finding
+\paragraph{Bayesian optimization.} Starting with optimization, namely finding
 $\x^* \in \mathrm{argmin}_{\x} \, f(\x)$, we follow the canonical efficient
 global optimization framework \citep{Jones1998} with the expected improvement
 (EI) criterion \citep{Mockus1978}. For a review of many variants of this and
@@ -2038,7 +2040,7 @@ on this test function).  Notice that
 we initialize with a small amount of replication.  This is to guard against
 initial (and incorrect) noiseless surrogate fits that cause numerical issues.
 Initial designs for Bayesian optimization of noisy functions is still an open
-area of research.  Also, we fix a lookahead horizon of $h=5$; developing an
+area of research \citep{zhang2018distance}.  Also, we fix a lookahead horizon of $h=5$; developing an
 analog {\em target} and {\em adapt} scheme is left for future research as
 well.
 
@@ -2054,9 +2056,7 @@ mod <- mleHetGP(X = X, Z = Y)
 @
 
 We have 500 sequential design iterations as before, but this
-time with EI.
-
-Parallel evaluation is possible via \code{mclapply}
+time with EI.  Parallel evaluation is possible via \code{mclapply}
 from \pkg{parallel} \cite{RCore2019}.
 
 <<EIahead2>>=
@@ -2083,8 +2083,6 @@ p <- predict(mod, matrix(xgrid, ncol = 1))
 pvar <- p$sd2 + p$nugs
 @
 
-Figure \ref{fig:ei} %, built with the following \proglang{R} code, provides a
-visualization similar to our IMSPE-based ones in Section \ref{sec:imspe}.
 
 <<EIgraphs, echo = FALSE,fig.height=5, fig.width=6, out.width="5in", out.height="4.2in", fig.align='center', fig.cap="\\label{fig:ei} Sequential optimization with horizon $h = 5$. The truth is in black and the predictive distribution in red .">>=
 plot(xgrid, f1d2(xgrid), type = "l", xlab = "x", ylab = "y",
@@ -2100,11 +2098,13 @@ lines(xgrid, qnorm(0.95, -p$mean, sqrt(pvar)), col = 2, lty = 2)
 legend("top", c("truth", "estimate"), col = 1:2, lty = 1:2)
 @
 
-Observe that this lookahead-biased EI approach leads to substantial
-replication in the areas of interest, judiciously balancing exploration and
-exploitation in order to pin down the global minima of the mean surface. The
-actual number of unique locations is extracted as follows, which is a small
-fraction of the total budget of $N=500$.
+
+Figure \ref{fig:ei} provides a visualization similar to our IMSPE-based ones
+in Section \ref{sec:imspe}. Observe that this lookahead-biased EI approach
+leads to substantial replication in the areas of interest, judiciously
+balancing exploration and exploitation in order to pin down the global minima
+of the mean surface. The actual number of unique locations is extracted as
+follows, which is a small fraction of the total budget of $N=500$.
 
 <<EIreps>>=
 nrow(mod$X0)
@@ -2129,7 +2129,7 @@ of implementations provided by the \pkg{KrigInv} package
 
 The simplest criterion is maximum contour uncertainty (MCU), implemented by
 \code{crit_MCU} in the \pkg{hetGP} package. MCU is based on the local
-probability of misclassification, namely, that $f$ is incorrectly predicted to
+probability of misclassification, namely that $f$ is incorrectly predicted to
 be below or above the threshold \citep[see also,
 e.g.,][]{Bichon2008,Ranjan2008}. A second criterion, contour
 stepwise uncertainty reduction (cSUR), implemented by \code{crit_cSUR} in
@@ -2145,7 +2145,7 @@ targeted mean square error (tMSE) \citep{Picheny2010}, is implemented in
 limiting contour via a weight function.
 
 For illustration, let us consider finding the zero contour in our simple 1D
-example.  The code below illustrates the \code{crit_cSUR} criteria, the
+example.  The code below illustrates the \code{crit_cSUR} criteria, with the
 \pkg{hetGP} package's generic \code{crit_optim} interface. Otherwise the setup
 and \code{for} loop are identical to those for our IMSPE and EI-based
 examples.
@@ -2211,7 +2211,7 @@ Gaussian process regression, sequential experimental design, and Bayesian
 optimization.  Although the package is designed for dealing with noise and
 changing signal-to-noise ratios in the setting of Gaussian process regression,
 it offers a full-featured GP regression approach.  Ordinary homoskedastic (and
-noise-free) GP modeling is supported.  When the data is observed with noise,
+noise-free) GP modeling is supported.  When the data are observed with noise,
 the package implements a Woodbury trick to make inference more efficient,
 decomposing matrices sized by the number of unique input sites, rather than
 ones sized by the full data set. Moreover, key functions of \pkg{hetGP} are
@@ -2220,9 +2220,9 @@ Eddelbuettel2013, Eddelbuettel2017}. This leads to dramatically faster
 inference compared with other GP packages on CRAN when the level of
 replication is high.
 
-Working only with unique inputs has other advantages, particularly it comes to
-coupled-GP inference for nonlinearly changing (latent) variance variables
-along with the usual mean-based analysis.  By creating a unifying
+Working only with unique inputs has other advantages, particularly when it
+comes to coupled-GP inference for nonlinearly changing (latent) variance
+variables along with the usual mean-based analysis.  By creating a unifying
 likelihood-based inferential framework, complete with closed-form derivative
 expressions, library-based optimization methods (e.g., \code{optim} in
 \proglang{R}) can be deployed for efficient heteroskedastic modeling.  Whereas

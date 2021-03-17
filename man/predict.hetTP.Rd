@@ -4,8 +4,7 @@
 \alias{predict.hetTP}
 \title{Student-t process predictions using a heterogeneous noise TP object (of class \code{hetTP})}
 \usage{
-\method{predict}{hetTP}(object, x, noise.var = FALSE, xprime = NULL,
-  nugs.only = FALSE, ...)
+\method{predict}{hetTP}(object, x, noise.var = FALSE, xprime = NULL, nugs.only = FALSE, ...)
 }
 \arguments{
 \item{object}{an object of class \code{hetTP}; e.g., as returned by \code{\link[hetGP]{mleHetTP}}}

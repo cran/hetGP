@@ -58,6 +58,6 @@ Picheny, V., Ginsbourger, D., Roustant, O., Haftka, R., Kim, N. (2010).
 Adaptive designs of experiments for accurate approximation of a target region,
 Journal of Mechanical Design (132), p. 071008.\cr \cr
 
-Lyu, X., Binois, M. & Ludkovski, M. (2018). 
+Lyu, X., Binois, M. & Ludkovski, M. (2018+). 
 Evaluating Gaussian Process Metamodels and Sequential Designs for Noisy Level Set Estimation. arXiv:1807.06712. \cr
 }

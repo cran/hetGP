@@ -4,13 +4,22 @@
 \alias{mleHetGP}
 \title{Gaussian process modeling with heteroskedastic noise}
 \usage{
-mleHetGP(X, Z, lower = NULL, upper = NULL,
-  noiseControl = list(k_theta_g_bounds = c(1, 100), g_max = 100, g_bounds
-  = c(1e-06, 1)), settings = list(linkThetas = "joint", logN = TRUE,
-  initStrategy = "residuals", checkHom = TRUE, penalty = TRUE, trace = 0,
-  return.matrices = TRUE, return.hom = FALSE, factr = 1e+09),
-  covtype = c("Gaussian", "Matern5_2", "Matern3_2"), maxit = 100,
-  known = NULL, init = NULL, eps = sqrt(.Machine$double.eps))
+mleHetGP(
+  X,
+  Z,
+  lower = NULL,
+  upper = NULL,
+  noiseControl = list(k_theta_g_bounds = c(1, 100), g_max = 100, g_bounds = c(1e-06,
+    1)),
+  settings = list(linkThetas = "joint", logN = TRUE, initStrategy = "residuals",
+    checkHom = TRUE, penalty = TRUE, trace = 0, return.matrices = TRUE, return.hom =
+    FALSE, factr = 1e+09),
+  covtype = c("Gaussian", "Matern5_2", "Matern3_2"),
+  maxit = 100,
+  known = NULL,
+  init = NULL,
+  eps = sqrt(.Machine$double.eps)
+)
 }
 \arguments{
 \item{X}{matrix of all designs, one per row, or list with elements:

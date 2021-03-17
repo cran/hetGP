@@ -73,7 +73,8 @@ Robert B. Gramacy, \email{rbg@vt.edu}
 
   Chung M, Binois M, Gramacy RB, Moquin DJ, Smith AP, Smith AM (2018).
   Parameter and Uncertainty Estimation for Dynamical Systems Using Surrogate
-  Stochastic Processes. Preprint available on arXiv:1802.00852. 
+  Stochastic Processes. SIAM Journal on Scientific Computing, 41(4), 2212-2238.
+  Preprint available on arXiv:1802.00852. 
 
 }
 

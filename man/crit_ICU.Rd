@@ -4,8 +4,7 @@
 \alias{crit_ICU}
 \title{Integrated Contour Uncertainty criterion}
 \usage{
-crit_ICU(x, model, thres = 0, Xref, w = NULL, preds = NULL,
-  kxprime = NULL)
+crit_ICU(x, model, thres = 0, Xref, w = NULL, preds = NULL, kxprime = NULL)
 }
 \arguments{
 \item{x}{matrix of new designs, one point per row (size n x d)}
@@ -64,5 +63,5 @@ filled.contour(matrix(critgrid, ngrid), color.palette = terrain.colors, main = "
 
 }
 \references{
-Lyu, X., Binois, M. & Ludkovski, M. (2018). Evaluating Gaussian Process Metamodels and Sequential Designs for Noisy Level Set Estimation. arXiv:1807.06712. \cr
+Lyu, X., Binois, M. & Ludkovski, M. (2018+). Evaluating Gaussian Process Metamodels and Sequential Designs for Noisy Level Set Estimation. arXiv:1807.06712. \cr
 }

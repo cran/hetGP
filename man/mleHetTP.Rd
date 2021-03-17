@@ -4,15 +4,23 @@
 \alias{mleHetTP}
 \title{Student-t process modeling with heteroskedastic noise}
 \usage{
-mleHetTP(X, Z, lower = NULL, upper = NULL,
-  noiseControl = list(k_theta_g_bounds = c(1, 100), g_max = 10000,
-  g_bounds = c(1e-06, 0.1), nu_bounds = c(2 + 0.001, 30), sigma2_bounds =
-  c(sqrt(.Machine$double.eps), 10000)), settings = list(linkThetas =
-  "joint", logN = TRUE, initStrategy = "residuals", checkHom = TRUE,
-  penalty = TRUE, trace = 0, return.matrices = TRUE, return.hom = FALSE,
-  factr = 1e+09), covtype = c("Gaussian", "Matern5_2", "Matern3_2"),
-  maxit = 100, known = list(beta0 = 0), init = list(nu = 3),
-  eps = sqrt(.Machine$double.eps))
+mleHetTP(
+  X,
+  Z,
+  lower = NULL,
+  upper = NULL,
+  noiseControl = list(k_theta_g_bounds = c(1, 100), g_max = 10000, g_bounds = c(1e-06,
+    0.1), nu_bounds = c(2 + 0.001, 30), sigma2_bounds = c(sqrt(.Machine$double.eps),
+    10000)),
+  settings = list(linkThetas = "joint", logN = TRUE, initStrategy = "residuals",
+    checkHom = TRUE, penalty = TRUE, trace = 0, return.matrices = TRUE, return.hom =
+    FALSE, factr = 1e+09),
+  covtype = c("Gaussian", "Matern5_2", "Matern3_2"),
+  maxit = 100,
+  known = list(beta0 = 0),
+  init = list(nu = 3),
+  eps = sqrt(.Machine$double.eps)
+)
 }
 \arguments{
 \item{X}{matrix of all designs, one per row, or list with elements:
@@ -254,8 +262,10 @@ points(X, col = 'blue', pch = 20)
 par(mfrow = c(1, 1))
 }
 \references{
-M. Binois, Robert B. Gramacy, M. Ludkovski (2017+), Practical heteroskedastic Gaussian process modeling for large simulation experiments, arXiv preprint arXiv:1611.05902. \cr \cr
-
+M. Binois, Robert B. Gramacy, M. Ludkovski (2018), Practical heteroskedastic Gaussian process modeling for large simulation experiments,
+Journal of Computational and Graphical Statistics, 27(4), 808--821.\cr 
+Preprint available on arXiv:1611.05902.\cr \cr
+ 
 A. Shah, A. Wilson, Z. Ghahramani (2014), Student-t processes as alternatives to Gaussian processes, Artificial Intelligence and Statistics, 877--885.
 }
 \seealso{

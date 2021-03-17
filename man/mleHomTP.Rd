@@ -4,13 +4,20 @@
 \alias{mleHomTP}
 \title{Student-T process modeling with homoskedastic noise}
 \usage{
-mleHomTP(X, Z, lower = NULL, upper = NULL, known = list(beta0 = 0),
-  noiseControl = list(g_bounds = c(sqrt(.Machine$double.eps), 10000),
-  nu_bounds = c(2 + 0.001, 30), sigma2_bounds =
-  c(sqrt(.Machine$double.eps), 10000)), init = list(nu = 3),
-  covtype = c("Gaussian", "Matern5_2", "Matern3_2"), maxit = 100,
-  eps = sqrt(.Machine$double.eps), settings = list(return.Ki = TRUE,
-  factr = 1e+09))
+mleHomTP(
+  X,
+  Z,
+  lower = NULL,
+  upper = NULL,
+  known = list(beta0 = 0),
+  noiseControl = list(g_bounds = c(sqrt(.Machine$double.eps), 10000), nu_bounds = c(2 +
+    0.001, 30), sigma2_bounds = c(sqrt(.Machine$double.eps), 10000)),
+  init = list(nu = 3),
+  covtype = c("Gaussian", "Matern5_2", "Matern3_2"),
+  maxit = 100,
+  eps = sqrt(.Machine$double.eps),
+  settings = list(return.Ki = TRUE, factr = 1e+09)
+)
 }
 \arguments{
 \item{X}{matrix of all designs, one per row, or list with elements:
@@ -115,11 +122,16 @@ lines(xgrid, preds$mean + sqrt(preds$sd2 + preds$nugs) * qt(0.95, df = model$nu 
   col = 3, lty = 2)
 }
 \references{
-M. Binois, Robert B. Gramacy, M. Ludkovski (2017+), Practical heteroskedastic Gaussian process modeling for large simulation experiments, arXiv preprint arXiv:1611.05902. \cr \cr
+M. Binois, Robert B. Gramacy, M. Ludkovski (2018), Practical heteroskedastic Gaussian process modeling for large simulation experiments,
+Journal of Computational and Graphical Statistics, 27(4), 808--821.\cr 
+Preprint available on arXiv:1611.05902.\cr \cr
 
 A. Shah, A. Wilson, Z. Ghahramani (2014), Student-t processes as alternatives to Gaussian processes, Artificial Intelligence and Statistics, 877--885. \cr \cr
 
-M. Chung, M. Binois, RB Gramacy, DJ Moquin, AP Smith, AM Smith (2018+). Parameter and Uncertainty Estimation for Dynamical Systems Using Surrogate Stochastic Processes. Preprint available on arXiv:1802.00852.
+M. Chung, M. Binois, RB Gramacy, DJ Moquin, AP Smith, AM Smith (2019). 
+Parameter and Uncertainty Estimation for Dynamical Systems Using Surrogate Stochastic Processes.
+SIAM Journal on Scientific Computing, 41(4), 2212-2238.\cr
+Preprint available on arXiv:1802.00852.
 }
 \seealso{
 \code{\link[hetGP]{predict.homTP}} for predictions.

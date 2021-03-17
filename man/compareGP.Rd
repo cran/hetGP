@@ -19,5 +19,7 @@ Compare two models based on the log-likelihood for \code{hetGP} and \code{homGP}
 If comparing homoskedastic and heteroskedastic models, the un-penalised likelihood is used for the later, see e.g., (Binois et al. 2017+).
 }
 \references{
-M. Binois, Robert B. Gramacy, M. Ludkovski (2017+), Practical heteroskedastic Gaussian process modeling for large simulation experiments, arXiv preprint arXiv:1611.05902.
+M. Binois, Robert B. Gramacy, M. Ludkovski (2018), Practical heteroskedastic Gaussian process modeling for large simulation experiments,
+Journal of Computational and Graphical Statistics, 27(4), 808--821.\cr 
+Preprint available on arXiv:1611.05902.
 }

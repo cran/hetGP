@@ -4,9 +4,15 @@
 \alias{IMSPE_optim}
 \title{IMSPE optimization}
 \usage{
-IMSPE_optim(model, h = 2, Xcand = NULL, control = list(tol_dist =
-  1e-06, tol_diff = 1e-06, multi.start = 20, maxit = 100), Wijs = NULL,
-  seed = NULL, ncores = 1)
+IMSPE_optim(
+  model,
+  h = 2,
+  Xcand = NULL,
+  control = list(tol_dist = 1e-06, tol_diff = 1e-06, multi.start = 20, maxit = 100),
+  Wijs = NULL,
+  seed = NULL,
+  ncores = 1
+)
 }
 \arguments{
 \item{model}{\code{homGP} or \code{hetGP} model}
@@ -159,5 +165,8 @@ for(i in 1:nsteps){
 }
 }
 \references{
-M. Binois, J. Huang, R. Gramacy, M. Ludkovski (2017+), Replication or exploration? Sequential design for stochastic simulation experiments. arXiv preprint arXiv:1710.03206.
+M. Binois, J. Huang, R. B. Gramacy, M. Ludkovski (2019), 
+Replication or exploration? Sequential design for stochastic simulation experiments,
+Technometrics, 61(1), 7-23.\cr 
+Preprint available on arXiv:1710.03206.
 }

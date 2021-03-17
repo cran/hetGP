@@ -19,7 +19,7 @@ crit_EI(x, model, cst = NULL, preds = NULL)
 Computes EI for minimization
 }
 \details{
-\code{cst} is classically the observed minimum in the determininistic case. 
+\code{cst} is classically the observed minimum in the deterministic case. 
 In the noisy case, the min of the predictive mean works fine.
 }
 \note{
@@ -46,7 +46,7 @@ return(f1d(x) + rnorm(nrow(x), mean = 0, sd = noiseFun(x)))
 
 n_init <- 10 # number of unique designs
 N_init <- 100 # total number of points
-X <- seq(0, 1, length.out = 10)
+X <- seq(0, 1, length.out = n_init)
 X <- matrix(X[sample(1:n_init, N_init, replace = TRUE)], ncol = 1)
 Z <- ftest(X)
 

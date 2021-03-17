@@ -126,7 +126,7 @@ model <- model_init <- mleHetGP(X = X, Z = Z, lower = lower, upper = upper)
 
 for(ii in 1:(N_tot - n_init)){
  ##Precalculations
- Wijs <- hetGP:::Wij(mu1 = model$X0, theta = model$theta, type = model$covtype)
+ Wijs <- Wij(mu1 = model$X0, theta = model$theta, type = model$covtype)
  
  ## Adapt the horizon based on the training rmspe/score
    current_horizon <- horizon(model = model, Wijs = Wijs)
@@ -146,8 +146,8 @@ for(ii in 1:(N_tot - n_init)){
  ## Update of the model
  model <- update(object = model, Xnew = Xnew, Znew = Znew, lower = lower, upper = upper)
  if(ii \%\% 25 == 0 || ii == (N_tot - n_init)){
-   model_test <- mleHetGP(X = list(X0 = model$X0, Z0 = model$Z0, mult = model$mult), Z = model$Z,
-                        lower = lower, upper = upper, maxit = 1000)
+   model_test <- mleHetGP(X = list(X0 = model$X0, Z0 = model$Z0, mult = model$mult),
+    Z = model$Z, lower = lower, upper = upper, maxit = 1000)
    model <- compareGP(model, model_test)
  }
 }
@@ -171,9 +171,16 @@ mtext(side = 1, line = 2, 'x', cex = 0.8)
 M. Binois, Robert B. Gramacy, M. Ludkovski (2018), Practical heteroskedastic Gaussian process modeling for large simulation experiments,
 Journal of Computational and Graphical Statistics, 27(4), 808--821.\cr 
 Preprint available on arXiv:1611.05902. \cr \cr
-M. Binois, J. Huang, R. B. Gramacy, M. Ludkovski (2018+), Replication or exploration? Sequential design for stochastic simulation experiments,
-Technometrics (to appear).\cr 
+
+M. Binois, J. Huang, R. B. Gramacy, M. Ludkovski (2019), 
+Replication or exploration? Sequential design for stochastic simulation experiments,
+Technometrics, 61(1), 7-23.\cr 
 Preprint available on arXiv:1710.03206.
+
+ M. Chung, M. Binois, RB Gramacy, DJ Moquin, AP Smith, AM Smith (2019). 
+Parameter and Uncertainty Estimation for Dynamical Systems Using Surrogate Stochastic Processes.
+SIAM Journal on Scientific Computing, 41(4), 2212-2238.\cr
+Preprint available on arXiv:1802.00852.
 }
 \author{
 Mickael Binois, Robert B. Gramacy

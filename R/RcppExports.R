@@ -137,6 +137,14 @@ d_matern3_2_2args_kthetag <- function(X1, X2, kt) {
     .Call('_hetGP_d_matern3_2_2args_kthetag', PACKAGE = 'hetGP', X1, X2, kt)
 }
 
+partial_d_dist_abs_dX_i1_i2_m32 <- function(X1, i1, i2) {
+    .Call('_hetGP_partial_d_dist_abs_dX_i1_i2_m32', PACKAGE = 'hetGP', X1, i1, i2)
+}
+
+partial_d_dist_abs_dX1_i1_i2_X2_m32 <- function(X1, X2, i1, i2) {
+    .Call('_hetGP_partial_d_dist_abs_dX1_i1_i2_X2_m32', PACKAGE = 'hetGP', X1, X2, i1, i2)
+}
+
 distance_cpp <- function(X1, X2 = NULL, m = NULL) {
     .Call('_hetGP_distance_cpp', PACKAGE = 'hetGP', X1, X2, m)
 }
@@ -171,5 +179,21 @@ trace_sym <- function(A, B) {
 
 find_corres <- function(X0, X) {
     .Call('_hetGP_find_corres', PACKAGE = 'hetGP', X0, X)
+}
+
+v1cpp <- function(mu1, mu2, s1, s2, rho) {
+    .Call('_hetGP_v1cpp', PACKAGE = 'hetGP', mu1, mu2, s1, s2, rho)
+}
+
+v2cpp <- function(mu1, mu2, s1, s2, rho) {
+    .Call('_hetGP_v2cpp', PACKAGE = 'hetGP', mu1, mu2, s1, s2, rho)
+}
+
+r_cpp <- function(mu1, mu2, s1, s2, rho, rho1, rho2) {
+    .Call('_hetGP_r_cpp', PACKAGE = 'hetGP', mu1, mu2, s1, s2, rho, rho1, rho2)
+}
+
+qEI_cpp <- function(mu, s, cor, threshold) {
+    .Call('_hetGP_qEI_cpp', PACKAGE = 'hetGP', mu, s, cor, threshold)
 }
 

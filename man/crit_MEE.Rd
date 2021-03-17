@@ -60,5 +60,5 @@ Bichon, B., Eldred, M., Swiler, L., Mahadevan, S. & McFarland, J. (2008).
 Efficient global  reliability  analysis  for  nonlinear  implicit  performance  functions, 
 AIAA Journal, 46, pp. 2459-2468. \cr \cr
 
-Lyu, X., Binois, M. & Ludkovski, M. (2018). Evaluating Gaussian Process Metamodels and Sequential Designs for Noisy Level Set Estimation. arXiv:1807.06712. \cr
+Lyu, X., Binois, M. & Ludkovski, M. (2018+). Evaluating Gaussian Process Metamodels and Sequential Designs for Noisy Level Set Estimation. arXiv:1807.06712. \cr
 }

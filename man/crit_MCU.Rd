@@ -62,6 +62,6 @@ Bogunovic, J., Scarlett, J., Krause, A. & Cevher, V. (2016).
 Truncated variance reduction: A unified approach to Bayesian optimization and level-set estimation,
 in Advances in neural information processing systems, pp. 1507-1515. \cr \cr
 
-Lyu, X., Binois, M. & Ludkovski, M. (2018). 
+Lyu, X., Binois, M. & Ludkovski, M. (2018+). 
 Evaluating Gaussian Process Metamodels and Sequential Designs for Noisy Level Set Estimation. arXiv:1807.06712. \cr
 }

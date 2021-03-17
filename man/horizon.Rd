@@ -4,8 +4,13 @@
 \alias{horizon}
 \title{Adapt horizon}
 \usage{
-horizon(model, current_horizon = NULL, previous_ratio = NULL,
-  target = NULL, Wijs = NULL)
+horizon(
+  model,
+  current_horizon = NULL,
+  previous_ratio = NULL,
+  target = NULL,
+  Wijs = NULL
+)
 }
 \arguments{
 \item{model}{\code{hetGP} or \code{homGP} model}
@@ -38,7 +43,8 @@ then the new horizon is sampled from the difference between the actual allocatio
 See (Binois et al. 2017).
 }
 \references{
-M. Binois, J. Huang, R. B. Gramacy, M. Ludkovski (2018+), Replication or exploration? Sequential design for stochastic simulation experiments,
-Technometrics (to appear).\cr 
+M. Binois, J. Huang, R. B. Gramacy, M. Ludkovski (2019), 
+Replication or exploration? Sequential design for stochastic simulation experiments,
+Technometrics, 61(1), 7-23.\cr 
 Preprint available on arXiv:1710.03206.
 }

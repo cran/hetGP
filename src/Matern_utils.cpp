@@ -557,3 +557,53 @@ NumericMatrix d_matern3_2_2args_kthetag(NumericMatrix X1, NumericMatrix X2, doub
   }
   return s;
 }
+
+// [[Rcpp::export]]
+NumericMatrix partial_d_dist_abs_dX_i1_i2_m32(NumericMatrix X1, int i1, int i2){
+  int nr = X1.nrow();
+  NumericMatrix s(nr, nr);
+  double tmp;
+  
+  for(int i = 0; i < nr; i++){
+    if(i == (i1 - 1))
+      continue;
+    tmp = (X1(i1 - 1, i2 - 1) - X1(i, i2 - 1)) ;
+    if(tmp > 0){
+      s(i1 - 1, i) = s(i, i1 - 1) = (-3. * tmp) / (1. + sqrt(3.) * tmp);
+    }else{
+      if(tmp == 0){
+        s(i1 - 1, i) = s(i, i1 - 1) = 0;
+      }else{
+        tmp = std::abs(tmp);
+        s(i1 - 1, i) = s(i, i1 - 1) = -(-3. * tmp) / (1. + sqrt(3.) * tmp);
+      }
+    }
+  }
+  return s;
+}
+
+// [[Rcpp::export]]
+NumericMatrix partial_d_dist_abs_dX1_i1_i2_X2_m32(NumericMatrix X1, NumericMatrix X2, int i1, int i2){
+  int nr = X2.nrow();
+  NumericMatrix s(X1.nrow(), nr);
+  double tmp;
+  
+  for(int i = 0; i < nr; i++){
+    tmp = X1(i1-1, i2-1) - X2(i, i2-1);
+    if(tmp > 0){
+      s(i1 - 1, i) = ( - 3. * tmp) / (1. + sqrt(3.) * tmp);
+    }else{
+      if(tmp == 0){
+        s(i1 - 1, i) = 0;
+      }else{
+        tmp = std::abs(tmp);
+        s(i1 - 1, i) = -(-3. * tmp) / (1. + sqrt(3.) * tmp);
+      }
+    }
+  }
+  return s;
+}
+
+
+
+

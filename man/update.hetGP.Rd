@@ -4,9 +4,20 @@
 \alias{update.hetGP}
 \title{Update \code{"hetGP"}-class model fit with new observations}
 \usage{
-\method{update}{hetGP}(object, Xnew, Znew, ginit = 0.01, lower = NULL,
-  upper = NULL, noiseControl = NULL, settings = NULL, known = NULL,
-  maxit = 100, method = "quick", ...)
+\method{update}{hetGP}(
+  object,
+  Xnew,
+  Znew,
+  ginit = 0.01,
+  lower = NULL,
+  upper = NULL,
+  noiseControl = NULL,
+  settings = NULL,
+  known = NULL,
+  maxit = 100,
+  method = "quick",
+  ...
+)
 }
 \arguments{
 \item{object}{previously fit \code{"hetGP"}-class model}
@@ -15,7 +26,7 @@
 
 \item{Znew}{vector new observations at those design locations, of length \code{nrow(X)}. \code{NA}s can be passed, see Details}
 
-\item{ginit}{minimal value of the smoothing parameter (i.e., nugget of the noise process) for optimization initialisation.
+\item{ginit}{minimal value of the smoothing parameter (i.e., nugget of the noise process) for optimization initialization.
 It is compared to the \code{g} hyperparameter in the object.}
 
 \item{lower, upper, noiseControl, settings, known}{optional bounds for mle optimization, see \code{\link[hetGP]{mleHetGP}}. 

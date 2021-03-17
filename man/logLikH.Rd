@@ -5,9 +5,21 @@
 \title{Generic Log-likelihood function
 This function can be used to compute loglikelihood for homGP/hetGP models}
 \usage{
-logLikH(X0, Z0, Z, mult, theta, g, Delta = NULL, k_theta_g = NULL,
-  theta_g = NULL, logN = FALSE, beta0 = NULL,
-  eps = sqrt(.Machine$double.eps), covtype = "Gaussian")
+logLikH(
+  X0,
+  Z0,
+  Z,
+  mult,
+  theta,
+  g,
+  Delta = NULL,
+  k_theta_g = NULL,
+  theta_g = NULL,
+  logN = FALSE,
+  beta0 = NULL,
+  eps = sqrt(.Machine$double.eps),
+  covtype = "Gaussian"
+)
 }
 \arguments{
 \item{X0}{unique designs}

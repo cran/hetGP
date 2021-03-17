@@ -105,4 +105,19 @@ test_that("optim",{
   grads_ei_ref <- t(apply(Xgrid, 1, grad, func = crit_EI, model = model, cst = -30))
   grads_ei <- deriv_crit_EI(Xgrid, model, cst = -30)
   expect_equal(grads_ei, grads_ei_ref, tol = 1e-8)
+  
+  ## Eventually, qEI verification
+  # nq <- 100
+  # qEIs1 <- qEIs2 <- qEIs3 <- matrix(NA, nq)
+  # for(i in 1:nq){
+  #   xbatch <- matrix(runif(3), 3, 1)
+  #   qEIs1[i] <- crit_qEI(xbatch, model, cst = cst)
+  #   
+  #   # Compare with Monte Carlo qEI
+  #   preds <- predict(model, xbatch, xprime = xbatch)
+  #   nsim <- 1e4
+  #   simus <- matrix(preds$mean, nrow = nsim, ncol = 3, byrow = TRUE) + matrix(rnorm(3 * nsim), nsim) %*% chol(preds$cov)
+  #   qEIs2[i] <- mean(apply(cst - simus, 1, function(x) max(c(x, 0))))
+  # }
+  
 })

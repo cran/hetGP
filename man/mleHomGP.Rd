@@ -4,11 +4,19 @@
 \alias{mleHomGP}
 \title{Gaussian process modeling with homoskedastic noise}
 \usage{
-mleHomGP(X, Z, lower = NULL, upper = NULL, known = NULL,
+mleHomGP(
+  X,
+  Z,
+  lower = NULL,
+  upper = NULL,
+  known = NULL,
   noiseControl = list(g_bounds = c(sqrt(.Machine$double.eps), 100)),
-  init = NULL, covtype = c("Gaussian", "Matern5_2", "Matern3_2"),
-  maxit = 100, eps = sqrt(.Machine$double.eps),
-  settings = list(return.Ki = TRUE, factr = 1e+07))
+  init = NULL,
+  covtype = c("Gaussian", "Matern5_2", "Matern3_2"),
+  maxit = 100,
+  eps = sqrt(.Machine$double.eps),
+  settings = list(return.Ki = TRUE, factr = 1e+07)
+)
 }
 \arguments{
 \item{X}{matrix of all designs, one per row, or list with elements:

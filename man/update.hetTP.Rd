@@ -4,9 +4,20 @@
 \alias{update.hetTP}
 \title{Update \code{"hetTP"}-class model fit with new observations}
 \usage{
-\method{update}{hetTP}(object, Xnew, Znew, ginit = 0.01, lower = NULL,
-  upper = NULL, noiseControl = NULL, settings = NULL, known = NULL,
-  maxit = 100, method = "quick", ...)
+\method{update}{hetTP}(
+  object,
+  Xnew,
+  Znew,
+  ginit = 0.01,
+  lower = NULL,
+  upper = NULL,
+  noiseControl = NULL,
+  settings = NULL,
+  known = NULL,
+  maxit = 100,
+  method = "quick",
+  ...
+)
 }
 \arguments{
 \item{object}{previously fit \code{"hetTP"}-class model}

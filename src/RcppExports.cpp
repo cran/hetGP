@@ -433,6 +433,33 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// partial_d_dist_abs_dX_i1_i2_m32
+NumericMatrix partial_d_dist_abs_dX_i1_i2_m32(NumericMatrix X1, int i1, int i2);
+RcppExport SEXP _hetGP_partial_d_dist_abs_dX_i1_i2_m32(SEXP X1SEXP, SEXP i1SEXP, SEXP i2SEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type X1(X1SEXP);
+    Rcpp::traits::input_parameter< int >::type i1(i1SEXP);
+    Rcpp::traits::input_parameter< int >::type i2(i2SEXP);
+    rcpp_result_gen = Rcpp::wrap(partial_d_dist_abs_dX_i1_i2_m32(X1, i1, i2));
+    return rcpp_result_gen;
+END_RCPP
+}
+// partial_d_dist_abs_dX1_i1_i2_X2_m32
+NumericMatrix partial_d_dist_abs_dX1_i1_i2_X2_m32(NumericMatrix X1, NumericMatrix X2, int i1, int i2);
+RcppExport SEXP _hetGP_partial_d_dist_abs_dX1_i1_i2_X2_m32(SEXP X1SEXP, SEXP X2SEXP, SEXP i1SEXP, SEXP i2SEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type X1(X1SEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type X2(X2SEXP);
+    Rcpp::traits::input_parameter< int >::type i1(i1SEXP);
+    Rcpp::traits::input_parameter< int >::type i2(i2SEXP);
+    rcpp_result_gen = Rcpp::wrap(partial_d_dist_abs_dX1_i1_i2_X2_m32(X1, X2, i1, i2));
+    return rcpp_result_gen;
+END_RCPP
+}
 // distance_cpp
 NumericMatrix distance_cpp(NumericMatrix X1, Rcpp::Nullable<Rcpp::NumericMatrix> X2, Rcpp::Nullable<Rcpp::NumericVector> m);
 RcppExport SEXP _hetGP_distance_cpp(SEXP X1SEXP, SEXP X2SEXP, SEXP mSEXP) {
@@ -545,6 +572,67 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// v1cpp
+double v1cpp(double mu1, double mu2, double s1, double s2, double rho);
+RcppExport SEXP _hetGP_v1cpp(SEXP mu1SEXP, SEXP mu2SEXP, SEXP s1SEXP, SEXP s2SEXP, SEXP rhoSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type mu1(mu1SEXP);
+    Rcpp::traits::input_parameter< double >::type mu2(mu2SEXP);
+    Rcpp::traits::input_parameter< double >::type s1(s1SEXP);
+    Rcpp::traits::input_parameter< double >::type s2(s2SEXP);
+    Rcpp::traits::input_parameter< double >::type rho(rhoSEXP);
+    rcpp_result_gen = Rcpp::wrap(v1cpp(mu1, mu2, s1, s2, rho));
+    return rcpp_result_gen;
+END_RCPP
+}
+// v2cpp
+double v2cpp(double mu1, double mu2, double s1, double s2, double rho);
+RcppExport SEXP _hetGP_v2cpp(SEXP mu1SEXP, SEXP mu2SEXP, SEXP s1SEXP, SEXP s2SEXP, SEXP rhoSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type mu1(mu1SEXP);
+    Rcpp::traits::input_parameter< double >::type mu2(mu2SEXP);
+    Rcpp::traits::input_parameter< double >::type s1(s1SEXP);
+    Rcpp::traits::input_parameter< double >::type s2(s2SEXP);
+    Rcpp::traits::input_parameter< double >::type rho(rhoSEXP);
+    rcpp_result_gen = Rcpp::wrap(v2cpp(mu1, mu2, s1, s2, rho));
+    return rcpp_result_gen;
+END_RCPP
+}
+// r_cpp
+double r_cpp(double mu1, double mu2, double s1, double s2, double rho, double rho1, double rho2);
+RcppExport SEXP _hetGP_r_cpp(SEXP mu1SEXP, SEXP mu2SEXP, SEXP s1SEXP, SEXP s2SEXP, SEXP rhoSEXP, SEXP rho1SEXP, SEXP rho2SEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< double >::type mu1(mu1SEXP);
+    Rcpp::traits::input_parameter< double >::type mu2(mu2SEXP);
+    Rcpp::traits::input_parameter< double >::type s1(s1SEXP);
+    Rcpp::traits::input_parameter< double >::type s2(s2SEXP);
+    Rcpp::traits::input_parameter< double >::type rho(rhoSEXP);
+    Rcpp::traits::input_parameter< double >::type rho1(rho1SEXP);
+    Rcpp::traits::input_parameter< double >::type rho2(rho2SEXP);
+    rcpp_result_gen = Rcpp::wrap(r_cpp(mu1, mu2, s1, s2, rho, rho1, rho2));
+    return rcpp_result_gen;
+END_RCPP
+}
+// qEI_cpp
+double qEI_cpp(NumericVector mu, NumericVector s, NumericMatrix cor, double threshold);
+RcppExport SEXP _hetGP_qEI_cpp(SEXP muSEXP, SEXP sSEXP, SEXP corSEXP, SEXP thresholdSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type mu(muSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type s(sSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type cor(corSEXP);
+    Rcpp::traits::input_parameter< double >::type threshold(thresholdSEXP);
+    rcpp_result_gen = Rcpp::wrap(qEI_cpp(mu, s, cor, threshold));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_hetGP_mi_gauss_cpp", (DL_FUNC) &_hetGP_mi_gauss_cpp, 2},
@@ -581,6 +669,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_hetGP_matern3_2_2args", (DL_FUNC) &_hetGP_matern3_2_2args, 2},
     {"_hetGP_d_matern3_2_2args_theta_k_iso", (DL_FUNC) &_hetGP_d_matern3_2_2args_theta_k_iso, 3},
     {"_hetGP_d_matern3_2_2args_kthetag", (DL_FUNC) &_hetGP_d_matern3_2_2args_kthetag, 3},
+    {"_hetGP_partial_d_dist_abs_dX_i1_i2_m32", (DL_FUNC) &_hetGP_partial_d_dist_abs_dX_i1_i2_m32, 3},
+    {"_hetGP_partial_d_dist_abs_dX1_i1_i2_X2_m32", (DL_FUNC) &_hetGP_partial_d_dist_abs_dX1_i1_i2_X2_m32, 4},
     {"_hetGP_distance_cpp", (DL_FUNC) &_hetGP_distance_cpp, 3},
     {"_hetGP_partial_d_dist_dX_i1_i2", (DL_FUNC) &_hetGP_partial_d_dist_dX_i1_i2, 3},
     {"_hetGP_partial_d_dist_dX1_i1_i2_X2", (DL_FUNC) &_hetGP_partial_d_dist_dX1_i1_i2_X2, 4},
@@ -590,6 +680,10 @@ static const R_CallMethodDef CallEntries[] = {
     {"_hetGP_fast_trace", (DL_FUNC) &_hetGP_fast_trace, 2},
     {"_hetGP_trace_sym", (DL_FUNC) &_hetGP_trace_sym, 2},
     {"_hetGP_find_corres", (DL_FUNC) &_hetGP_find_corres, 2},
+    {"_hetGP_v1cpp", (DL_FUNC) &_hetGP_v1cpp, 5},
+    {"_hetGP_v2cpp", (DL_FUNC) &_hetGP_v2cpp, 5},
+    {"_hetGP_r_cpp", (DL_FUNC) &_hetGP_r_cpp, 7},
+    {"_hetGP_qEI_cpp", (DL_FUNC) &_hetGP_qEI_cpp, 4},
     {NULL, NULL, 0}
 };
 

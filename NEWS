@@ -1,3 +1,10 @@
+## hetGP 1.1.3
+  * update vignette
+  * new fonction to predict at noisy inputs: pred_noisy_input
+  * update references
+  * bug corrections (mclapply in IMSPE_search)
+  * add fast (approximated) batch Expected Improvement
+
 ## hetGP 1.1.2
 
 ## change / hetGP 1.1.1

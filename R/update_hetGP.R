@@ -8,114 +8,114 @@ if(!isGeneric("update")) {
   )
 }
 
-##' Fast update of existing \code{hetGP} model with new observations. 
-##' @title Update \code{"hetGP"}-class model fit with new observations
-##' @param object previously fit \code{"hetGP"}-class model
-##' @param Xnew matrix of new design locations; \code{ncol(Xnew)} must match the input dimension encoded in \code{object}
-##' @param Znew vector new observations at those design locations, of length \code{nrow(X)}. \code{NA}s can be passed, see Details
-##' @param ginit minimal value of the smoothing parameter (i.e., nugget of the noise process) for optimization initialisation.
-##' It is compared to the \code{g} hyperparameter in the object.   
-##' @param lower,upper,noiseControl,settings,known optional bounds for mle optimization, see \code{\link[hetGP]{mleHetGP}}. 
-##' If not provided, they are extracted from the existing model 
-##' @param maxit maximum number of iterations for the internal L-BFGS-B optimization method; see \code{\link{optim}} for more details
-##' @param method one of \code{"quick"}, \code{"mixed"} see Details.
-##' @param ... no other argument for this method.
-##' @details
-##' 
-##' The update can be performed with or without re-estimating hyperparameter.
-##' In the first case, \code{\link[hetGP]{mleHetGP}} is called, based on previous values for initialization. 
-##' The only missing values are the latent variables at the new points, that are initialized based on two possible update schemes in \code{method}:
-##' \itemize{
-##'   \item \code{"quick"} the new delta value is the predicted nugs value from the previous noise model;
-##'   \item \code{"mixed"} new values are taken as the barycenter between prediction given by the noise process and empirical variance. 
-##' }
-##' The subsequent number of MLE computations can be controlled with \code{maxit}.
-##' 
-##' In case hyperparameters need not be updated, \code{maxit} can be set to \code{0}. 
-##' In this case it is possible to pass \code{NA}s in \code{Znew}, then the model can still be used to provide updated variance predictions.
-##' 
-##' @export
-##' @method update hetGP
-##' @importFrom stats rnorm
-##' @examples 
-##' ##------------------------------------------------------------
-##' ## Sequential update example
-##' ##------------------------------------------------------------
-##' set.seed(42)
-##'
-##' ## Spatially varying noise function
-##' noisefun <- function(x, coef = 1){
-##'   return(coef * (0.05 + sqrt(abs(x)*20/(2*pi))/10))
-##' }
-##' 
-##' ## Initial data set
-##' nvar <- 1
-##' n <- 20
-##' X <- matrix(seq(0, 2 * pi, length=n), ncol = 1)
-##' mult <- sample(1:10, n, replace = TRUE)
-##' X <- rep(X, mult)
-##' Z <- sin(X) + rnorm(length(X), sd = noisefun(X))
-##' 
-##' ## Initial fit
-##' testpts <- matrix(seq(0, 2*pi, length = 10*n), ncol = 1)
-##' model <- model_init <- mleHetGP(X = X, Z = Z, lower = rep(0.1, nvar), 
-##'   upper = rep(50, nvar), maxit = 1000)
-##'
-##' ## Visualizing initial predictive surface
-##' preds <- predict(x = testpts, model_init) 
-##' plot(X, Z)
-##' lines(testpts, preds$mean, col = "red")
-##' 
-##' ## 10 fast update steps
-##' nsteps <- 5
-##' npersteps <- 10
-##' for(i in 1:nsteps){
-##'   newIds <- sort(sample(1:(10*n), npersteps))
-##'   
-##'   newX <- testpts[newIds, drop = FALSE] 
-##'   newZ <- sin(newX) + rnorm(length(newX), sd = noisefun(newX))
-##'   points(newX, newZ, col = "blue", pch = 20)
-##'   model <- update(object = model, Xnew = newX, Znew = newZ)
-##'   X <- c(X, newX)
-##'   Z <- c(Z, newZ)
-##'   plot(X, Z)
-##'   print(model$nit_opt)
-##' }
-##'
-##' ## Final predictions after 10 updates
-##' p_fin <- predict(x=testpts, model) 
-##'
-##' ## Visualizing the result by augmenting earlier plot
-##' lines(testpts, p_fin$mean, col = "blue")
-##' lines(testpts, qnorm(0.05, p_fin$mean, sqrt(p_fin$sd2)), col = "blue", lty = 2)
-##' lines(testpts, qnorm(0.95, p_fin$mean, sqrt(p_fin$sd2)), col = "blue", lty = 2)
-##' lines(testpts, qnorm(0.05, p_fin$mean, sqrt(p_fin$sd2 + p_fin$nugs)), 
-##'   col = "blue", lty = 3)
-##' lines(testpts, qnorm(0.95, p_fin$mean, sqrt(p_fin$sd2 + p_fin$nugs)), 
-##'   col = "blue", lty = 3)
-##' 
-##' ## Now compare to what you would get if you did a full batch fit instead
-##' model_direct <-  mleHetGP(X = X, Z = Z, maxit = 1000,
-##'                           lower = rep(0.1, nvar), upper = rep(50, nvar),
-##'                           init = list(theta = model_init$theta, k_theta_g = model_init$k_theta_g))
-##' p_dir <- predict(x = testpts, model_direct)
-##' print(model_direct$nit_opt)
-##' lines(testpts, p_dir$mean, col = "green")
-##' lines(testpts, qnorm(0.05, p_dir$mean, sqrt(p_dir$sd2)), col = "green", 
-##'   lty = 2)
-##' lines(testpts, qnorm(0.95, p_dir$mean, sqrt(p_dir$sd2)), col = "green", 
-##'   lty = 2)
-##' lines(testpts, qnorm(0.05, p_dir$mean, sqrt(p_dir$sd2 + p_dir$nugs)), 
-##'   col = "green", lty = 3)
-##' lines(testpts, qnorm(0.95, p_dir$mean, sqrt(p_dir$sd2 + p_dir$nugs)), 
-##'   col = "green", lty = 3)
-##' lines(testpts, sin(testpts), col = "red", lty = 2)
-##' 
-##' ## Compare outputs
-##' summary(model_init)
-##' summary(model)
-##' summary(model_direct)
-##' 
+#' Fast update of existing \code{hetGP} model with new observations. 
+#' @title Update \code{"hetGP"}-class model fit with new observations
+#' @param object previously fit \code{"hetGP"}-class model
+#' @param Xnew matrix of new design locations; \code{ncol(Xnew)} must match the input dimension encoded in \code{object}
+#' @param Znew vector new observations at those design locations, of length \code{nrow(X)}. \code{NA}s can be passed, see Details
+#' @param ginit minimal value of the smoothing parameter (i.e., nugget of the noise process) for optimization initialization.
+#' It is compared to the \code{g} hyperparameter in the object.   
+#' @param lower,upper,noiseControl,settings,known optional bounds for mle optimization, see \code{\link[hetGP]{mleHetGP}}. 
+#' If not provided, they are extracted from the existing model 
+#' @param maxit maximum number of iterations for the internal L-BFGS-B optimization method; see \code{\link{optim}} for more details
+#' @param method one of \code{"quick"}, \code{"mixed"} see Details.
+#' @param ... no other argument for this method.
+#' @details
+#' 
+#' The update can be performed with or without re-estimating hyperparameter.
+#' In the first case, \code{\link[hetGP]{mleHetGP}} is called, based on previous values for initialization. 
+#' The only missing values are the latent variables at the new points, that are initialized based on two possible update schemes in \code{method}:
+#' \itemize{
+#'   \item \code{"quick"} the new delta value is the predicted nugs value from the previous noise model;
+#'   \item \code{"mixed"} new values are taken as the barycenter between prediction given by the noise process and empirical variance. 
+#' }
+#' The subsequent number of MLE computations can be controlled with \code{maxit}.
+#' 
+#' In case hyperparameters need not be updated, \code{maxit} can be set to \code{0}. 
+#' In this case it is possible to pass \code{NA}s in \code{Znew}, then the model can still be used to provide updated variance predictions.
+#' 
+#' @export
+#' @method update hetGP
+#' @importFrom stats rnorm
+#' @examples 
+#' ##------------------------------------------------------------
+#' ## Sequential update example
+#' ##------------------------------------------------------------
+#' set.seed(42)
+#'
+#' ## Spatially varying noise function
+#' noisefun <- function(x, coef = 1){
+#'   return(coef * (0.05 + sqrt(abs(x)*20/(2*pi))/10))
+#' }
+#' 
+#' ## Initial data set
+#' nvar <- 1
+#' n <- 20
+#' X <- matrix(seq(0, 2 * pi, length=n), ncol = 1)
+#' mult <- sample(1:10, n, replace = TRUE)
+#' X <- rep(X, mult)
+#' Z <- sin(X) + rnorm(length(X), sd = noisefun(X))
+#' 
+#' ## Initial fit
+#' testpts <- matrix(seq(0, 2*pi, length = 10*n), ncol = 1)
+#' model <- model_init <- mleHetGP(X = X, Z = Z, lower = rep(0.1, nvar), 
+#'   upper = rep(50, nvar), maxit = 1000)
+#'
+#' ## Visualizing initial predictive surface
+#' preds <- predict(x = testpts, model_init) 
+#' plot(X, Z)
+#' lines(testpts, preds$mean, col = "red")
+#' 
+#' ## 10 fast update steps
+#' nsteps <- 5
+#' npersteps <- 10
+#' for(i in 1:nsteps){
+#'   newIds <- sort(sample(1:(10*n), npersteps))
+#'   
+#'   newX <- testpts[newIds, drop = FALSE] 
+#'   newZ <- sin(newX) + rnorm(length(newX), sd = noisefun(newX))
+#'   points(newX, newZ, col = "blue", pch = 20)
+#'   model <- update(object = model, Xnew = newX, Znew = newZ)
+#'   X <- c(X, newX)
+#'   Z <- c(Z, newZ)
+#'   plot(X, Z)
+#'   print(model$nit_opt)
+#' }
+#'
+#' ## Final predictions after 10 updates
+#' p_fin <- predict(x=testpts, model) 
+#'
+#' ## Visualizing the result by augmenting earlier plot
+#' lines(testpts, p_fin$mean, col = "blue")
+#' lines(testpts, qnorm(0.05, p_fin$mean, sqrt(p_fin$sd2)), col = "blue", lty = 2)
+#' lines(testpts, qnorm(0.95, p_fin$mean, sqrt(p_fin$sd2)), col = "blue", lty = 2)
+#' lines(testpts, qnorm(0.05, p_fin$mean, sqrt(p_fin$sd2 + p_fin$nugs)), 
+#'   col = "blue", lty = 3)
+#' lines(testpts, qnorm(0.95, p_fin$mean, sqrt(p_fin$sd2 + p_fin$nugs)), 
+#'   col = "blue", lty = 3)
+#' 
+#' ## Now compare to what you would get if you did a full batch fit instead
+#' model_direct <-  mleHetGP(X = X, Z = Z, maxit = 1000,
+#'                           lower = rep(0.1, nvar), upper = rep(50, nvar),
+#'                           init = list(theta = model_init$theta, k_theta_g = model_init$k_theta_g))
+#' p_dir <- predict(x = testpts, model_direct)
+#' print(model_direct$nit_opt)
+#' lines(testpts, p_dir$mean, col = "green")
+#' lines(testpts, qnorm(0.05, p_dir$mean, sqrt(p_dir$sd2)), col = "green", 
+#'   lty = 2)
+#' lines(testpts, qnorm(0.95, p_dir$mean, sqrt(p_dir$sd2)), col = "green", 
+#'   lty = 2)
+#' lines(testpts, qnorm(0.05, p_dir$mean, sqrt(p_dir$sd2 + p_dir$nugs)), 
+#'   col = "green", lty = 3)
+#' lines(testpts, qnorm(0.95, p_dir$mean, sqrt(p_dir$sd2 + p_dir$nugs)), 
+#'   col = "green", lty = 3)
+#' lines(testpts, sin(testpts), col = "red", lty = 2)
+#' 
+#' ## Compare outputs
+#' summary(model_init)
+#' summary(model)
+#' summary(model_direct)
+#' 
 ## ' ##------------------------------------------------------------
 ## ' ## Example 2: update keeping hyperparameters
 ## ' ##------------------------------------------------------------
@@ -292,88 +292,88 @@ update.hetGP <- function(object, Xnew, Znew, ginit = 1e-2, lower = NULL, upper =
 
 
 
-##' Update existing \code{homGP} model with new observations
-##' @title Fast \code{homGP}-update
-##' @param object initial model of class \code{homGP} 
-##' @param Xnew matrix of new design locations; \code{ncol(Xnew)} must match the input dimension encoded in object
-##' @param Znew vector new observations at those new design locations, of length \code{nrow(X)}. \code{NA}s can be passed, see Details
-##' @param lower,upper,noiseControl,known optional bounds for MLE optimization, see \code{\link[hetGP]{mleHomGP}}.
-##' If not provided, they are extracted from the existing model 
-##' @param maxit maximum number of iterations for the internal L-BFGS-B optimization method; see \code{\link{optim}} for more details
-##' @param ... no other argument for this method.
-##' @details 
-##' In case hyperparameters need not be updated, \code{maxit} can be set to \code{0}. 
-##' In this case it is possible to pass \code{NA}s in \code{Znew}, then the model can still be used to provide updated variance predictions.
-##' @export
-##' @method update homGP
-##' @examples 
-##' \dontrun{
-##' ##------------------------------------------------------------
-##' ## Example : Sequential Homoskedastic GP modeling 
-##' ##------------------------------------------------------------
-##' set.seed(42)
-##'
-##' ## Spatially varying noise function
-##' noisefun <- function(x, coef = 1){
-##'   return(coef * (0.05 + sqrt(abs(x)*20/(2*pi))/10))
-##' }
-##' 
-##' nvar <- 1
-##' n <- 10
-##' X <- matrix(seq(0, 2 * pi, length=n), ncol = 1)
-##' mult <- sample(1:10, n)
-##' X <- rep(X, mult)
-##' Z <- sin(X) + rnorm(length(X), sd = noisefun(X))
-##' 
-##' testpts <- matrix(seq(0, 2*pi, length = 10*n), ncol = 1)
-##' model <- model_init <- mleHomGP(X = X, Z = Z,
-##'                                 lower = rep(0.1, nvar), upper = rep(50, nvar))
-##' preds <- predict(x = testpts, object = model_init) 
-##' plot(X, Z)
-##' lines(testpts, preds$mean, col = "red")
-##' 
-##' 
-##' nsteps <- 10
-##' for(i in 1:nsteps){
-##'   newIds <- sort(sample(1:(10*n), 10))
-##'   
-##'   newX <- testpts[newIds, drop = FALSE] 
-##'   newZ <- sin(newX) + rnorm(length(newX), sd = noisefun(newX))
-##'   points(newX, newZ, col = "blue", pch = 20)
-##'   model <- update(object = model, newX, newZ)
-##'   X <- c(X, newX)
-##'   Z <- c(Z, newZ)
-##'   plot(X, Z)
-##'   print(model$nit_opt)
-##' }
-##' p_fin <- predict(x = testpts, object = model) 
-##' lines(testpts, p_fin$mean, col = "blue")
-##' lines(testpts, qnorm(0.05, p_fin$mean, sqrt(p_fin$sd2)), col = "blue", lty = 2)
-##' lines(testpts, qnorm(0.95, p_fin$mean, sqrt(p_fin$sd2)), col = "blue", lty = 2)
-##' lines(testpts, qnorm(0.05, p_fin$mean, sqrt(p_fin$sd2 + p_fin$nugs)),
-##'       col = "blue", lty = 3)
-##' lines(testpts, qnorm(0.95, p_fin$mean, sqrt(p_fin$sd2 + p_fin$nugs)),
-##'       col = "blue", lty = 3)
-##' 
-##' model_direct <-  mleHomGP(X = X, Z = Z, lower = rep(0.1, nvar), upper = rep(50, nvar))
-##' p_dir <- predict(x = testpts, object = model_direct)
-##' print(model_direct$nit_opt)
-##' lines(testpts, p_dir$mean, col = "green")
-##' lines(testpts, qnorm(0.05, p_dir$mean, sqrt(p_dir$sd2)), col = "green", lty = 2)
-##' lines(testpts, qnorm(0.95, p_dir$mean, sqrt(p_dir$sd2)), col = "green", lty = 2)
-##' lines(testpts, qnorm(0.05, p_dir$mean, sqrt(p_dir$sd2 + p_dir$nugs)),
-##'       col = "green", lty = 3)
-##' lines(testpts, qnorm(0.95, p_dir$mean, sqrt(p_dir$sd2 + p_dir$nugs)),
-##'       col = "green", lty = 3)
-##' 
-##' lines(testpts, sin(testpts), col = "red", lty = 2)
-##' 
-##' ## Compare outputs
-##' summary(model_init)
-##' summary(model)
-##' summary(model_direct)
-##' 
-##' 
+#' Update existing \code{homGP} model with new observations
+#' @title Fast \code{homGP}-update
+#' @param object initial model of class \code{homGP} 
+#' @param Xnew matrix of new design locations; \code{ncol(Xnew)} must match the input dimension encoded in object
+#' @param Znew vector new observations at those new design locations, of length \code{nrow(X)}. \code{NA}s can be passed, see Details
+#' @param lower,upper,noiseControl,known optional bounds for MLE optimization, see \code{\link[hetGP]{mleHomGP}}.
+#' If not provided, they are extracted from the existing model 
+#' @param maxit maximum number of iterations for the internal L-BFGS-B optimization method; see \code{\link{optim}} for more details
+#' @param ... no other argument for this method.
+#' @details 
+#' In case hyperparameters need not be updated, \code{maxit} can be set to \code{0}. 
+#' In this case it is possible to pass \code{NA}s in \code{Znew}, then the model can still be used to provide updated variance predictions.
+#' @export
+#' @method update homGP
+#' @examples 
+#' \dontrun{
+#' ##------------------------------------------------------------
+#' ## Example : Sequential Homoskedastic GP modeling 
+#' ##------------------------------------------------------------
+#' set.seed(42)
+#'
+#' ## Spatially varying noise function
+#' noisefun <- function(x, coef = 1){
+#'   return(coef * (0.05 + sqrt(abs(x)*20/(2*pi))/10))
+#' }
+#' 
+#' nvar <- 1
+#' n <- 10
+#' X <- matrix(seq(0, 2 * pi, length=n), ncol = 1)
+#' mult <- sample(1:10, n)
+#' X <- rep(X, mult)
+#' Z <- sin(X) + rnorm(length(X), sd = noisefun(X))
+#' 
+#' testpts <- matrix(seq(0, 2*pi, length = 10*n), ncol = 1)
+#' model <- model_init <- mleHomGP(X = X, Z = Z,
+#'                                 lower = rep(0.1, nvar), upper = rep(50, nvar))
+#' preds <- predict(x = testpts, object = model_init) 
+#' plot(X, Z)
+#' lines(testpts, preds$mean, col = "red")
+#' 
+#' 
+#' nsteps <- 10
+#' for(i in 1:nsteps){
+#'   newIds <- sort(sample(1:(10*n), 10))
+#'   
+#'   newX <- testpts[newIds, drop = FALSE] 
+#'   newZ <- sin(newX) + rnorm(length(newX), sd = noisefun(newX))
+#'   points(newX, newZ, col = "blue", pch = 20)
+#'   model <- update(object = model, newX, newZ)
+#'   X <- c(X, newX)
+#'   Z <- c(Z, newZ)
+#'   plot(X, Z)
+#'   print(model$nit_opt)
+#' }
+#' p_fin <- predict(x = testpts, object = model) 
+#' lines(testpts, p_fin$mean, col = "blue")
+#' lines(testpts, qnorm(0.05, p_fin$mean, sqrt(p_fin$sd2)), col = "blue", lty = 2)
+#' lines(testpts, qnorm(0.95, p_fin$mean, sqrt(p_fin$sd2)), col = "blue", lty = 2)
+#' lines(testpts, qnorm(0.05, p_fin$mean, sqrt(p_fin$sd2 + p_fin$nugs)),
+#'       col = "blue", lty = 3)
+#' lines(testpts, qnorm(0.95, p_fin$mean, sqrt(p_fin$sd2 + p_fin$nugs)),
+#'       col = "blue", lty = 3)
+#' 
+#' model_direct <-  mleHomGP(X = X, Z = Z, lower = rep(0.1, nvar), upper = rep(50, nvar))
+#' p_dir <- predict(x = testpts, object = model_direct)
+#' print(model_direct$nit_opt)
+#' lines(testpts, p_dir$mean, col = "green")
+#' lines(testpts, qnorm(0.05, p_dir$mean, sqrt(p_dir$sd2)), col = "green", lty = 2)
+#' lines(testpts, qnorm(0.95, p_dir$mean, sqrt(p_dir$sd2)), col = "green", lty = 2)
+#' lines(testpts, qnorm(0.05, p_dir$mean, sqrt(p_dir$sd2 + p_dir$nugs)),
+#'       col = "green", lty = 3)
+#' lines(testpts, qnorm(0.95, p_dir$mean, sqrt(p_dir$sd2 + p_dir$nugs)),
+#'       col = "green", lty = 3)
+#' 
+#' lines(testpts, sin(testpts), col = "red", lty = 2)
+#' 
+#' ## Compare outputs
+#' summary(model_init)
+#' summary(model)
+#' summary(model_direct)
+#' 
+#' 
 ## ' ##------------------------------------------------------------
 ## ' ## Example 2: update keeping hyperparameters
 ## ' ##------------------------------------------------------------
@@ -396,7 +396,7 @@ update.hetGP <- function(object, Xnew, Znew, ginit = 1e-2, lower = NULL, upper =
 ## ' model_ref <- mleHomGP(X = rbind(X, Xnew), Z = c(Z, Znew), upper = model_init$theta + 1e-8, lower = model_init$theta,
 ## '                       noiseControl = list(g_bounds = c(model_init$g, model_init$g + 1e-8)), beta = 0)
 ## ' range(model_ref$Ki - model_up$Ki)
-##' }
+#' }
 update.homGP <- function(object, Xnew, Znew = NULL, lower = NULL, upper = NULL, noiseControl = NULL, known = NULL, maxit = 100, ...){
   # first reduce Xnew/Znew in case of potential replicates
   newdata <- find_reps(Xnew, Znew, rescale = FALSE, normalize = FALSE)
@@ -463,94 +463,94 @@ update.homGP <- function(object, Xnew, Znew = NULL, lower = NULL, upper = NULL, 
   
 }
 
-##' Update existing \code{homTP} model with new observations
-##' @title Fast \code{homTP}-update
-##' @param object initial model of class \code{homTP} 
-##' @param Xnew matrix of new design locations; \code{ncol(Xnew)} must match the input dimension encoded in object
-##' @param Znew vector new observations at those new design locations, of length \code{nrow(X)}. \code{NA}s can be passed, see Details
-##' @param lower,upper,noiseControl,known optional bounds for MLE optimization, see \code{\link[hetGP]{mleHomTP}}.
-##' If not provided, they are extracted from the existing model 
-##' @param maxit maximum number of iterations for the internal L-BFGS-B optimization method; see \code{\link{optim}} for more details
-##' @param ... no other argument for this method.
-##' @details 
-##' In case hyperparameters need not be updated, \code{maxit} can be set to \code{0}. 
-##' In this case it is possible to pass \code{NA}s in \code{Znew}, then the model can still be used to provide updated variance predictions.
-##' @export
-##' @method update homTP
-##' @examples 
-##' \dontrun{
-##' ##------------------------------------------------------------
-##' ## Example : Sequential Homoskedastic TP moding 
-##' ##------------------------------------------------------------
-##' set.seed(42)
-##'
-##' ## Spatially varying noise function
-##' noisefun <- function(x, coef = 1){
-##'   return(coef * (0.05 + sqrt(abs(x)*20/(2*pi))/10))
-##' }
-##' 
-##' df_noise <- 3
-##' nvar <- 1
-##' n <- 10
-##' X <- matrix(seq(0, 2 * pi, length=n), ncol = 1)
-##' mult <- sample(1:50, n, replace = TRUE)
-##' X <- rep(X, mult)
-##' Z <- sin(X) + noisefun(X) * rt(length(X), df = df_noise)
-##' 
-##' testpts <- matrix(seq(0, 2*pi, length = 10*n), ncol = 1)
-##' mod <- mod_init <- mleHomTP(X = X, Z = Z, covtype = "Matern5_2",
-##'                                 lower = rep(0.1, nvar), upper = rep(50, nvar))
-##' preds <- predict(x = testpts, object = mod_init) 
-##' plot(X, Z)
-##' lines(testpts, preds$mean, col = "red")
-##' 
-##' 
-##' nsteps <- 10
-##' for(i in 1:nsteps){
-##'   newIds <- sort(sample(1:(10*n), 5))
-##'   
-##'   newX <- testpts[rep(newIds, times = sample(1:50, length(newIds), replace = TRUE)), drop = FALSE] 
-##'   newZ <- sin(newX) + noisefun(newX) * rt(length(newX), df = df_noise)
-##'   points(newX, newZ, col = "blue", pch = 20)
-##'   mod <- update(object = mod, newX, newZ)
-##'   X <- c(X, newX)
-##'   Z <- c(Z, newZ)
-##'   plot(X, Z)
-##'   print(mod$nit_opt)
-##' }
-##' p_fin <- predict(x = testpts, object = mod) 
-##' lines(testpts, p_fin$mean, col = "blue")
-##' lines(testpts, p_fin$mean + sqrt(p_fin$sd2) * qt(0.05, df = mod$nu + length(Z)),
-##'       col = "blue", lty = 2)
-##' lines(testpts, p_fin$mean + sqrt(p_fin$sd2) * qt(0.95, df = mod$nu + length(Z)),
-##'       col = "blue", lty = 2)
-##' lines(testpts, p_fin$mean + sqrt(p_fin$sd2 + p_fin$nugs) * qt(0.05, df = mod$nu + length(Z)),
-##'       col = "blue", lty = 3)
-##' lines(testpts, p_fin$mean + sqrt(p_fin$sd2 + p_fin$nugs) * qt(0.95, df = mod$nu + length(Z)),
-##'       col = "blue", lty = 3)
-##' 
-##' mod_dir <-  mleHomTP(X = X, Z = Z, covtype = "Matern5_2",
-##'                           lower = rep(0.1, nvar), upper = rep(50, nvar))
-##' p_dir <- predict(x = testpts, object = mod_dir)
-##' print(mod_dir$nit_opt)
-##' lines(testpts, p_dir$mean, col = "green")
-##' lines(testpts, p_dir$mean + sqrt(p_dir$sd2) * qt(0.05, df = mod_dir$nu + length(Z)),
-##'       col = "green", lty = 2)
-##' lines(testpts, p_dir$mean + sqrt(p_dir$sd2) * qt(0.95, df = mod_dir$nu + length(Z)),
-##'       col = "green", lty = 2)
-##' lines(testpts, p_dir$mean + sqrt(p_dir$sd2 + p_dir$nugs) * qt(0.05, df = mod_dir$nu + length(Z)),
-##'       col = "green", lty = 3)
-##' lines(testpts, p_dir$mean + sqrt(p_dir$sd2 + p_dir$nugs) * qt(0.95, df = mod_dir$nu + length(Z)),
-##'       col = "green", lty = 3)
-##' 
-##' lines(testpts, sin(testpts), col = "red", lty = 2)
-##' 
-##' ## Compare outputs
-##' summary(mod_init)
-##' summary(mod)
-##' summary(mod_dir)
-##' 
-##' 
+#' Update existing \code{homTP} model with new observations
+#' @title Fast \code{homTP}-update
+#' @param object initial model of class \code{homTP} 
+#' @param Xnew matrix of new design locations; \code{ncol(Xnew)} must match the input dimension encoded in object
+#' @param Znew vector new observations at those new design locations, of length \code{nrow(X)}. \code{NA}s can be passed, see Details
+#' @param lower,upper,noiseControl,known optional bounds for MLE optimization, see \code{\link[hetGP]{mleHomTP}}.
+#' If not provided, they are extracted from the existing model 
+#' @param maxit maximum number of iterations for the internal L-BFGS-B optimization method; see \code{\link{optim}} for more details
+#' @param ... no other argument for this method.
+#' @details 
+#' In case hyperparameters need not be updated, \code{maxit} can be set to \code{0}. 
+#' In this case it is possible to pass \code{NA}s in \code{Znew}, then the model can still be used to provide updated variance predictions.
+#' @export
+#' @method update homTP
+#' @examples 
+#' \dontrun{
+#' ##------------------------------------------------------------
+#' ## Example : Sequential Homoskedastic TP moding 
+#' ##------------------------------------------------------------
+#' set.seed(42)
+#'
+#' ## Spatially varying noise function
+#' noisefun <- function(x, coef = 1){
+#'   return(coef * (0.05 + sqrt(abs(x)*20/(2*pi))/10))
+#' }
+#' 
+#' df_noise <- 3
+#' nvar <- 1
+#' n <- 10
+#' X <- matrix(seq(0, 2 * pi, length=n), ncol = 1)
+#' mult <- sample(1:50, n, replace = TRUE)
+#' X <- rep(X, mult)
+#' Z <- sin(X) + noisefun(X) * rt(length(X), df = df_noise)
+#' 
+#' testpts <- matrix(seq(0, 2*pi, length = 10*n), ncol = 1)
+#' mod <- mod_init <- mleHomTP(X = X, Z = Z, covtype = "Matern5_2",
+#'                                 lower = rep(0.1, nvar), upper = rep(50, nvar))
+#' preds <- predict(x = testpts, object = mod_init) 
+#' plot(X, Z)
+#' lines(testpts, preds$mean, col = "red")
+#' 
+#' 
+#' nsteps <- 10
+#' for(i in 1:nsteps){
+#'   newIds <- sort(sample(1:(10*n), 5))
+#'   
+#'   newX <- testpts[rep(newIds, times = sample(1:50, length(newIds), replace = TRUE)), drop = FALSE] 
+#'   newZ <- sin(newX) + noisefun(newX) * rt(length(newX), df = df_noise)
+#'   points(newX, newZ, col = "blue", pch = 20)
+#'   mod <- update(object = mod, newX, newZ)
+#'   X <- c(X, newX)
+#'   Z <- c(Z, newZ)
+#'   plot(X, Z)
+#'   print(mod$nit_opt)
+#' }
+#' p_fin <- predict(x = testpts, object = mod) 
+#' lines(testpts, p_fin$mean, col = "blue")
+#' lines(testpts, p_fin$mean + sqrt(p_fin$sd2) * qt(0.05, df = mod$nu + length(Z)),
+#'       col = "blue", lty = 2)
+#' lines(testpts, p_fin$mean + sqrt(p_fin$sd2) * qt(0.95, df = mod$nu + length(Z)),
+#'       col = "blue", lty = 2)
+#' lines(testpts, p_fin$mean + sqrt(p_fin$sd2 + p_fin$nugs) * qt(0.05, df = mod$nu + length(Z)),
+#'       col = "blue", lty = 3)
+#' lines(testpts, p_fin$mean + sqrt(p_fin$sd2 + p_fin$nugs) * qt(0.95, df = mod$nu + length(Z)),
+#'       col = "blue", lty = 3)
+#' 
+#' mod_dir <-  mleHomTP(X = X, Z = Z, covtype = "Matern5_2",
+#'                           lower = rep(0.1, nvar), upper = rep(50, nvar))
+#' p_dir <- predict(x = testpts, object = mod_dir)
+#' print(mod_dir$nit_opt)
+#' lines(testpts, p_dir$mean, col = "green")
+#' lines(testpts, p_dir$mean + sqrt(p_dir$sd2) * qt(0.05, df = mod_dir$nu + length(Z)),
+#'       col = "green", lty = 2)
+#' lines(testpts, p_dir$mean + sqrt(p_dir$sd2) * qt(0.95, df = mod_dir$nu + length(Z)),
+#'       col = "green", lty = 2)
+#' lines(testpts, p_dir$mean + sqrt(p_dir$sd2 + p_dir$nugs) * qt(0.05, df = mod_dir$nu + length(Z)),
+#'       col = "green", lty = 3)
+#' lines(testpts, p_dir$mean + sqrt(p_dir$sd2 + p_dir$nugs) * qt(0.95, df = mod_dir$nu + length(Z)),
+#'       col = "green", lty = 3)
+#' 
+#' lines(testpts, sin(testpts), col = "red", lty = 2)
+#' 
+#' ## Compare outputs
+#' summary(mod_init)
+#' summary(mod)
+#' summary(mod_dir)
+#' 
+#' 
 ## ' ##------------------------------------------------------------
 ## ' ## Example 2: update keeping hyperparameters
 ## ' ##------------------------------------------------------------
@@ -573,7 +573,7 @@ update.homGP <- function(object, Xnew, Znew = NULL, lower = NULL, upper = NULL, 
 ## ' model_ref <- mleHomTP(X = rbind(X, Xnew), Z = c(Z, Znew), upper = model_init$theta + 1e-8, lower = model_init$theta,
 ## '                       noiseControl = list(g_bounds = c(model_init$g, model_init$g + 1e-8)), beta = 0)
 ## ' range(model_ref$Ki - model_up$Ki)
-##' }
+#' }
 update.homTP <- function(object, Xnew, Znew = NULL, lower = NULL, upper = NULL, noiseControl = NULL, known = NULL, maxit = 100, ...){
   # first reduce Xnew/Znew in case of potential replicates
   newdata <- find_reps(Xnew, Znew, rescale = FALSE, normalize = FALSE)
@@ -651,114 +651,114 @@ update.homTP <- function(object, Xnew, Znew = NULL, lower = NULL, upper = NULL, 
   
 }
 
-##' Fast update of existing \code{hetTP} model with new observations. 
-##' @title Update \code{"hetTP"}-class model fit with new observations
-##' @param object previously fit \code{"hetTP"}-class model
-##' @param Xnew matrix of new design locations; \code{ncol(Xnew)} must match the input dimension encoded in \code{object}
-##' @param Znew vector new observations at those design locations, of length \code{nrow(X)}. \code{NA}s can be passed, see Details
-##' @param ginit minimal value of the smoothing parameter (i.e., nugget of the noise process) for optimization initialisation.
-##' It is compared to the \code{g} hyperparameter in the object.   
-##' @param lower,upper,noiseControl,settings,known optional bounds for mle optimization, see \code{\link[hetGP]{mleHetTP}}. 
-##' If not provided, they are extracted from the existing model 
-##' @param maxit maximum number of iterations for the internal L-BFGS-B optimization method; see \code{\link{optim}} for more details
-##' @param method one of \code{"quick"}, \code{"mixed"} see Details.
-##' @param ... no other argument for this method.
-##' @details
-##' 
-##' The update can be performed with or without re-estimating hyperparameter.
-##' In the first case, \code{\link[hetGP]{mleHetTP}} is called, based on previous values for initialization. 
-##' The only missing values are the latent variables at the new points, that are initialized based on two possible update schemes in \code{method}:
-##' \itemize{
-##'   \item \code{"quick"} the new delta value is the predicted nugs value from the previous noise model;
-##'   \item \code{"mixed"} new values are taken as the barycenter between prediction given by the noise process and empirical variance. 
-##' }
-##' The subsequent number of MLE computations can be controlled with \code{maxit}.
-##' 
-##' In case hyperparameters need not be updated, \code{maxit} can be set to \code{0}. 
-##' In this case it is possible to pass \code{NA}s in \code{Znew}, then the model can still be used to provide updated variance predictions.
-##' 
-##' @export
-##' @method update hetTP
-##' @importFrom stats rnorm
-##' @examples 
-##' ##------------------------------------------------------------
-##' ## Sequential update example
-##' ##------------------------------------------------------------
-##' set.seed(42)
-##'
-##' ## Spatially varying noise function
-##' noisefun <- function(x, coef = 1){
-##'   return(coef * (0.05 + sqrt(abs(x)*20/(2*pi))/10))
-##' }
-##' 
-##' ## Initial data set
-##' nvar <- 1
-##' n <- 20
-##' X <- matrix(seq(0, 2 * pi, length=n), ncol = 1)
-##' mult <- sample(1:10, n, replace = TRUE)
-##' X <- rep(X, mult)
-##' Z <- sin(X) + noisefun(X) * rt(length(X), df = 10)
-##' 
-##' ## Initial fit
-##' testpts <- matrix(seq(0, 2*pi, length = 10*n), ncol = 1)
-##' model <- model_init <- mleHetTP(X = X, Z = Z, lower = rep(0.1, nvar), 
-##'   upper = rep(50, nvar), maxit = 1000)
-##'
-##' ## Visualizing initial predictive surface
-##' preds <- predict(x = testpts, model_init) 
-##' plot(X, Z)
-##' lines(testpts, preds$mean, col = "red")
-##' 
-##' ## 10 fast update steps
-##' nsteps <- 5
-##' npersteps <- 10
-##' for(i in 1:nsteps){
-##'   newIds <- sort(sample(1:(10*n), npersteps))
-##'   
-##'   newX <- testpts[newIds, drop = FALSE] 
-##'   newZ <- sin(newX) + noisefun(newX) * rt(length(newX), df = 10)
-##'   points(newX, newZ, col = "blue", pch = 20)
-##'   model <- update(object = model, Xnew = newX, Znew = newZ)
-##'   X <- c(X, newX)
-##'   Z <- c(Z, newZ)
-##'   plot(X, Z)
-##'   print(model$nit_opt)
-##' }
-##'
-##' ## Final predictions after 10 updates
-##' p_fin <- predict(x=testpts, model) 
-##'
-##' ## Visualizing the result by augmenting earlier plot
-##' lines(testpts, p_fin$mean, col = "blue")
-##' lines(testpts, qnorm(0.05, p_fin$mean, sqrt(p_fin$sd2)), col = "blue", lty = 2)
-##' lines(testpts, qnorm(0.95, p_fin$mean, sqrt(p_fin$sd2)), col = "blue", lty = 2)
-##' lines(testpts, qnorm(0.05, p_fin$mean, sqrt(p_fin$sd2 + p_fin$nugs)), 
-##'   col = "blue", lty = 3)
-##' lines(testpts, qnorm(0.95, p_fin$mean, sqrt(p_fin$sd2 + p_fin$nugs)), 
-##'   col = "blue", lty = 3)
-##' 
-##' ## Now compare to what you would get if you did a full batch fit instead
-##' model_direct <-  mleHetTP(X = X, Z = Z, maxit = 1000,
-##'                           lower = rep(0.1, nvar), upper = rep(50, nvar),
-##'                           init = list(theta = model_init$theta, k_theta_g = model_init$k_theta_g))
-##' p_dir <- predict(x = testpts, model_direct)
-##' print(model_direct$nit_opt)
-##' lines(testpts, p_dir$mean, col = "green")
-##' lines(testpts, qnorm(0.05, p_dir$mean, sqrt(p_dir$sd2)), col = "green", 
-##'   lty = 2)
-##' lines(testpts, qnorm(0.95, p_dir$mean, sqrt(p_dir$sd2)), col = "green", 
-##'   lty = 2)
-##' lines(testpts, qnorm(0.05, p_dir$mean, sqrt(p_dir$sd2 + p_dir$nugs)), 
-##'   col = "green", lty = 3)
-##' lines(testpts, qnorm(0.95, p_dir$mean, sqrt(p_dir$sd2 + p_dir$nugs)), 
-##'   col = "green", lty = 3)
-##' lines(testpts, sin(testpts), col = "red", lty = 2)
-##' 
-##' ## Compare outputs
-##' summary(model_init)
-##' summary(model)
-##' summary(model_direct)
-##' 
+#' Fast update of existing \code{hetTP} model with new observations. 
+#' @title Update \code{"hetTP"}-class model fit with new observations
+#' @param object previously fit \code{"hetTP"}-class model
+#' @param Xnew matrix of new design locations; \code{ncol(Xnew)} must match the input dimension encoded in \code{object}
+#' @param Znew vector new observations at those design locations, of length \code{nrow(X)}. \code{NA}s can be passed, see Details
+#' @param ginit minimal value of the smoothing parameter (i.e., nugget of the noise process) for optimization initialisation.
+#' It is compared to the \code{g} hyperparameter in the object.   
+#' @param lower,upper,noiseControl,settings,known optional bounds for mle optimization, see \code{\link[hetGP]{mleHetTP}}. 
+#' If not provided, they are extracted from the existing model 
+#' @param maxit maximum number of iterations for the internal L-BFGS-B optimization method; see \code{\link{optim}} for more details
+#' @param method one of \code{"quick"}, \code{"mixed"} see Details.
+#' @param ... no other argument for this method.
+#' @details
+#' 
+#' The update can be performed with or without re-estimating hyperparameter.
+#' In the first case, \code{\link[hetGP]{mleHetTP}} is called, based on previous values for initialization. 
+#' The only missing values are the latent variables at the new points, that are initialized based on two possible update schemes in \code{method}:
+#' \itemize{
+#'   \item \code{"quick"} the new delta value is the predicted nugs value from the previous noise model;
+#'   \item \code{"mixed"} new values are taken as the barycenter between prediction given by the noise process and empirical variance. 
+#' }
+#' The subsequent number of MLE computations can be controlled with \code{maxit}.
+#' 
+#' In case hyperparameters need not be updated, \code{maxit} can be set to \code{0}. 
+#' In this case it is possible to pass \code{NA}s in \code{Znew}, then the model can still be used to provide updated variance predictions.
+#' 
+#' @export
+#' @method update hetTP
+#' @importFrom stats rnorm
+#' @examples 
+#' ##------------------------------------------------------------
+#' ## Sequential update example
+#' ##------------------------------------------------------------
+#' set.seed(42)
+#'
+#' ## Spatially varying noise function
+#' noisefun <- function(x, coef = 1){
+#'   return(coef * (0.05 + sqrt(abs(x)*20/(2*pi))/10))
+#' }
+#' 
+#' ## Initial data set
+#' nvar <- 1
+#' n <- 20
+#' X <- matrix(seq(0, 2 * pi, length=n), ncol = 1)
+#' mult <- sample(1:10, n, replace = TRUE)
+#' X <- rep(X, mult)
+#' Z <- sin(X) + noisefun(X) * rt(length(X), df = 10)
+#' 
+#' ## Initial fit
+#' testpts <- matrix(seq(0, 2*pi, length = 10*n), ncol = 1)
+#' model <- model_init <- mleHetTP(X = X, Z = Z, lower = rep(0.1, nvar), 
+#'   upper = rep(50, nvar), maxit = 1000)
+#'
+#' ## Visualizing initial predictive surface
+#' preds <- predict(x = testpts, model_init) 
+#' plot(X, Z)
+#' lines(testpts, preds$mean, col = "red")
+#' 
+#' ## 10 fast update steps
+#' nsteps <- 5
+#' npersteps <- 10
+#' for(i in 1:nsteps){
+#'   newIds <- sort(sample(1:(10*n), npersteps))
+#'   
+#'   newX <- testpts[newIds, drop = FALSE] 
+#'   newZ <- sin(newX) + noisefun(newX) * rt(length(newX), df = 10)
+#'   points(newX, newZ, col = "blue", pch = 20)
+#'   model <- update(object = model, Xnew = newX, Znew = newZ)
+#'   X <- c(X, newX)
+#'   Z <- c(Z, newZ)
+#'   plot(X, Z)
+#'   print(model$nit_opt)
+#' }
+#'
+#' ## Final predictions after 10 updates
+#' p_fin <- predict(x=testpts, model) 
+#'
+#' ## Visualizing the result by augmenting earlier plot
+#' lines(testpts, p_fin$mean, col = "blue")
+#' lines(testpts, qnorm(0.05, p_fin$mean, sqrt(p_fin$sd2)), col = "blue", lty = 2)
+#' lines(testpts, qnorm(0.95, p_fin$mean, sqrt(p_fin$sd2)), col = "blue", lty = 2)
+#' lines(testpts, qnorm(0.05, p_fin$mean, sqrt(p_fin$sd2 + p_fin$nugs)), 
+#'   col = "blue", lty = 3)
+#' lines(testpts, qnorm(0.95, p_fin$mean, sqrt(p_fin$sd2 + p_fin$nugs)), 
+#'   col = "blue", lty = 3)
+#' 
+#' ## Now compare to what you would get if you did a full batch fit instead
+#' model_direct <-  mleHetTP(X = X, Z = Z, maxit = 1000,
+#'                           lower = rep(0.1, nvar), upper = rep(50, nvar),
+#'                           init = list(theta = model_init$theta, k_theta_g = model_init$k_theta_g))
+#' p_dir <- predict(x = testpts, model_direct)
+#' print(model_direct$nit_opt)
+#' lines(testpts, p_dir$mean, col = "green")
+#' lines(testpts, qnorm(0.05, p_dir$mean, sqrt(p_dir$sd2)), col = "green", 
+#'   lty = 2)
+#' lines(testpts, qnorm(0.95, p_dir$mean, sqrt(p_dir$sd2)), col = "green", 
+#'   lty = 2)
+#' lines(testpts, qnorm(0.05, p_dir$mean, sqrt(p_dir$sd2 + p_dir$nugs)), 
+#'   col = "green", lty = 3)
+#' lines(testpts, qnorm(0.95, p_dir$mean, sqrt(p_dir$sd2 + p_dir$nugs)), 
+#'   col = "green", lty = 3)
+#' lines(testpts, sin(testpts), col = "red", lty = 2)
+#' 
+#' ## Compare outputs
+#' summary(model_init)
+#' summary(model)
+#' summary(model_direct)
+#' 
 ## ' ##------------------------------------------------------------
 ## ' ## Example 2: update keeping hyperparameters
 ## ' ##------------------------------------------------------------
@@ -1049,60 +1049,60 @@ LOO_preds_nugs <- function(model, i){
   return(list(mean = yih, sd2 = sih))
 }
 
-##' Provide leave one out predictions, e.g., for model testing and diagnostics. 
-##' This is used in the method plot available on GP and TP models.
-##' @title Leave one out predictions
-##' @param model \code{homGP} or \code{hetGP} model, TP version is not considered at this point
-##' @param ids vector of indices of the unique design point considered (default to all)
-##' @return list with mean and variance predictions at x_i assuming this point has not been evaluated
-##' @export
-##' @note For TP models, \code{psi} is considered fixed.
-##' @references
-##' O. Dubrule (1983), Cross validation of Kriging in a unique neighborhood, Mathematical Geology 15, 687--699. \cr \cr
-##' 
-##' F. Bachoc (2013), Cross Validation and Maximum Likelihood estimations of hyper-parameters of Gaussian processes 
-##' with model misspecification, Computational Statistics & Data Analysis, 55--69.
-##' 
-##' @examples
-##' set.seed(32)
-##' ## motorcycle data
-##' library(MASS)
-##' X <- matrix(mcycle$times, ncol = 1)
-##' Z <- mcycle$accel
-##' nvar <- 1
+#' Provide leave one out predictions, e.g., for model testing and diagnostics. 
+#' This is used in the method plot available on GP and TP models.
+#' @title Leave one out predictions
+#' @param model \code{homGP} or \code{hetGP} model, TP version is not considered at this point
+#' @param ids vector of indices of the unique design point considered (default to all)
+#' @return list with mean and variance predictions at x_i assuming this point has not been evaluated
+#' @export
+#' @note For TP models, \code{psi} is considered fixed.
+#' @references
+#' O. Dubrule (1983), Cross validation of Kriging in a unique neighborhood, Mathematical Geology 15, 687--699. \cr \cr
+#' 
+#' F. Bachoc (2013), Cross Validation and Maximum Likelihood estimations of hyper-parameters of Gaussian processes 
+#' with model misspecification, Computational Statistics & Data Analysis, 55--69.
+#' 
+#' @examples
+#' set.seed(32)
+#' ## motorcycle data
+#' library(MASS)
+#' X <- matrix(mcycle$times, ncol = 1)
+#' Z <- mcycle$accel
+#' nvar <- 1
 ## ' plot(X, Z, ylim = c(-160, 90), ylab = 'acceleration', xlab = "time")
-##'
-##' ## Model fitting
-##' model <- mleHomGP(X = X, Z = Z, lower = rep(0.1, nvar), upper = rep(10, nvar),
-##'                   covtype = "Matern5_2", known = list(beta0 = 0))
-##' LOO_p <- LOO_preds(model)
-##'  
-##' # model minus observation(s) at x_i
-##' d_mot <- find_reps(X, Z)
-##' 
-##' LOO_ref <- matrix(NA, nrow(d_mot$X0), 2)
-##' for(i in 1:nrow(d_mot$X0)){
-##'  model_i <- mleHomGP(X = list(X0 = d_mot$X0[-i,, drop = FALSE], Z0 = d_mot$Z0[-i],
-##'                      mult = d_mot$mult[-i]), Z = unlist(d_mot$Zlist[-i]),
-##'                      lower = rep(0.1, nvar), upper = rep(50, nvar), covtype = "Matern5_2",
-##'                      known = list(theta = model$theta, k_theta_g = model$k_theta_g, g = model$g,
-##'                                   beta0 = 0))
-##'  model_i$nu_hat <- model$nu_hat
+#'
+#' ## Model fitting
+#' model <- mleHomGP(X = X, Z = Z, lower = rep(0.1, nvar), upper = rep(10, nvar),
+#'                   covtype = "Matern5_2", known = list(beta0 = 0))
+#' LOO_p <- LOO_preds(model)
+#'  
+#' # model minus observation(s) at x_i
+#' d_mot <- find_reps(X, Z)
+#' 
+#' LOO_ref <- matrix(NA, nrow(d_mot$X0), 2)
+#' for(i in 1:nrow(d_mot$X0)){
+#'  model_i <- mleHomGP(X = list(X0 = d_mot$X0[-i,, drop = FALSE], Z0 = d_mot$Z0[-i],
+#'                      mult = d_mot$mult[-i]), Z = unlist(d_mot$Zlist[-i]),
+#'                      lower = rep(0.1, nvar), upper = rep(50, nvar), covtype = "Matern5_2",
+#'                      known = list(theta = model$theta, k_theta_g = model$k_theta_g, g = model$g,
+#'                                   beta0 = 0))
+#'  model_i$nu_hat <- model$nu_hat
 ## ' # For hetGP, need to use the same Lambdas to get the same results  
 ## '  model_i$Lambda <- model$Lambda[-i] 
 ## '  model_i <- strip(model_i)
 ## '  model_i <- rebuild(model_i)
-##'  p_i <- predict(model_i, d_mot$X0[i,,drop = FALSE])
-##'  LOO_ref[i,] <- c(p_i$mean, p_i$sd2)
-##' }
-##' 
-##' # Compare results
-##' 
-##' range(LOO_ref[,1] - LOO_p$mean)
-##' range(LOO_ref[,2] - LOO_p$sd2)
-##' 
-##' # Use of LOO for diagnostics
-##' plot(model)
+#'  p_i <- predict(model_i, d_mot$X0[i,,drop = FALSE])
+#'  LOO_ref[i,] <- c(p_i$mean, p_i$sd2)
+#' }
+#' 
+#' # Compare results
+#' 
+#' range(LOO_ref[,1] - LOO_p$mean)
+#' range(LOO_ref[,2] - LOO_p$sd2)
+#' 
+#' # Use of LOO for diagnostics
+#' plot(model)
 LOO_preds <- function(model, ids = NULL){
   if(is.null(ids)) ids <- 1:nrow(model$X0)
   

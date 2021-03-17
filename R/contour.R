@@ -1,54 +1,54 @@
-##' Computes MEE infill criterion
-##' @title Maximum Empirical Error criterion
-##' @param x matrix of new designs, one point per row (size n x d)
-##' @param model \code{homGP} or \code{hetGP} model, including inverse matrices
-##' @param thres for contour finding
-##' @param preds optional predictions at \code{x} to avoid recomputing if already done
-##' @export
-##' @importFrom stats pt pnorm dnorm
-##' @references
-##' Ranjan, P., Bingham, D. & Michailidis, G (2008). 
-##' Sequential experiment design for contour estimation from complex computer codes, 
-##' Technometrics, 50, pp. 527-541. \cr \cr
-##' 
-##' Bichon, B., Eldred, M., Swiler, L., Mahadevan, S. & McFarland, J. (2008).
-##' Efficient global  reliability  analysis  for  nonlinear  implicit  performance  functions, 
-##' AIAA Journal, 46, pp. 2459-2468. \cr \cr
-##' 
-##' Lyu, X., Binois, M. & Ludkovski, M. (2018). Evaluating Gaussian Process Metamodels and Sequential Designs for Noisy Level Set Estimation. arXiv:1807.06712. \cr
-##' 
-##' @examples 
-##' ## Infill criterion example
-##' set.seed(42)
-##' branin <- function(x){
-##'   m <- 54.8104; s <- 51.9496
-##'   if(is.null(dim(x))) x <- matrix(x, nrow = 1)
-##'   xx <- 15 * x[,1] - 5; y <- 15 * x[,2]
-##'   f <- (y - 5.1 * xx^2/(4 * pi^2) + 5 * xx/pi - 6)^2 + 10 * (1 - 1/(8 * pi)) * cos(xx) + 10
-##'   f <- (f - m)/s
-##'   return(f)
-##' }
-##' 
-##' ftest <- function(x, sd = 0.1){
-##'   if(is.null(dim(x))) x <- matrix(x, nrow = 1)
-##'   return(apply(x, 1, branin) + rnorm(nrow(x), sd = sd))
-##' }
-##' 
-##' ngrid <- 101; xgrid <- seq(0, 1, length.out = ngrid)
-##' Xgrid <- as.matrix(expand.grid(xgrid, xgrid))
-##' Zgrid <- ftest(Xgrid)
-##' 
-##' n <- 20
-##' N <- 500
-##' X <- Xgrid[sample(1:nrow(Xgrid), n),]
-##' X <- X[sample(1:n, N, replace = TRUE),]
-##' Z <- ftest(X)
-##' model <- mleHetGP(X, Z, lower = rep(0.001,2), upper = rep(1,2))
-##' 
-##' critgrid <- apply(Xgrid, 1, crit_MEE, model = model)
-##' 
-##' filled.contour(matrix(critgrid, ngrid), color.palette = terrain.colors, main = "MEE criterion")
-##' 
+#' Computes MEE infill criterion
+#' @title Maximum Empirical Error criterion
+#' @param x matrix of new designs, one point per row (size n x d)
+#' @param model \code{homGP} or \code{hetGP} model, including inverse matrices
+#' @param thres for contour finding
+#' @param preds optional predictions at \code{x} to avoid recomputing if already done
+#' @export
+#' @importFrom stats pt pnorm dnorm
+#' @references
+#' Ranjan, P., Bingham, D. & Michailidis, G (2008). 
+#' Sequential experiment design for contour estimation from complex computer codes, 
+#' Technometrics, 50, pp. 527-541. \cr \cr
+#' 
+#' Bichon, B., Eldred, M., Swiler, L., Mahadevan, S. & McFarland, J. (2008).
+#' Efficient global  reliability  analysis  for  nonlinear  implicit  performance  functions, 
+#' AIAA Journal, 46, pp. 2459-2468. \cr \cr
+#' 
+#' Lyu, X., Binois, M. & Ludkovski, M. (2018+). Evaluating Gaussian Process Metamodels and Sequential Designs for Noisy Level Set Estimation. arXiv:1807.06712. \cr
+#' 
+#' @examples 
+#' ## Infill criterion example
+#' set.seed(42)
+#' branin <- function(x){
+#'   m <- 54.8104; s <- 51.9496
+#'   if(is.null(dim(x))) x <- matrix(x, nrow = 1)
+#'   xx <- 15 * x[,1] - 5; y <- 15 * x[,2]
+#'   f <- (y - 5.1 * xx^2/(4 * pi^2) + 5 * xx/pi - 6)^2 + 10 * (1 - 1/(8 * pi)) * cos(xx) + 10
+#'   f <- (f - m)/s
+#'   return(f)
+#' }
+#' 
+#' ftest <- function(x, sd = 0.1){
+#'   if(is.null(dim(x))) x <- matrix(x, nrow = 1)
+#'   return(apply(x, 1, branin) + rnorm(nrow(x), sd = sd))
+#' }
+#' 
+#' ngrid <- 101; xgrid <- seq(0, 1, length.out = ngrid)
+#' Xgrid <- as.matrix(expand.grid(xgrid, xgrid))
+#' Zgrid <- ftest(Xgrid)
+#' 
+#' n <- 20
+#' N <- 500
+#' X <- Xgrid[sample(1:nrow(Xgrid), n),]
+#' X <- X[sample(1:n, N, replace = TRUE),]
+#' Z <- ftest(X)
+#' model <- mleHetGP(X, Z, lower = rep(0.001,2), upper = rep(1,2))
+#' 
+#' critgrid <- apply(Xgrid, 1, crit_MEE, model = model)
+#' 
+#' filled.contour(matrix(critgrid, ngrid), color.palette = terrain.colors, main = "MEE criterion")
+#' 
 crit_MEE <- function(x, model, thres = 0, preds = NULL){
   
   if(is.null(dim(x))) x <- matrix(x, nrow = 1)
@@ -64,48 +64,48 @@ crit_MEE <- function(x, model, thres = 0, preds = NULL){
 }
 
 
-##' Computes cSUR infill criterion
-##' @title Contour Stepwise Uncertainty Reduction criterion
-##' @param x matrix of new designs, one point per row (size n x d)
-##' @param model \code{homGP} or \code{hetGP} model, including inverse matrices
-##' @param thres for contour finding
-##' @param preds optional predictions at \code{x} to avoid recomputing if already done (must contain \code{cov})
-##' @references
-##' Lyu, X., Binois, M. & Ludkovski, M. (2018). Evaluating Gaussian Process Metamodels and Sequential Designs for Noisy Level Set Estimation. arXiv:1807.06712. \cr
-##' @export
+#' Computes cSUR infill criterion
+#' @title Contour Stepwise Uncertainty Reduction criterion
+#' @param x matrix of new designs, one point per row (size n x d)
+#' @param model \code{homGP} or \code{hetGP} model, including inverse matrices
+#' @param thres for contour finding
+#' @param preds optional predictions at \code{x} to avoid recomputing if already done (must contain \code{cov})
+#' @references
+#' Lyu, X., Binois, M. & Ludkovski, M. (2018+). Evaluating Gaussian Process Metamodels and Sequential Designs for Noisy Level Set Estimation. arXiv:1807.06712. \cr
+#' @export
 ## ' @details TODO: deal with replication
-##' @examples 
-##' ## Infill criterion example
-##' set.seed(42)
-##' branin <- function(x){
-##'   m <- 54.8104; s <- 51.9496
-##'   if(is.null(dim(x))) x <- matrix(x, nrow = 1)
-##'   xx <- 15 * x[,1] - 5; y <- 15 * x[,2]
-##'   f <- (y - 5.1 * xx^2/(4 * pi^2) + 5 * xx/pi - 6)^2 + 10 * (1 - 1/(8 * pi)) * cos(xx) + 10
-##'   f <- (f - m)/s
-##'   return(f)
-##' }
-##' 
-##' ftest <- function(x, sd = 0.1){
-##'   if(is.null(dim(x))) x <- matrix(x, nrow = 1)
-##'   return(apply(x, 1, branin) + rnorm(nrow(x), sd = sd))
-##' }
-##' 
-##' ngrid <- 101; xgrid <- seq(0, 1, length.out = ngrid)
-##' Xgrid <- as.matrix(expand.grid(xgrid, xgrid))
-##' Zgrid <- ftest(Xgrid)
-##' 
-##' n <- 20
-##' N <- 500
-##' X <- Xgrid[sample(1:nrow(Xgrid), n),]
-##' X <- X[sample(1:n, N, replace = TRUE),]
-##' Z <- ftest(X)
-##' model <- mleHetGP(X, Z, lower = rep(0.001,2), upper = rep(1,2))
-##' 
-##' critgrid <- apply(Xgrid, 1, crit_cSUR, model = model)
-##' 
-##' filled.contour(matrix(critgrid, ngrid), color.palette = terrain.colors, main = "cSUR criterion")
-##' 
+#' @examples 
+#' ## Infill criterion example
+#' set.seed(42)
+#' branin <- function(x){
+#'   m <- 54.8104; s <- 51.9496
+#'   if(is.null(dim(x))) x <- matrix(x, nrow = 1)
+#'   xx <- 15 * x[,1] - 5; y <- 15 * x[,2]
+#'   f <- (y - 5.1 * xx^2/(4 * pi^2) + 5 * xx/pi - 6)^2 + 10 * (1 - 1/(8 * pi)) * cos(xx) + 10
+#'   f <- (f - m)/s
+#'   return(f)
+#' }
+#' 
+#' ftest <- function(x, sd = 0.1){
+#'   if(is.null(dim(x))) x <- matrix(x, nrow = 1)
+#'   return(apply(x, 1, branin) + rnorm(nrow(x), sd = sd))
+#' }
+#' 
+#' ngrid <- 101; xgrid <- seq(0, 1, length.out = ngrid)
+#' Xgrid <- as.matrix(expand.grid(xgrid, xgrid))
+#' Zgrid <- ftest(Xgrid)
+#' 
+#' n <- 20
+#' N <- 500
+#' X <- Xgrid[sample(1:nrow(Xgrid), n),]
+#' X <- X[sample(1:n, N, replace = TRUE),]
+#' Z <- ftest(X)
+#' model <- mleHetGP(X, Z, lower = rep(0.001,2), upper = rep(1,2))
+#' 
+#' critgrid <- apply(Xgrid, 1, crit_cSUR, model = model)
+#' 
+#' filled.contour(matrix(critgrid, ngrid), color.palette = terrain.colors, main = "cSUR criterion")
+#' 
 crit_cSUR <- function(x, model, thres = 0, preds = NULL){
   if(is.null(dim(x))) x <- matrix(x, nrow = 1)
   if(is.null(preds) || is.null(preds$cov)) preds <- predict(model, x = x, xprime = x)
@@ -140,56 +140,56 @@ crit_cSUR <- function(x, model, thres = 0, preds = NULL){
   
 }
 
-##' Computes ICU infill criterion
-##' @title Integrated Contour Uncertainty criterion
-##' @param x matrix of new designs, one point per row (size n x d)
-##' @param model \code{homGP} or \code{hetGP} model, including inverse matrices
-##' @param Xref matrix of input locations to approximate the integral by a sum
-##' @param w  optional weights vector of weights for \code{Xref} locations
-##' @param thres for contour finding
-##' @param preds optional predictions at \code{Xref} to avoid recomputing if already done
-##' @param kxprime optional covariance matrix between \code{model$X0} and \code{Xref} to avoid its recomputation
-##' @references
-##' Lyu, X., Binois, M. & Ludkovski, M. (2018). Evaluating Gaussian Process Metamodels and Sequential Designs for Noisy Level Set Estimation. arXiv:1807.06712. \cr
-##' @export
+#' Computes ICU infill criterion
+#' @title Integrated Contour Uncertainty criterion
+#' @param x matrix of new designs, one point per row (size n x d)
+#' @param model \code{homGP} or \code{hetGP} model, including inverse matrices
+#' @param Xref matrix of input locations to approximate the integral by a sum
+#' @param w  optional weights vector of weights for \code{Xref} locations
+#' @param thres for contour finding
+#' @param preds optional predictions at \code{Xref} to avoid recomputing if already done
+#' @param kxprime optional covariance matrix between \code{model$X0} and \code{Xref} to avoid its recomputation
+#' @references
+#' Lyu, X., Binois, M. & Ludkovski, M. (2018+). Evaluating Gaussian Process Metamodels and Sequential Designs for Noisy Level Set Estimation. arXiv:1807.06712. \cr
+#' @export
 ## ' @details TODO: deal with replication
-##' @examples 
-##' ## Infill criterion example
-##' set.seed(42)
-##' branin <- function(x){
-##'   m <- 54.8104; s <- 51.9496
-##'   if(is.null(dim(x))) x <- matrix(x, nrow = 1)
-##'   xx <- 15 * x[,1] - 5; y <- 15 * x[,2]
-##'   f <- (y - 5.1 * xx^2/(4 * pi^2) + 5 * xx/pi - 6)^2 + 10 * (1 - 1/(8 * pi)) * cos(xx) + 10
-##'   f <- (f - m)/s
-##'   return(f)
-##' }
-##' 
-##' ftest <- function(x, sd = 0.1){
-##'   if(is.null(dim(x))) x <- matrix(x, nrow = 1)
-##'   return(apply(x, 1, branin) + rnorm(nrow(x), sd = sd))
-##' }
-##' 
-##' ngrid <- 51; xgrid <- seq(0, 1, length.out = ngrid)
-##' Xgrid <- as.matrix(expand.grid(xgrid, xgrid))
-##' Zgrid <- ftest(Xgrid)
-##' 
-##' n <- 20
-##' N <- 500
-##' X <- Xgrid[sample(1:nrow(Xgrid), n),]
-##' X <- X[sample(1:n, N, replace = TRUE),]
-##' Z <- ftest(X)
-##' model <- mleHetGP(X, Z, lower = rep(0.001,2), upper = rep(1,2))
-##' 
-##' # Precalculations for speedup
-##' preds <- predict(model, x = Xgrid)
-##' kxprime <- cov_gen(X1 = model$X0, X2 = Xgrid, theta = model$theta, type = model$covtype)
-##'  
-##' critgrid <- apply(Xgrid, 1, crit_ICU, model = model, Xref = Xgrid,
-##'                   preds = preds, kxprime = kxprime)
-##' 
-##' filled.contour(matrix(critgrid, ngrid), color.palette = terrain.colors, main = "ICU criterion")
-##' 
+#' @examples 
+#' ## Infill criterion example
+#' set.seed(42)
+#' branin <- function(x){
+#'   m <- 54.8104; s <- 51.9496
+#'   if(is.null(dim(x))) x <- matrix(x, nrow = 1)
+#'   xx <- 15 * x[,1] - 5; y <- 15 * x[,2]
+#'   f <- (y - 5.1 * xx^2/(4 * pi^2) + 5 * xx/pi - 6)^2 + 10 * (1 - 1/(8 * pi)) * cos(xx) + 10
+#'   f <- (f - m)/s
+#'   return(f)
+#' }
+#' 
+#' ftest <- function(x, sd = 0.1){
+#'   if(is.null(dim(x))) x <- matrix(x, nrow = 1)
+#'   return(apply(x, 1, branin) + rnorm(nrow(x), sd = sd))
+#' }
+#' 
+#' ngrid <- 51; xgrid <- seq(0, 1, length.out = ngrid)
+#' Xgrid <- as.matrix(expand.grid(xgrid, xgrid))
+#' Zgrid <- ftest(Xgrid)
+#' 
+#' n <- 20
+#' N <- 500
+#' X <- Xgrid[sample(1:nrow(Xgrid), n),]
+#' X <- X[sample(1:n, N, replace = TRUE),]
+#' Z <- ftest(X)
+#' model <- mleHetGP(X, Z, lower = rep(0.001,2), upper = rep(1,2))
+#' 
+#' # Precalculations for speedup
+#' preds <- predict(model, x = Xgrid)
+#' kxprime <- cov_gen(X1 = model$X0, X2 = Xgrid, theta = model$theta, type = model$covtype)
+#'  
+#' critgrid <- apply(Xgrid, 1, crit_ICU, model = model, Xref = Xgrid,
+#'                   preds = preds, kxprime = kxprime)
+#' 
+#' filled.contour(matrix(critgrid, ngrid), color.palette = terrain.colors, main = "ICU criterion")
+#' 
 crit_ICU <- function(x, model, thres = 0, Xref, w = NULL, preds = NULL, kxprime = NULL){
   if(is.null(dim(x))) x <- matrix(x, nrow = 1)
   if(is.null(preds)) preds <- predict(model, x = Xref)
@@ -239,53 +239,53 @@ crit_ICU <- function(x, model, thres = 0, Xref, w = NULL, preds = NULL, kxprime 
 }
 
 
-##' Computes targeted mean squared error infill criterion
-##' @title t-MSE criterion
-##' @param x matrix of new designs, one point per row (size n x d)
-##' @param model \code{homGP} or \code{hetGP} model, including inverse matrices
-##' @param thres for contour finding
-##' @param preds optional predictions at \code{x} to avoid recomputing if already done (must contain \code{cov})
-##' @param seps parameter for the target window
-##' @references
-##' Picheny, V., Ginsbourger, D., Roustant, O., Haftka, R., Kim, N. (2010).
-##' Adaptive designs of experiments for accurate approximation of a target region,
-##' Journal of Mechanical Design (132), p. 071008.\cr \cr
-##' 
-##' Lyu, X., Binois, M. & Ludkovski, M. (2018). 
-##' Evaluating Gaussian Process Metamodels and Sequential Designs for Noisy Level Set Estimation. arXiv:1807.06712. \cr
-##' @export
-##' @examples 
-##' ## Infill criterion example
-##' set.seed(42)
-##' branin <- function(x){
-##'   m <- 54.8104; s <- 51.9496
-##'   if(is.null(dim(x))) x <- matrix(x, nrow = 1)
-##'   xx <- 15 * x[,1] - 5; y <- 15 * x[,2]
-##'   f <- (y - 5.1 * xx^2/(4 * pi^2) + 5 * xx/pi - 6)^2 + 10 * (1 - 1/(8 * pi)) * cos(xx) + 10
-##'   f <- (f - m)/s
-##'   return(f)
-##' }
-##' 
-##' ftest <- function(x, sd = 0.1){
-##'   if(is.null(dim(x))) x <- matrix(x, nrow = 1)
-##'   return(apply(x, 1, branin) + rnorm(nrow(x), sd = sd))
-##' }
-##' 
-##' ngrid <- 101; xgrid <- seq(0, 1, length.out = ngrid)
-##' Xgrid <- as.matrix(expand.grid(xgrid, xgrid))
-##' Zgrid <- ftest(Xgrid)
-##' 
-##' n <- 20
-##' N <- 500
-##' X <- Xgrid[sample(1:nrow(Xgrid), n),]
-##' X <- X[sample(1:n, N, replace = TRUE),]
-##' Z <- ftest(X)
-##' model <- mleHetGP(X, Z, lower = rep(0.001,2), upper = rep(1,2))
-##' 
-##' critgrid <- apply(Xgrid, 1, crit_tMSE, model = model)
-##' 
-##' filled.contour(matrix(critgrid, ngrid), color.palette = terrain.colors, main = "tMSE criterion")
-##' 
+#' Computes targeted mean squared error infill criterion
+#' @title t-MSE criterion
+#' @param x matrix of new designs, one point per row (size n x d)
+#' @param model \code{homGP} or \code{hetGP} model, including inverse matrices
+#' @param thres for contour finding
+#' @param preds optional predictions at \code{x} to avoid recomputing if already done (must contain \code{cov})
+#' @param seps parameter for the target window
+#' @references
+#' Picheny, V., Ginsbourger, D., Roustant, O., Haftka, R., Kim, N. (2010).
+#' Adaptive designs of experiments for accurate approximation of a target region,
+#' Journal of Mechanical Design (132), p. 071008.\cr \cr
+#' 
+#' Lyu, X., Binois, M. & Ludkovski, M. (2018+). 
+#' Evaluating Gaussian Process Metamodels and Sequential Designs for Noisy Level Set Estimation. arXiv:1807.06712. \cr
+#' @export
+#' @examples 
+#' ## Infill criterion example
+#' set.seed(42)
+#' branin <- function(x){
+#'   m <- 54.8104; s <- 51.9496
+#'   if(is.null(dim(x))) x <- matrix(x, nrow = 1)
+#'   xx <- 15 * x[,1] - 5; y <- 15 * x[,2]
+#'   f <- (y - 5.1 * xx^2/(4 * pi^2) + 5 * xx/pi - 6)^2 + 10 * (1 - 1/(8 * pi)) * cos(xx) + 10
+#'   f <- (f - m)/s
+#'   return(f)
+#' }
+#' 
+#' ftest <- function(x, sd = 0.1){
+#'   if(is.null(dim(x))) x <- matrix(x, nrow = 1)
+#'   return(apply(x, 1, branin) + rnorm(nrow(x), sd = sd))
+#' }
+#' 
+#' ngrid <- 101; xgrid <- seq(0, 1, length.out = ngrid)
+#' Xgrid <- as.matrix(expand.grid(xgrid, xgrid))
+#' Zgrid <- ftest(Xgrid)
+#' 
+#' n <- 20
+#' N <- 500
+#' X <- Xgrid[sample(1:nrow(Xgrid), n),]
+#' X <- X[sample(1:n, N, replace = TRUE),]
+#' Z <- ftest(X)
+#' model <- mleHetGP(X, Z, lower = rep(0.001,2), upper = rep(1,2))
+#' 
+#' critgrid <- apply(Xgrid, 1, crit_tMSE, model = model)
+#' 
+#' filled.contour(matrix(critgrid, ngrid), color.palette = terrain.colors, main = "tMSE criterion")
+#' 
 crit_tMSE <- function(x, model, thres = 0, preds = NULL, seps = 0.05){
   if(is.null(dim(x))) x <- matrix(x, nrow = 1)
   if(is.null(preds) || is.null(preds$cov)) preds <- predict(model, x = x, xprime = x)
@@ -296,59 +296,59 @@ crit_tMSE <- function(x, model, thres = 0, preds = NULL, seps = 0.05){
 }
 
 
-##' Computes MCU infill criterion
-##' @title Maximum Contour Uncertainty criterion
-##' @param x matrix of new designs, one point per row (size n x d)
-##' @param model \code{homGP} or \code{hetGP} model, including inverse matrices
-##' @param thres for contour finding
-##' @param gamma optional weight in -|f(x) - thres| + gamma * s(x). Default to 2.
-##' @param preds optional predictions at \code{x} to avoid recomputing if already done
-##' @export
-##' @importFrom stats pt pnorm dnorm
-##' @references
-##' Srinivas, N., Krause, A., Kakade, S, & Seeger, M. (2012). 
-##' Information-theoretic regret bounds for Gaussian process optimization 
-##' in the bandit setting, IEEE Transactions on Information Theory, 58, pp. 3250-3265.\cr \cr
-##' 
-##' Bogunovic, J., Scarlett, J., Krause, A. & Cevher, V. (2016). 
-##' Truncated variance reduction: A unified approach to Bayesian optimization and level-set estimation,
-##' in Advances in neural information processing systems, pp. 1507-1515. \cr \cr
-##' 
-##' Lyu, X., Binois, M. & Ludkovski, M. (2018). 
-##' Evaluating Gaussian Process Metamodels and Sequential Designs for Noisy Level Set Estimation. arXiv:1807.06712. \cr
-##' 
-##' @examples 
-##' ## Infill criterion example
-##' set.seed(42)
-##' branin <- function(x){
-##'   m <- 54.8104; s <- 51.9496
-##'   if(is.null(dim(x))) x <- matrix(x, nrow = 1)
-##'   xx <- 15 * x[,1] - 5; y <- 15 * x[,2]
-##'   f <- (y - 5.1 * xx^2/(4 * pi^2) + 5 * xx/pi - 6)^2 + 10 * (1 - 1/(8 * pi)) * cos(xx) + 10
-##'   f <- (f - m)/s
-##'   return(f)
-##' }
-##' 
-##' ftest <- function(x, sd = 0.1){
-##'   if(is.null(dim(x))) x <- matrix(x, nrow = 1)
-##'   return(apply(x, 1, branin) + rnorm(nrow(x), sd = sd))
-##' }
-##' 
-##' ngrid <- 101; xgrid <- seq(0, 1, length.out = ngrid)
-##' Xgrid <- as.matrix(expand.grid(xgrid, xgrid))
-##' Zgrid <- ftest(Xgrid)
-##' 
-##' n <- 20
-##' N <- 500
-##' X <- Xgrid[sample(1:nrow(Xgrid), n),]
-##' X <- X[sample(1:n, N, replace = TRUE),]
-##' Z <- ftest(X)
-##' model <- mleHetGP(X, Z, lower = rep(0.001,2), upper = rep(1,2))
-##' 
-##' critgrid <- apply(Xgrid, 1, crit_MCU, model = model)
-##' 
-##' filled.contour(matrix(critgrid, ngrid), color.palette = terrain.colors, main = "MEE criterion")
-##' 
+#' Computes MCU infill criterion
+#' @title Maximum Contour Uncertainty criterion
+#' @param x matrix of new designs, one point per row (size n x d)
+#' @param model \code{homGP} or \code{hetGP} model, including inverse matrices
+#' @param thres for contour finding
+#' @param gamma optional weight in -|f(x) - thres| + gamma * s(x). Default to 2.
+#' @param preds optional predictions at \code{x} to avoid recomputing if already done
+#' @export
+#' @importFrom stats pt pnorm dnorm
+#' @references
+#' Srinivas, N., Krause, A., Kakade, S, & Seeger, M. (2012). 
+#' Information-theoretic regret bounds for Gaussian process optimization 
+#' in the bandit setting, IEEE Transactions on Information Theory, 58, pp. 3250-3265.\cr \cr
+#' 
+#' Bogunovic, J., Scarlett, J., Krause, A. & Cevher, V. (2016). 
+#' Truncated variance reduction: A unified approach to Bayesian optimization and level-set estimation,
+#' in Advances in neural information processing systems, pp. 1507-1515. \cr \cr
+#' 
+#' Lyu, X., Binois, M. & Ludkovski, M. (2018+). 
+#' Evaluating Gaussian Process Metamodels and Sequential Designs for Noisy Level Set Estimation. arXiv:1807.06712. \cr
+#' 
+#' @examples 
+#' ## Infill criterion example
+#' set.seed(42)
+#' branin <- function(x){
+#'   m <- 54.8104; s <- 51.9496
+#'   if(is.null(dim(x))) x <- matrix(x, nrow = 1)
+#'   xx <- 15 * x[,1] - 5; y <- 15 * x[,2]
+#'   f <- (y - 5.1 * xx^2/(4 * pi^2) + 5 * xx/pi - 6)^2 + 10 * (1 - 1/(8 * pi)) * cos(xx) + 10
+#'   f <- (f - m)/s
+#'   return(f)
+#' }
+#' 
+#' ftest <- function(x, sd = 0.1){
+#'   if(is.null(dim(x))) x <- matrix(x, nrow = 1)
+#'   return(apply(x, 1, branin) + rnorm(nrow(x), sd = sd))
+#' }
+#' 
+#' ngrid <- 101; xgrid <- seq(0, 1, length.out = ngrid)
+#' Xgrid <- as.matrix(expand.grid(xgrid, xgrid))
+#' Zgrid <- ftest(Xgrid)
+#' 
+#' n <- 20
+#' N <- 500
+#' X <- Xgrid[sample(1:nrow(Xgrid), n),]
+#' X <- X[sample(1:n, N, replace = TRUE),]
+#' Z <- ftest(X)
+#' model <- mleHetGP(X, Z, lower = rep(0.001,2), upper = rep(1,2))
+#' 
+#' critgrid <- apply(Xgrid, 1, crit_MCU, model = model)
+#' 
+#' filled.contour(matrix(critgrid, ngrid), color.palette = terrain.colors, main = "MEE criterion")
+#' 
 crit_MCU <- function(x, model, thres = 0, gamma = 2, preds = NULL){
   
   if(is.null(dim(x))) x <- matrix(x, nrow = 1)

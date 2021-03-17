@@ -101,95 +101,95 @@ dlogLikHom <- function(X0, Z0, Z, mult, theta, g, beta0 = NULL, covtype = "Gauss
   return(c(tmp1, tmp2))
 }
 
-##' Gaussian process regression under homoskedastic noise based on maximum likelihood estimation of the 
-##' hyperparameters. This function is enhanced to deal with replicated observations.
-##' @title Gaussian process modeling with homoskedastic noise
-##' @param X matrix of all designs, one per row, or list with elements:
-##' \itemize{
-##'   \item \code{X0} matrix of unique design locations, one point per row
-##'   \item \code{Z0} vector of averaged observations, of length \code{nrow(X0)}
-##'   \item \code{mult} number of replicates at designs in \code{X0}, of length \code{nrow(X0)}
-##' } 
-##' @param Z vector of all observations. If using a list with \code{X}, \code{Z} has to be ordered with respect to \code{X0}, and of length \code{sum(mult)}
-##' @param lower,upper optional bounds for the \code{theta} parameter (see \code{\link[hetGP]{cov_gen}} for the exact parameterization).
-##' In the multivariate case, it is possible to give vectors for bounds (resp. scalars) for anisotropy (resp. isotropy) 
-##' @param known optional list of known parameters, e.g., \code{beta0}, \code{theta} or \code{g}
-##' @param covtype covariance kernel type, either 'Gaussian', 'Matern5_2' or 'Matern3_2', see \code{\link[hetGP]{cov_gen}}
-##' @param noiseControl list with element , 
-##' \itemize{
-##' \item \code{g_bounds}, vector providing minimal and maximal noise to signal ratio
-##' } 
-##' @param init optional list specifying starting values for MLE optimization, with elements:
-##' \itemize{
-##'  \item \code{theta_init} initial value of the theta parameters to be optimized over (default to 10\% of the range determined with \code{lower} and \code{upper})
-##'  \item \code{g_init} initial value of the nugget parameter to be optimized over (based on the variance at replicates if there are any, else \code{0.1})
-##' }
-##' @param maxit maximum number of iteration for L-BFGS-B of \code{\link[stats]{optim}}
-##' @param eps jitter used in the inversion of the covariance matrix for numerical stability
-##' @param settings list with argument \code{return.Ki}, to include the inverse covariance matrix in the object for further use (e.g., prediction).
-##' Arguments \code{factr} (default to 1e9) and \code{pgtol} are available to be passed to \code{control} for L-BFGS-B in \code{\link[stats]{optim}}. 
-##' @return a list which is given the S3 class "\code{homGP}", with elements:
-##' \itemize{
-##' \item \code{theta}: maximum likelihood estimate of the lengthscale parameter(s),
-##' \item \code{g}: maximum likelihood estimate of the nugget variance,
-##' \item \code{trendtype}: either "\code{SK}" if \code{beta0} is given, else "\code{OK}" 
-##' \item \code{beta0}: estimated trend unless given in input,
-##' \item \code{nu_hat}: plugin estimator of the variance,
-##' \item \code{ll}: log-likelihood value,
-##' \item \code{X0}, \code{Z0}, \code{Z}, \code{mult}, \code{eps}, \code{covtype}: values given in input,
-##' \item \code{call}: user call of the function
-##' \item \code{used_args}: list with arguments provided in the call
-##' \item \code{nit_opt}, \code{msg}: \code{counts} and \code{msg} returned by \code{\link[stats]{optim}}
-##' \item \code{Ki}: inverse covariance matrix (not scaled by \code{nu_hat}) (if \code{return.Ki} is \code{TRUE} in \code{settings})
-##' \item \code{time}: time to train the model, in seconds.
-##' 
-##'}
-##' @details
-##' The global covariance matrix of the model is parameterized as \code{nu_hat * (C + g * diag(1/mult)) = nu_hat * K},
-##' with \code{C} the correlation matrix between unique designs, depending on the family of kernel used (see \code{\link[hetGP]{cov_gen}} for available choices) and values of lengthscale parameters.
-##' \code{nu_hat} is the plugin estimator of the variance of the process.
-##' 
-##' It is generally recommended to use \code{\link[hetGP]{find_reps}} to pre-process the data, to rescale the inputs to the unit cube and to normalize the outputs.
-##' 
-##' @seealso \code{\link[hetGP]{predict.homGP}} for predictions, \code{\link[hetGP]{update.homGP}} for updating an existing model. 
-##' \code{summary} and \code{plot} functions are available as well. 
-##' \code{\link[hetGP]{mleHomTP}} provide a Student-t equivalent.
-##' @references 
-##' M. Binois, Robert B. Gramacy, M. Ludkovski (2018), Practical heteroskedastic Gaussian process modeling for large simulation experiments,
-##' Journal of Computational and Graphical Statistics, 27(4), 808--821.\cr 
-##' Preprint available on arXiv:1611.05902. \cr \cr
-##' @export
+#' Gaussian process regression under homoskedastic noise based on maximum likelihood estimation of the 
+#' hyperparameters. This function is enhanced to deal with replicated observations.
+#' @title Gaussian process modeling with homoskedastic noise
+#' @param X matrix of all designs, one per row, or list with elements:
+#' \itemize{
+#'   \item \code{X0} matrix of unique design locations, one point per row
+#'   \item \code{Z0} vector of averaged observations, of length \code{nrow(X0)}
+#'   \item \code{mult} number of replicates at designs in \code{X0}, of length \code{nrow(X0)}
+#' } 
+#' @param Z vector of all observations. If using a list with \code{X}, \code{Z} has to be ordered with respect to \code{X0}, and of length \code{sum(mult)}
+#' @param lower,upper optional bounds for the \code{theta} parameter (see \code{\link[hetGP]{cov_gen}} for the exact parameterization).
+#' In the multivariate case, it is possible to give vectors for bounds (resp. scalars) for anisotropy (resp. isotropy) 
+#' @param known optional list of known parameters, e.g., \code{beta0}, \code{theta} or \code{g}
+#' @param covtype covariance kernel type, either 'Gaussian', 'Matern5_2' or 'Matern3_2', see \code{\link[hetGP]{cov_gen}}
+#' @param noiseControl list with element , 
+#' \itemize{
+#' \item \code{g_bounds}, vector providing minimal and maximal noise to signal ratio
+#' } 
+#' @param init optional list specifying starting values for MLE optimization, with elements:
+#' \itemize{
+#'  \item \code{theta_init} initial value of the theta parameters to be optimized over (default to 10\% of the range determined with \code{lower} and \code{upper})
+#'  \item \code{g_init} initial value of the nugget parameter to be optimized over (based on the variance at replicates if there are any, else \code{0.1})
+#' }
+#' @param maxit maximum number of iteration for L-BFGS-B of \code{\link[stats]{optim}}
+#' @param eps jitter used in the inversion of the covariance matrix for numerical stability
+#' @param settings list with argument \code{return.Ki}, to include the inverse covariance matrix in the object for further use (e.g., prediction).
+#' Arguments \code{factr} (default to 1e9) and \code{pgtol} are available to be passed to \code{control} for L-BFGS-B in \code{\link[stats]{optim}}. 
+#' @return a list which is given the S3 class "\code{homGP}", with elements:
+#' \itemize{
+#' \item \code{theta}: maximum likelihood estimate of the lengthscale parameter(s),
+#' \item \code{g}: maximum likelihood estimate of the nugget variance,
+#' \item \code{trendtype}: either "\code{SK}" if \code{beta0} is given, else "\code{OK}" 
+#' \item \code{beta0}: estimated trend unless given in input,
+#' \item \code{nu_hat}: plugin estimator of the variance,
+#' \item \code{ll}: log-likelihood value,
+#' \item \code{X0}, \code{Z0}, \code{Z}, \code{mult}, \code{eps}, \code{covtype}: values given in input,
+#' \item \code{call}: user call of the function
+#' \item \code{used_args}: list with arguments provided in the call
+#' \item \code{nit_opt}, \code{msg}: \code{counts} and \code{msg} returned by \code{\link[stats]{optim}}
+#' \item \code{Ki}: inverse covariance matrix (not scaled by \code{nu_hat}) (if \code{return.Ki} is \code{TRUE} in \code{settings})
+#' \item \code{time}: time to train the model, in seconds.
+#' 
+#'}
+#' @details
+#' The global covariance matrix of the model is parameterized as \code{nu_hat * (C + g * diag(1/mult)) = nu_hat * K},
+#' with \code{C} the correlation matrix between unique designs, depending on the family of kernel used (see \code{\link[hetGP]{cov_gen}} for available choices) and values of lengthscale parameters.
+#' \code{nu_hat} is the plugin estimator of the variance of the process.
+#' 
+#' It is generally recommended to use \code{\link[hetGP]{find_reps}} to pre-process the data, to rescale the inputs to the unit cube and to normalize the outputs.
+#' 
+#' @seealso \code{\link[hetGP]{predict.homGP}} for predictions, \code{\link[hetGP]{update.homGP}} for updating an existing model. 
+#' \code{summary} and \code{plot} functions are available as well. 
+#' \code{\link[hetGP]{mleHomTP}} provide a Student-t equivalent.
+#' @references 
+#' M. Binois, Robert B. Gramacy, M. Ludkovski (2018), Practical heteroskedastic Gaussian process modeling for large simulation experiments,
+#' Journal of Computational and Graphical Statistics, 27(4), 808--821.\cr 
+#' Preprint available on arXiv:1611.05902. \cr \cr
+#' @export
 ## ' @importFrom numDeriv hessian
-##' @examples
-##' ##------------------------------------------------------------
-##' ## Example 1: Homoskedastic GP modeling on the motorcycle data
-##' ##------------------------------------------------------------
-##' set.seed(32)
-##' 
-##' ## motorcycle data
-##' library(MASS)
-##' X <- matrix(mcycle$times, ncol = 1)
-##' Z <- mcycle$accel
-##' plot(X, Z, ylim = c(-160, 90), ylab = 'acceleration', xlab = "time")
-##' 
-##'  
-##' model <- mleHomGP(X = X, Z = Z, lower = 0.01, upper = 100)
-##'   
-##' ## Display averaged observations
-##' points(model$X0, model$Z0, pch = 20) 
-##' xgrid <- matrix(seq(0, 60, length.out = 301), ncol = 1) 
-##' predictions <- predict(x = xgrid, object =  model)
-##' 
-##' ## Display mean prediction
-##' lines(xgrid, predictions$mean, col = 'red', lwd = 2)
-##' ## Display 95% confidence intervals
-##' lines(xgrid, qnorm(0.05, predictions$mean, sqrt(predictions$sd2)), col = 2, lty = 2)
-##' lines(xgrid, qnorm(0.95, predictions$mean, sqrt(predictions$sd2)), col = 2, lty = 2)
-##' ## Display 95% prediction intervals
-##' lines(xgrid, qnorm(0.05, predictions$mean, sqrt(predictions$sd2 + predictions$nugs)), 
-##'   col = 3, lty = 2)
-##' lines(xgrid, qnorm(0.95, predictions$mean, sqrt(predictions$sd2 + predictions$nugs)), 
-##'   col = 3, lty = 2)
+#' @examples
+#' ##------------------------------------------------------------
+#' ## Example 1: Homoskedastic GP modeling on the motorcycle data
+#' ##------------------------------------------------------------
+#' set.seed(32)
+#' 
+#' ## motorcycle data
+#' library(MASS)
+#' X <- matrix(mcycle$times, ncol = 1)
+#' Z <- mcycle$accel
+#' plot(X, Z, ylim = c(-160, 90), ylab = 'acceleration', xlab = "time")
+#' 
+#'  
+#' model <- mleHomGP(X = X, Z = Z, lower = 0.01, upper = 100)
+#'   
+#' ## Display averaged observations
+#' points(model$X0, model$Z0, pch = 20) 
+#' xgrid <- matrix(seq(0, 60, length.out = 301), ncol = 1) 
+#' predictions <- predict(x = xgrid, object =  model)
+#' 
+#' ## Display mean prediction
+#' lines(xgrid, predictions$mean, col = 'red', lwd = 2)
+#' ## Display 95% confidence intervals
+#' lines(xgrid, qnorm(0.05, predictions$mean, sqrt(predictions$sd2)), col = 2, lty = 2)
+#' lines(xgrid, qnorm(0.95, predictions$mean, sqrt(predictions$sd2)), col = 2, lty = 2)
+#' ## Display 95% prediction intervals
+#' lines(xgrid, qnorm(0.05, predictions$mean, sqrt(predictions$sd2 + predictions$nugs)), 
+#'   col = 3, lty = 2)
+#' lines(xgrid, qnorm(0.95, predictions$mean, sqrt(predictions$sd2 + predictions$nugs)), 
+#'   col = 3, lty = 2)
 
 mleHomGP <- function(X, Z, lower = NULL, upper = NULL, known = NULL,
                      noiseControl = list(g_bounds = c(sqrt(.Machine$double.eps), 1e2)),
@@ -241,7 +241,7 @@ mleHomGP <- function(X, Z, lower = NULL, upper = NULL, known = NULL,
   if(is.null(n))
     stop("X0 should be a matrix. \n")
   
-  if(is.null(known[["theta"]]) && is.null(init$theta)) init$theta <- 0.9 * lower + 0.1 * upper
+  if(is.null(known[["theta"]]) && is.null(init$theta)) init$theta <- 0.9 * lower + 0.1 * upper # useful for mleHetGP
   if(is.null(known$g) && is.null(init$g)){
     if(any(mult > 2)) init$g <- mean((fast_tUY2(mult, (Z - rep(Z0, times = mult))^2)/mult)[which(mult > 2)])/var(Z0) else init$g <- 0.1
   }
@@ -359,15 +359,15 @@ mleHomGP <- function(X, Z, lower = NULL, upper = NULL, known = NULL,
   return(res)
 }
 
-##' @method summary homGP
-##' @export
+#' @method summary homGP
+#' @export
 summary.homGP <- function(object,...){
   ans <- object
   class(ans) <- "summary.homGP"
   ans
 }
 
-##' @export
+#' @export
 print.summary.homGP <- function(x, ...){
   
   cat("N = ", length(x$Z), " n = ", length(x$Z0), " d = ", ncol(x$X0), "\n")
@@ -386,17 +386,17 @@ print.summary.homGP <- function(x, ...){
   cat("MLE optimization: \n", "Log-likelihood = ", x$ll, "; Nb of evaluations (obj, gradient) by L-BFGS-B: ", x$nit_opt, "; message: ", x$msg, "\n")
 }
 
-##' @method print homGP
-##' @export
+#' @method print homGP
+#' @export
 print.homGP <- function(x, ...){
   print(summary(x))
   
 }
 
-##' @method plot homGP
-##' @export
-##' @importFrom graphics abline legend plot points arrows
-##' @importFrom stats qnorm
+#' @method plot homGP
+#' @export
+#' @importFrom graphics abline legend plot points arrows
+#' @importFrom stats qnorm
 plot.homGP <- function(x, ...){
   LOOpreds <- LOO_preds(x)
   plot(x$Z, LOOpreds$mean[rep(1:nrow(x$X0), times = x$mult)], xlab = "Observed values", ylab = "Predicted values",
@@ -410,22 +410,22 @@ plot.homGP <- function(x, ...){
          legend = c("observations", "averages (if > 1 observation)", "LOO prediction interval"))
 }
 
-##' Gaussian process predictions using a homoskedastic noise GP object (of class \code{homGP})
-##' @param x matrix of designs locations to predict at (one point per row)
-##' @param object an object of class \code{homGP}; e.g., as returned by \code{\link[hetGP]{mleHomGP}}
-##' @param xprime optional second matrix of predictive locations to obtain the predictive covariance matrix between \code{x} and \code{xprime}
-##' @param ... no other argument for this method
-##' @return list with elements
-##' \itemize{
-##' \item \code{mean}: kriging mean;
-##' \item \code{sd2}: kriging variance (filtered, e.g. without the nugget value)
-##' \item \code{cov}: predictive covariance matrix between \code{x} and \code{xprime}
-##' \item \code{nugs}: nugget value at each prediction location, for consistency with \code{\link[hetGP]{mleHomGP}}.
-##' }
-##' @importFrom MASS ginv
-##' @details The full predictive variance corresponds to the sum of \code{sd2} and \code{nugs}. See \code{\link[hetGP]{mleHomGP}} for examples.
-##' @method predict homGP
-##' @export
+#' Gaussian process predictions using a homoskedastic noise GP object (of class \code{homGP})
+#' @param x matrix of designs locations to predict at (one point per row)
+#' @param object an object of class \code{homGP}; e.g., as returned by \code{\link[hetGP]{mleHomGP}}
+#' @param xprime optional second matrix of predictive locations to obtain the predictive covariance matrix between \code{x} and \code{xprime}
+#' @param ... no other argument for this method
+#' @return list with elements
+#' \itemize{
+#' \item \code{mean}: kriging mean;
+#' \item \code{sd2}: kriging variance (filtered, e.g. without the nugget value)
+#' \item \code{cov}: predictive covariance matrix between \code{x} and \code{xprime}
+#' \item \code{nugs}: nugget value at each prediction location, for consistency with \code{\link[hetGP]{mleHomGP}}.
+#' }
+#' @importFrom MASS ginv
+#' @details The full predictive variance corresponds to the sum of \code{sd2} and \code{nugs}. See \code{\link[hetGP]{mleHomGP}} for examples.
+#' @method predict homGP
+#' @export
 predict.homGP <- function(object, x, xprime = NULL, ...){
   if(is.null(dim(x))){
     x <- matrix(x, nrow = 1)
@@ -496,38 +496,38 @@ if(!isGeneric("rebuild")) {
   )
 }
 
-##' Functions to make \code{hetGP} objects lighter before exporting them, and to reverse this after import.
-##' The \code{rebuild} function may also be used to obtain more robust inverse of covariance matrices using \code{\link[MASS]{ginv}}.
-##' @title Import and export of hetGP objects
-##' @param object \code{homGP} or \code{homTP} model without slot \code{Ki} (inverse covariance matrix),
-##'  or \code{hetGP} or \code{hetTP} model without slot \code{Ki} or \code{Kgi}
-##' @param robust if \code{TRUE} \code{\link[MASS]{ginv}} is used for matrix inversion, otherwise it is done via Cholesky.
+#' Functions to make \code{hetGP} objects lighter before exporting them, and to reverse this after import.
+#' The \code{rebuild} function may also be used to obtain more robust inverse of covariance matrices using \code{\link[MASS]{ginv}}.
+#' @title Import and export of hetGP objects
+#' @param object \code{homGP} or \code{homTP} model without slot \code{Ki} (inverse covariance matrix),
+#'  or \code{hetGP} or \code{hetTP} model without slot \code{Ki} or \code{Kgi}
+#' @param robust if \code{TRUE} \code{\link[MASS]{ginv}} is used for matrix inversion, otherwise it is done via Cholesky.
 ## ' @param ... not used
-##' @export
-##' @return \code{object} with additional or removed slots.
-##' @rdname ExpImp
-##' @examples 
-##' set.seed(32)
-##' ## motorcycle data
-##' library(MASS)
-##' X <- matrix(mcycle$times, ncol = 1)
-##' Z <- mcycle$accel
-##' ## Model fitting
-##' model <- mleHetGP(X = X, Z = Z, lower = 0.1, upper = 50)
-##' 
-##' # Check size
-##' object.size(model)
-##' 
-##' # Remove internal elements, e.g., to save it
-##' model <- strip(model)
-##' 
-##' # Check new size
-##' object.size(model)
-##' 
-##' # Now rebuild model, and use ginv instead
-##' model <- rebuild(model, robust = TRUE)
-##' object.size(model)
-##' 
+#' @export
+#' @return \code{object} with additional or removed slots.
+#' @rdname ExpImp
+#' @examples 
+#' set.seed(32)
+#' ## motorcycle data
+#' library(MASS)
+#' X <- matrix(mcycle$times, ncol = 1)
+#' Z <- mcycle$accel
+#' ## Model fitting
+#' model <- mleHetGP(X = X, Z = Z, lower = 0.1, upper = 50)
+#' 
+#' # Check size
+#' object.size(model)
+#' 
+#' # Remove internal elements, e.g., to save it
+#' model <- strip(model)
+#' 
+#' # Check new size
+#' object.size(model)
+#' 
+#' # Now rebuild model, and use ginv instead
+#' model <- rebuild(model, robust = TRUE)
+#' object.size(model)
+#' 
 rebuild <- function (object, robust) {
   UseMethod("rebuild", object)
 }
@@ -535,9 +535,9 @@ rebuild <- function (object, robust) {
 ## ' Rebuild inverse covariance matrix of \code{homGP} (e.g., if exported without \code{Ki})
 ## ' @param object \code{homGP} model without slot \code{Ki} (inverse covariance matrix)
 ## ' @param robust if \code{TRUE} \code{\link[MASS]{ginv}} is used for matrix inversion, otherwise it is done via Cholesky.
-##' @method rebuild homGP
-##' @rdname ExpImp
-##' @export
+#' @method rebuild homGP
+#' @rdname ExpImp
+#' @export
 rebuild.homGP <- function(object, robust = FALSE){
   if(robust){
     object$Ki <- ginv(add_diag(cov_gen(X1 = object$X0, theta = object$theta, type = object$covtype), object$g/object$mult + object$eps))/object$nu_hat
@@ -548,8 +548,8 @@ rebuild.homGP <- function(object, robust = FALSE){
   return(object)
 }
 
-##' @export
-##' @rdname ExpImp
+#' @export
+#' @rdname ExpImp
 strip <- function (object) {
   # UseMethod("strip", object)
   if(!is.null(object$Ki)) object$Ki <- NULL
@@ -1043,16 +1043,17 @@ dlogLikHet <- function(X0, Z0, Z, mult, Delta, theta, g, k_theta_g = NULL, theta
 }
 
 
-##' Compare two models based on the log-likelihood for \code{hetGP} and \code{homGP} models
-##' @title Likelihood-based comparison of models
-##' @param model1,model2 \code{hetGP} or \code{homGP} models
-##' @return Best model based on the likelihood, first one in case of a tie
-##' @note If comparing homoskedastic and heteroskedastic models, the un-penalised likelihood is used for the later, see e.g., (Binois et al. 2017+).
-##' @export
-##' @references
-##' M. Binois, Robert B. Gramacy, M. Ludkovski (2017+), Practical heteroskedastic Gaussian process modeling for large simulation experiments, arXiv preprint arXiv:1611.05902.
+#' Compare two models based on the log-likelihood for \code{hetGP} and \code{homGP} models
+#' @title Likelihood-based comparison of models
+#' @param model1,model2 \code{hetGP} or \code{homGP} models
+#' @return Best model based on the likelihood, first one in case of a tie
+#' @note If comparing homoskedastic and heteroskedastic models, the un-penalised likelihood is used for the later, see e.g., (Binois et al. 2017+).
+#' @export
+#' @references
+#' M. Binois, Robert B. Gramacy, M. Ludkovski (2018), Practical heteroskedastic Gaussian process modeling for large simulation experiments,
+#' Journal of Computational and Graphical Statistics, 27(4), 808--821.\cr 
+#' Preprint available on arXiv:1611.05902.
 compareGP <- function(model1, model2){
-  
   if(class(model1) == "hetGP") ll1 <- model1$ll_non_pen
   else ll1 <- model1$ll
   
@@ -1064,251 +1065,251 @@ compareGP <- function(model1, model2){
 }
 
 
-##' @title Gaussian process modeling with heteroskedastic noise
-##' @description 
-##' Gaussian process regression under input dependent noise based on maximum likelihood estimation of the hyperparameters. 
-##' A second GP is used to model latent (log-) variances. 
-##' This function is enhanced to deal with replicated observations.
-##' @param X matrix of all designs, one per row, or list with elements:
-##' \itemize{
-##'   \item \code{X0} matrix of unique design locations, one point per row
-##'   \item \code{Z0} vector of averaged observations, of length \code{nrow(X0)}
-##'   \item \code{mult} number of replicates at designs in \code{X0}, of length \code{nrow(X0)}
-##' } 
-##' @param Z vector of all observations. If using a list with \code{X}, \code{Z} has to be ordered with respect to \code{X0}, and of length \code{sum(mult)}
-##' @param lower,upper optional bounds for the \code{theta} parameter (see \code{\link[hetGP]{cov_gen}} for the exact parameterization).
-##' In the multivariate case, it is possible to give vectors for bounds (resp. scalars) for anisotropy (resp. isotropy)
-##' @param noiseControl list with elements related to optimization of the noise process parameters:
-##' \itemize{
-##' \item \code{g_min}, \code{g_max} minimal and maximal noise to signal ratio (of the mean process)
-##' \item \code{lowerDelta}, \code{upperDelta} optional vectors (or scalars) of bounds on \code{Delta}, of length \code{nrow(X0)} (default to \code{rep(eps, nrow(X0))} and \code{rep(noiseControl$g_max, nrow(X0))} resp., or their \code{log}) 
+#' @title Gaussian process modeling with heteroskedastic noise
+#' @description 
+#' Gaussian process regression under input dependent noise based on maximum likelihood estimation of the hyperparameters. 
+#' A second GP is used to model latent (log-) variances. 
+#' This function is enhanced to deal with replicated observations.
+#' @param X matrix of all designs, one per row, or list with elements:
+#' \itemize{
+#'   \item \code{X0} matrix of unique design locations, one point per row
+#'   \item \code{Z0} vector of averaged observations, of length \code{nrow(X0)}
+#'   \item \code{mult} number of replicates at designs in \code{X0}, of length \code{nrow(X0)}
+#' } 
+#' @param Z vector of all observations. If using a list with \code{X}, \code{Z} has to be ordered with respect to \code{X0}, and of length \code{sum(mult)}
+#' @param lower,upper optional bounds for the \code{theta} parameter (see \code{\link[hetGP]{cov_gen}} for the exact parameterization).
+#' In the multivariate case, it is possible to give vectors for bounds (resp. scalars) for anisotropy (resp. isotropy)
+#' @param noiseControl list with elements related to optimization of the noise process parameters:
+#' \itemize{
+#' \item \code{g_min}, \code{g_max} minimal and maximal noise to signal ratio (of the mean process)
+#' \item \code{lowerDelta}, \code{upperDelta} optional vectors (or scalars) of bounds on \code{Delta}, of length \code{nrow(X0)} (default to \code{rep(eps, nrow(X0))} and \code{rep(noiseControl$g_max, nrow(X0))} resp., or their \code{log}) 
 ## ' \item lowerpX, upperpX optional vectors of bounds of the input domain if pX is used.
-##' \item \code{lowerTheta_g}, \code{upperTheta_g} optional vectors of bounds for the lengthscales of the noise process if \code{linkThetas == 'none'}.
-##' Same as for \code{theta} if not provided.
-##' \item \code{k_theta_g_bounds} if \code{linkThetas == 'joint'}, vector with minimal and maximal values for \code{k_theta_g} (default to \code{c(1, 100)}). See Details.
-##' \item \code{g_bounds} vector for minimal and maximal noise to signal ratios for the noise of the noise process, i.e., the smoothing parameter for the noise process.
-##' (default to \code{c(1e-6, 1)}).
-##'}
-##' @param settings list for options about the general modeling procedure, with elements:
-##' \itemize{
-##'   \item \code{linkThetas} defines the relation between lengthscales of the mean and noise processes.
-##'   Either \code{'none'}, \code{'joint'}(default) or \code{'constr'}, see Details.
-##'   \item \code{logN}, when \code{TRUE} (default), the log-noise process is modeled.
-##'   \item \code{initStrategy} one of \code{'simple'}, \code{'residuals'} (default) and \code{'smoothed'} to obtain starting values for \code{Delta}, see Details
-##'   \item \code{penalty} when \code{TRUE}, the penalized version of the likelihood is used (i.e., the sum of the log-likelihoods of the mean and variance processes, see References).
+#' \item \code{lowerTheta_g}, \code{upperTheta_g} optional vectors of bounds for the lengthscales of the noise process if \code{linkThetas == 'none'}.
+#' Same as for \code{theta} if not provided.
+#' \item \code{k_theta_g_bounds} if \code{linkThetas == 'joint'}, vector with minimal and maximal values for \code{k_theta_g} (default to \code{c(1, 100)}). See Details.
+#' \item \code{g_bounds} vector for minimal and maximal noise to signal ratios for the noise of the noise process, i.e., the smoothing parameter for the noise process.
+#' (default to \code{c(1e-6, 1)}).
+#'}
+#' @param settings list for options about the general modeling procedure, with elements:
+#' \itemize{
+#'   \item \code{linkThetas} defines the relation between lengthscales of the mean and noise processes.
+#'   Either \code{'none'}, \code{'joint'}(default) or \code{'constr'}, see Details.
+#'   \item \code{logN}, when \code{TRUE} (default), the log-noise process is modeled.
+#'   \item \code{initStrategy} one of \code{'simple'}, \code{'residuals'} (default) and \code{'smoothed'} to obtain starting values for \code{Delta}, see Details
+#'   \item \code{penalty} when \code{TRUE}, the penalized version of the likelihood is used (i.e., the sum of the log-likelihoods of the mean and variance processes, see References).
 ## '   \item \code{hardpenalty} is \code{TRUE}, the log-likelihood from the noise GP is taken into account only if negative (default if \code{maxit > 1000}).
-##'   \item \code{checkHom} when \code{TRUE}, if the log-likelihood with a homoskedastic model is better, then return it.
-##'   \item \code{trace} optional scalar (default to \code{0}). If positive, tracing information on the fitting process.
-##' If \code{1}, information is given about the result of the heterogeneous model optimization.
-##' Level \code{2} gives more details. Level {3} additionaly displays all details about initialization of hyperparameters.
-##' \item \code{return.matrices} boolean to include the inverse covariance matrix in the object for further use (e.g., prediction).
-##' \item \code{return.hom} boolean to include homoskedastic GP models used for initialization (i.e., \code{modHom} and \code{modNugs}).
-##' \item \code{factr} (default to 1e9) and \code{pgtol} are available to be passed to \code{control} for L-BFGS-B in \code{\link[stats]{optim}}.   
-##' }
-##' @param eps jitter used in the inversion of the covariance matrix for numerical stability
-##' @param init,known optional lists of starting values for mle optimization or that should not be optimized over, respectively.
-##' Values in \code{known} are not modified, while it can happen to these of \code{init}, see Details. 
-##' One can set one or several of the following:
-##' \itemize{
-##' \item \code{theta} lengthscale parameter(s) for the mean process either one value (isotropic) or a vector (anistropic)
-##' \item \code{Delta} vector of nuggets corresponding to each design in \code{X0}, that are smoothed to give \code{Lambda}
-##' (as the global covariance matrix depend on \code{Delta} and \code{nu_hat}, it is recommended to also pass values for \code{theta})
-##' \item \code{beta0} constant trend of the mean process
-##' \item \code{k_theta_g} constant used for link mean and noise processes lengthscales, when \code{settings$linkThetas == 'joint'}
-##' \item \code{theta_g} either one value (isotropic) or a vector (anistropic) for lengthscale parameter(s) of the noise process, when \code{settings$linkThetas != 'joint'}
-##' \item \code{g} scalar nugget of the noise process
-##' \item \code{g_H} scalar homoskedastic nugget for the initialisation with a \code{\link[hetGP]{mleHomGP}}. See Details.
+#'   \item \code{checkHom} when \code{TRUE}, if the log-likelihood with a homoskedastic model is better, then return it.
+#'   \item \code{trace} optional scalar (default to \code{0}). If positive, tracing information on the fitting process.
+#' If \code{1}, information is given about the result of the heterogeneous model optimization.
+#' Level \code{2} gives more details. Level {3} additionaly displays all details about initialization of hyperparameters.
+#' \item \code{return.matrices} boolean to include the inverse covariance matrix in the object for further use (e.g., prediction).
+#' \item \code{return.hom} boolean to include homoskedastic GP models used for initialization (i.e., \code{modHom} and \code{modNugs}).
+#' \item \code{factr} (default to 1e9) and \code{pgtol} are available to be passed to \code{control} for L-BFGS-B in \code{\link[stats]{optim}}.   
+#' }
+#' @param eps jitter used in the inversion of the covariance matrix for numerical stability
+#' @param init,known optional lists of starting values for mle optimization or that should not be optimized over, respectively.
+#' Values in \code{known} are not modified, while it can happen to these of \code{init}, see Details. 
+#' One can set one or several of the following:
+#' \itemize{
+#' \item \code{theta} lengthscale parameter(s) for the mean process either one value (isotropic) or a vector (anistropic)
+#' \item \code{Delta} vector of nuggets corresponding to each design in \code{X0}, that are smoothed to give \code{Lambda}
+#' (as the global covariance matrix depend on \code{Delta} and \code{nu_hat}, it is recommended to also pass values for \code{theta})
+#' \item \code{beta0} constant trend of the mean process
+#' \item \code{k_theta_g} constant used for link mean and noise processes lengthscales, when \code{settings$linkThetas == 'joint'}
+#' \item \code{theta_g} either one value (isotropic) or a vector (anistropic) for lengthscale parameter(s) of the noise process, when \code{settings$linkThetas != 'joint'}
+#' \item \code{g} scalar nugget of the noise process
+#' \item \code{g_H} scalar homoskedastic nugget for the initialisation with a \code{\link[hetGP]{mleHomGP}}. See Details.
 ## '\item pX matrix of fixed pseudo inputs locations of the noise process corresponding to Delta
-##' }
-##' @param covtype covariance kernel type, either \code{'Gaussian'}, \code{'Matern5_2'} or \code{'Matern3_2'}, see \code{\link[hetGP]{cov_gen}}
-##' @param maxit maximum number of iterations for \code{L-BFGS-B} of \code{\link[stats]{optim}} dedicated to maximum likelihood optimization
-##' 
-##' @details
-##' 
-##' The global covariance matrix of the model is parameterized as \code{nu_hat * (C + Lambda * diag(1/mult)) = nu_hat * K},
-##' with \code{C} the correlation matrix between unique designs, depending on the family of kernel used (see \code{\link[hetGP]{cov_gen}} for available choices) and values of lengthscale parameters.
-##' \code{nu_hat} is the plugin estimator of the variance of the process.
-##' \code{Lambda} is the prediction on the noise level given by a second (homoskedastic) GP: \cr
-##' \deqn{\Lambda = C_g(C_g + \mathrm{diag}(g/\mathrm{mult}))^{-1} \Delta} \cr
-##' with \code{C_g} the correlation matrix between unique designs for this second GP, with lengthscales hyperparameters \code{theta_g} and nugget \code{g}
-##' and \code{Delta} the variance level at \code{X0} that are estimated.
-##' 
-##' It is generally recommended to use \code{\link[hetGP]{find_reps}} to pre-process the data, to rescale the inputs to the unit cube and to normalize the outputs.
-##' 
-##' The noise process lengthscales can be set in several ways:
-##' \itemize{
-##' \item using \code{k_theta_g} (\code{settings$linkThetas == 'joint'}), supposed to be greater than one by default. 
-##' In this case lengthscales of the noise process are multiples of those of the mean process.
-##' \item if \code{settings$linkThetas == 'constr'}, then the lower bound on \code{theta_g} correspond to estimated values of an homoskedastic GP fit.
-##' \item else lengthscales between the mean and noise process are independent (both either anisotropic or not).
-##' }
-##'
-##' When no starting nor fixed parameter values are provided with \code{init} or \code{known}, 
-##' the initialization process consists of fitting first an homoskedastic model of the data, called \code{modHom}.
-##' Unless provided with \code{init$theta}, initial lengthscales are taken at 10\% of the range determined with \code{lower} and \code{upper},
-##' while \code{init$g_H} may be use to pass an initial nugget value.
-##' The resulting lengthscales provide initial values for \code{theta} (or update them if given in \code{init}). \cr \cr
-##' If necessary, a second homoskedastic model, \code{modNugs}, is fitted to the empirical residual variance between the prediction
-##'  given by \code{modHom} at \code{X0} and \code{Z} (up to \code{modHom$nu_hat}).
-##' Note that when specifying \code{settings$linkThetas == 'joint'}, then this second homoskedastic model has fixed lengthscale parameters.
-##' Starting values for \code{theta_g} and \code{g} are extracted from \code{modNugs}.\cr \cr
-##' Finally, three initialization schemes for \code{Delta} are available with \code{settings$initStrategy}: 
-##' \itemize{
-##' \item for \code{settings$initStrategy == 'simple'}, \code{Delta} is simply initialized to the estimated \code{g} value of \code{modHom}. 
-##' Note that this procedure may fail when \code{settings$penalty == TRUE}.
-##' \item for \code{settings$initStrategy == 'residuals'}, \code{Delta} is initialized to the estimated residual variance from the homoskedastic mean prediction.
-##' \item for \code{settings$initStrategy == 'smoothed'}, \code{Delta} takes the values predicted by \code{modNugs} at \code{X0}.
-##' }
-##'
-##' Notice that \code{lower} and \code{upper} bounds cannot be equal for \code{\link[stats]{optim}}.
+#' }
+#' @param covtype covariance kernel type, either \code{'Gaussian'}, \code{'Matern5_2'} or \code{'Matern3_2'}, see \code{\link[hetGP]{cov_gen}}
+#' @param maxit maximum number of iterations for \code{L-BFGS-B} of \code{\link[stats]{optim}} dedicated to maximum likelihood optimization
+#' 
+#' @details
+#' 
+#' The global covariance matrix of the model is parameterized as \code{nu_hat * (C + Lambda * diag(1/mult)) = nu_hat * K},
+#' with \code{C} the correlation matrix between unique designs, depending on the family of kernel used (see \code{\link[hetGP]{cov_gen}} for available choices) and values of lengthscale parameters.
+#' \code{nu_hat} is the plugin estimator of the variance of the process.
+#' \code{Lambda} is the prediction on the noise level given by a second (homoskedastic) GP: \cr
+#' \deqn{\Lambda = C_g(C_g + \mathrm{diag}(g/\mathrm{mult}))^{-1} \Delta} \cr
+#' with \code{C_g} the correlation matrix between unique designs for this second GP, with lengthscales hyperparameters \code{theta_g} and nugget \code{g}
+#' and \code{Delta} the variance level at \code{X0} that are estimated.
+#' 
+#' It is generally recommended to use \code{\link[hetGP]{find_reps}} to pre-process the data, to rescale the inputs to the unit cube and to normalize the outputs.
+#' 
+#' The noise process lengthscales can be set in several ways:
+#' \itemize{
+#' \item using \code{k_theta_g} (\code{settings$linkThetas == 'joint'}), supposed to be greater than one by default. 
+#' In this case lengthscales of the noise process are multiples of those of the mean process.
+#' \item if \code{settings$linkThetas == 'constr'}, then the lower bound on \code{theta_g} correspond to estimated values of an homoskedastic GP fit.
+#' \item else lengthscales between the mean and noise process are independent (both either anisotropic or not).
+#' }
+#'
+#' When no starting nor fixed parameter values are provided with \code{init} or \code{known}, 
+#' the initialization process consists of fitting first an homoskedastic model of the data, called \code{modHom}.
+#' Unless provided with \code{init$theta}, initial lengthscales are taken at 10\% of the range determined with \code{lower} and \code{upper},
+#' while \code{init$g_H} may be use to pass an initial nugget value.
+#' The resulting lengthscales provide initial values for \code{theta} (or update them if given in \code{init}). \cr \cr
+#' If necessary, a second homoskedastic model, \code{modNugs}, is fitted to the empirical residual variance between the prediction
+#'  given by \code{modHom} at \code{X0} and \code{Z} (up to \code{modHom$nu_hat}).
+#' Note that when specifying \code{settings$linkThetas == 'joint'}, then this second homoskedastic model has fixed lengthscale parameters.
+#' Starting values for \code{theta_g} and \code{g} are extracted from \code{modNugs}.\cr \cr
+#' Finally, three initialization schemes for \code{Delta} are available with \code{settings$initStrategy}: 
+#' \itemize{
+#' \item for \code{settings$initStrategy == 'simple'}, \code{Delta} is simply initialized to the estimated \code{g} value of \code{modHom}. 
+#' Note that this procedure may fail when \code{settings$penalty == TRUE}.
+#' \item for \code{settings$initStrategy == 'residuals'}, \code{Delta} is initialized to the estimated residual variance from the homoskedastic mean prediction.
+#' \item for \code{settings$initStrategy == 'smoothed'}, \code{Delta} takes the values predicted by \code{modNugs} at \code{X0}.
+#' }
+#'
+#' Notice that \code{lower} and \code{upper} bounds cannot be equal for \code{\link[stats]{optim}}.
 ## ' To use pseudo-input locations for the noise process, one can either provide pX if they are not to be optimized.
 ## ' Otherwise, initial values are given with pXinit, and optimization bounds with lowerpX, upperpX in init.
 ## ' Automatic initialization of the other parameters without restriction is available for now only with method 'simple',
 ## ' otherwise it is assumed that pXinit points are a subset of X0.
-##'
-##' @return a list which is given the S3 class \code{"hetGP"}, with elements:
-##' \itemize{
-##' \item \code{theta}: unless given, maximum likelihood estimate (mle) of the lengthscale parameter(s),
-##' \item \code{Delta}: unless given, mle of the nugget vector (non-smoothed),
-##' \item \code{Lambda}: predicted input noise variance at \code{X0}, 
-##' \item \code{nu_hat}: plugin estimator of the variance,
-##' \item \code{theta_g}: unless given, mle of the lengthscale(s) of the noise/log-noise process,
-##' \item \code{k_theta_g}: if \code{settings$linkThetas == 'joint'}, mle for the constant by which lengthscale parameters of \code{theta} are multiplied to get \code{theta_g},
-##' \item \code{g}: unless given, mle of the nugget of the noise/log-noise process,
-##' \item \code{trendtype}: either "\code{SK}" if \code{beta0} is provided, else "\code{OK}",
-##' \item \code{beta0} constant trend of the mean process, plugin-estimator unless given,
-##' \item \code{nmean}: plugin estimator for the constant noise/log-noise process mean,
+#'
+#' @return a list which is given the S3 class \code{"hetGP"}, with elements:
+#' \itemize{
+#' \item \code{theta}: unless given, maximum likelihood estimate (mle) of the lengthscale parameter(s),
+#' \item \code{Delta}: unless given, mle of the nugget vector (non-smoothed),
+#' \item \code{Lambda}: predicted input noise variance at \code{X0}, 
+#' \item \code{nu_hat}: plugin estimator of the variance,
+#' \item \code{theta_g}: unless given, mle of the lengthscale(s) of the noise/log-noise process,
+#' \item \code{k_theta_g}: if \code{settings$linkThetas == 'joint'}, mle for the constant by which lengthscale parameters of \code{theta} are multiplied to get \code{theta_g},
+#' \item \code{g}: unless given, mle of the nugget of the noise/log-noise process,
+#' \item \code{trendtype}: either "\code{SK}" if \code{beta0} is provided, else "\code{OK}",
+#' \item \code{beta0} constant trend of the mean process, plugin-estimator unless given,
+#' \item \code{nmean}: plugin estimator for the constant noise/log-noise process mean,
 ## ' \item \code{pX}: if used, matrix of pseudo-inputs locations for the noise/log-noise process,
-##' \item \code{ll}: log-likelihood value, (\code{ll_non_pen}) is the value without the penalty,
-##' \item \code{nit_opt}, \code{msg}: \code{counts} and \code{message} returned by \code{\link[stats]{optim}}
-##' \item \code{modHom}: homoskedastic GP model of class \code{homGP} used for initialization of the mean process,
-##' \item \code{modNugs}: homoskedastic GP model of class \code{homGP} used for initialization of the noise/log-noise process,
-##' \item \code{nu_hat_var}: variance of the noise process,
-##' \item \code{used_args}: list with arguments provided in the call to the function, which is saved in \code{call},
-##' \item \code{Ki}, \code{Kgi}: inverse of the covariance matrices of the mean and noise processes (not scaled by \code{nu_hat} and \code{nu_hat_var}),  
-##' \item \code{X0}, \code{Z0}, \code{Z}, \code{eps}, \code{logN}, \code{covtype}: values given in input,
-##' \item \code{time}: time to train the model, in seconds.
-##'}
-##' @seealso \code{\link[hetGP]{predict.hetGP}} for predictions, \code{\link[hetGP]{update.hetGP}} for updating an existing model.
-##' \code{summary} and \code{plot} functions are available as well.
-##' \code{\link[hetGP]{mleHetTP}} provide a Student-t equivalent.
-##' @references 
-##' M. Binois, Robert B. Gramacy, M. Ludkovski (2018), Practical heteroskedastic Gaussian process modeling for large simulation experiments,
-##' Journal of Computational and Graphical Statistics, 27(4), 808--821.\cr 
-##' Preprint available on arXiv:1611.05902. \cr \cr
-##' @export
-##' @importFrom stats optim var
-##' @import methods
-##' @examples 
-##' ##------------------------------------------------------------
-##' ## Example 1: Heteroskedastic GP modeling on the motorcycle data
-##' ##------------------------------------------------------------
-##' set.seed(32)
-##' 
-##' ## motorcycle data
-##' library(MASS)
-##' X <- matrix(mcycle$times, ncol = 1)
-##' Z <- mcycle$accel
-##' nvar <- 1
-##' plot(X, Z, ylim = c(-160, 90), ylab = 'acceleration', xlab = "time")
-##' 
-##' 
-##' ## Model fitting
-##' model <- mleHetGP(X = X, Z = Z, lower = rep(0.1, nvar), upper = rep(50, nvar),
-##'                   covtype = "Matern5_2")
-##'             
-##' ## Display averaged observations
-##' points(model$X0, model$Z0, pch = 20)
-##' 
-##' ## A quick view of the fit                  
-##' summary(model)
-##' 
-##' ## Create a prediction grid and obtain predictions
-##' xgrid <- matrix(seq(0, 60, length.out = 301), ncol = 1) 
-##' predictions <- predict(x = xgrid, object =  model)
-##' 
-##' ## Display mean predictive surface
-##' lines(xgrid, predictions$mean, col = 'red', lwd = 2)
-##' ## Display 95% confidence intervals
-##' lines(xgrid, qnorm(0.05, predictions$mean, sqrt(predictions$sd2)), col = 2, lty = 2)
-##' lines(xgrid, qnorm(0.95, predictions$mean, sqrt(predictions$sd2)), col = 2, lty = 2)
-##' ## Display 95% prediction intervals
-##' lines(xgrid, qnorm(0.05, predictions$mean, sqrt(predictions$sd2 + predictions$nugs)), 
-##'   col = 3, lty = 2)
-##' lines(xgrid, qnorm(0.95, predictions$mean, sqrt(predictions$sd2 + predictions$nugs)), 
-##'   col = 3, lty = 2)
-##' 
-##' ##------------------------------------------------------------
-##' ## Example 2: 2D Heteroskedastic GP modeling
-##' ##------------------------------------------------------------
-##' set.seed(1)
-##' nvar <- 2
-##'   
-##' ## Branin redefined in [0,1]^2
-##' branin <- function(x){
-##'   if(is.null(nrow(x)))
-##'     x <- matrix(x, nrow = 1)
-##'     x1 <- x[,1] * 15 - 5
-##'     x2 <- x[,2] * 15
-##'     (x2 - 5/(4 * pi^2) * (x1^2) + 5/pi * x1 - 6)^2 + 10 * (1 - 1/(8 * pi)) * cos(x1) + 10
-##' }
-##' 
-##' ## Noise field via standard deviation
-##' noiseFun <- function(x){
-##'   if(is.null(nrow(x)))
-##'     x <- matrix(x, nrow = 1)
-##'   return(1/5*(3*(2 + 2*sin(x[,1]*pi)*cos(x[,2]*3*pi) + 5*rowSums(x^2))))
-##' }
-##' 
-##' ## data generating function combining mean and noise fields
-##' ftest <- function(x){
-##'   return(branin(x) + rnorm(nrow(x), mean = 0, sd = noiseFun(x)))
-##' }
-##' 
-##' ## Grid of predictive locations
-##' ngrid <- 51
-##' xgrid <- matrix(seq(0, 1, length.out = ngrid), ncol = 1) 
-##' Xgrid <- as.matrix(expand.grid(xgrid, xgrid))
-##' 
-##' ## Unique (randomly chosen) design locations
-##' n <- 50
-##' Xu <- matrix(runif(n * 2), n)
-##' 
-##' ## Select replication sites randomly
-##' X <- Xu[sample(1:n, 20*n, replace = TRUE),]
-##' 
-##' ## obtain training data response at design locations X
-##' Z <- ftest(X)
-##' 
-##' ## Formating of data for model creation (find replicated observations) 
-##' prdata <- find_reps(X, Z, rescale = FALSE, normalize = FALSE)
-##'
-##' ## Model fitting
-##' model <- mleHetGP(X = list(X0 = prdata$X0, Z0 = prdata$Z0, mult = prdata$mult), Z = prdata$Z,
-##'                   lower = rep(0.01, nvar), upper = rep(10, nvar),
-##'                   covtype = "Matern5_2")
-##'
-##' ## a quick view into the data stored in the "hetGP"-class object
-##' summary(model)                  
-##'              
-##' ## prediction from the fit on the grid     
-##' predictions <- predict(x = Xgrid, object =  model)
-##' 
-##' ## Visualization of the predictive surface
-##' par(mfrow = c(2, 2))
-##' contour(x = xgrid,  y = xgrid, z = matrix(branin(Xgrid), ngrid), 
-##'   main = "Branin function", nlevels = 20)
-##' points(X, col = 'blue', pch = 20)
-##' contour(x = xgrid,  y = xgrid, z = matrix(predictions$mean, ngrid), 
-##'   main = "Predicted mean", nlevels = 20)
-##' points(Xu, col = 'blue', pch = 20)
-##' contour(x = xgrid,  y = xgrid, z = matrix(noiseFun(Xgrid), ngrid), 
-##'   main = "Noise standard deviation function", nlevels = 20)
-##' points(Xu, col = 'blue', pch = 20)
-##' contour(x = xgrid,  y= xgrid, z = matrix(sqrt(predictions$nugs), ngrid), 
-##'   main = "Predicted noise values", nlevels = 20)
-##' points(Xu, col = 'blue', pch = 20)
-##' par(mfrow = c(1, 1))
+#' \item \code{ll}: log-likelihood value, (\code{ll_non_pen}) is the value without the penalty,
+#' \item \code{nit_opt}, \code{msg}: \code{counts} and \code{message} returned by \code{\link[stats]{optim}}
+#' \item \code{modHom}: homoskedastic GP model of class \code{homGP} used for initialization of the mean process,
+#' \item \code{modNugs}: homoskedastic GP model of class \code{homGP} used for initialization of the noise/log-noise process,
+#' \item \code{nu_hat_var}: variance of the noise process,
+#' \item \code{used_args}: list with arguments provided in the call to the function, which is saved in \code{call},
+#' \item \code{Ki}, \code{Kgi}: inverse of the covariance matrices of the mean and noise processes (not scaled by \code{nu_hat} and \code{nu_hat_var}),  
+#' \item \code{X0}, \code{Z0}, \code{Z}, \code{eps}, \code{logN}, \code{covtype}: values given in input,
+#' \item \code{time}: time to train the model, in seconds.
+#'}
+#' @seealso \code{\link[hetGP]{predict.hetGP}} for predictions, \code{\link[hetGP]{update.hetGP}} for updating an existing model.
+#' \code{summary} and \code{plot} functions are available as well.
+#' \code{\link[hetGP]{mleHetTP}} provide a Student-t equivalent.
+#' @references 
+#' M. Binois, Robert B. Gramacy, M. Ludkovski (2018), Practical heteroskedastic Gaussian process modeling for large simulation experiments,
+#' Journal of Computational and Graphical Statistics, 27(4), 808--821.\cr 
+#' Preprint available on arXiv:1611.05902. \cr \cr
+#' @export
+#' @importFrom stats optim var
+#' @import methods
+#' @examples 
+#' ##------------------------------------------------------------
+#' ## Example 1: Heteroskedastic GP modeling on the motorcycle data
+#' ##------------------------------------------------------------
+#' set.seed(32)
+#' 
+#' ## motorcycle data
+#' library(MASS)
+#' X <- matrix(mcycle$times, ncol = 1)
+#' Z <- mcycle$accel
+#' nvar <- 1
+#' plot(X, Z, ylim = c(-160, 90), ylab = 'acceleration', xlab = "time")
+#' 
+#' 
+#' ## Model fitting
+#' model <- mleHetGP(X = X, Z = Z, lower = rep(0.1, nvar), upper = rep(50, nvar),
+#'                   covtype = "Matern5_2")
+#'             
+#' ## Display averaged observations
+#' points(model$X0, model$Z0, pch = 20)
+#' 
+#' ## A quick view of the fit                  
+#' summary(model)
+#' 
+#' ## Create a prediction grid and obtain predictions
+#' xgrid <- matrix(seq(0, 60, length.out = 301), ncol = 1) 
+#' predictions <- predict(x = xgrid, object =  model)
+#' 
+#' ## Display mean predictive surface
+#' lines(xgrid, predictions$mean, col = 'red', lwd = 2)
+#' ## Display 95% confidence intervals
+#' lines(xgrid, qnorm(0.05, predictions$mean, sqrt(predictions$sd2)), col = 2, lty = 2)
+#' lines(xgrid, qnorm(0.95, predictions$mean, sqrt(predictions$sd2)), col = 2, lty = 2)
+#' ## Display 95% prediction intervals
+#' lines(xgrid, qnorm(0.05, predictions$mean, sqrt(predictions$sd2 + predictions$nugs)), 
+#'   col = 3, lty = 2)
+#' lines(xgrid, qnorm(0.95, predictions$mean, sqrt(predictions$sd2 + predictions$nugs)), 
+#'   col = 3, lty = 2)
+#' 
+#' ##------------------------------------------------------------
+#' ## Example 2: 2D Heteroskedastic GP modeling
+#' ##------------------------------------------------------------
+#' set.seed(1)
+#' nvar <- 2
+#'   
+#' ## Branin redefined in [0,1]^2
+#' branin <- function(x){
+#'   if(is.null(nrow(x)))
+#'     x <- matrix(x, nrow = 1)
+#'     x1 <- x[,1] * 15 - 5
+#'     x2 <- x[,2] * 15
+#'     (x2 - 5/(4 * pi^2) * (x1^2) + 5/pi * x1 - 6)^2 + 10 * (1 - 1/(8 * pi)) * cos(x1) + 10
+#' }
+#' 
+#' ## Noise field via standard deviation
+#' noiseFun <- function(x){
+#'   if(is.null(nrow(x)))
+#'     x <- matrix(x, nrow = 1)
+#'   return(1/5*(3*(2 + 2*sin(x[,1]*pi)*cos(x[,2]*3*pi) + 5*rowSums(x^2))))
+#' }
+#' 
+#' ## data generating function combining mean and noise fields
+#' ftest <- function(x){
+#'   return(branin(x) + rnorm(nrow(x), mean = 0, sd = noiseFun(x)))
+#' }
+#' 
+#' ## Grid of predictive locations
+#' ngrid <- 51
+#' xgrid <- matrix(seq(0, 1, length.out = ngrid), ncol = 1) 
+#' Xgrid <- as.matrix(expand.grid(xgrid, xgrid))
+#' 
+#' ## Unique (randomly chosen) design locations
+#' n <- 50
+#' Xu <- matrix(runif(n * 2), n)
+#' 
+#' ## Select replication sites randomly
+#' X <- Xu[sample(1:n, 20*n, replace = TRUE),]
+#' 
+#' ## obtain training data response at design locations X
+#' Z <- ftest(X)
+#' 
+#' ## Formating of data for model creation (find replicated observations) 
+#' prdata <- find_reps(X, Z, rescale = FALSE, normalize = FALSE)
+#'
+#' ## Model fitting
+#' model <- mleHetGP(X = list(X0 = prdata$X0, Z0 = prdata$Z0, mult = prdata$mult), Z = prdata$Z,
+#'                   lower = rep(0.01, nvar), upper = rep(10, nvar),
+#'                   covtype = "Matern5_2")
+#'
+#' ## a quick view into the data stored in the "hetGP"-class object
+#' summary(model)                  
+#'              
+#' ## prediction from the fit on the grid     
+#' predictions <- predict(x = Xgrid, object =  model)
+#' 
+#' ## Visualization of the predictive surface
+#' par(mfrow = c(2, 2))
+#' contour(x = xgrid,  y = xgrid, z = matrix(branin(Xgrid), ngrid), 
+#'   main = "Branin function", nlevels = 20)
+#' points(X, col = 'blue', pch = 20)
+#' contour(x = xgrid,  y = xgrid, z = matrix(predictions$mean, ngrid), 
+#'   main = "Predicted mean", nlevels = 20)
+#' points(Xu, col = 'blue', pch = 20)
+#' contour(x = xgrid,  y = xgrid, z = matrix(noiseFun(Xgrid), ngrid), 
+#'   main = "Noise standard deviation function", nlevels = 20)
+#' points(Xu, col = 'blue', pch = 20)
+#' contour(x = xgrid,  y= xgrid, z = matrix(sqrt(predictions$nugs), ngrid), 
+#'   main = "Predicted noise values", nlevels = 20)
+#' points(Xu, col = 'blue', pch = 20)
+#' par(mfrow = c(1, 1))
 ##
 mleHetGP <- function(X, Z, lower = NULL, upper = NULL,
                      noiseControl = list(k_theta_g_bounds = c(1, 100), g_max = 1e2, g_bounds = c(1e-6, 1)),
@@ -2004,25 +2005,25 @@ if(!isGeneric("predict")) {
   )
 }
 
-##'Gaussian process predictions using a heterogeneous noise GP object (of class \code{hetGP}) 
-##' @param x matrix of designs locations to predict at (one point per row)
-##' @param object an object of class \code{hetGP}; e.g., as returned by \code{\link[hetGP]{mleHetGP}}
-##' @param noise.var should the variance of the latent variance process be returned?
-##' @param xprime optional second matrix of predictive locations to obtain the predictive covariance matrix between \code{x} and \code{xprime}
-##' @param nugs.only if \code{TRUE}, only return noise variance prediction
-##' @param ... no other argument for this method.
-##' @return list with elements
-##' \itemize{
-##' \item \code{mean}: kriging mean;
-##' \item \code{sd2}: kriging variance (filtered, e.g. without the nugget values)
-##' \item \code{nugs}: noise variance prediction
-##' \item \code{sd2_var}: (returned if \code{noise.var = TRUE}) kriging variance of the noise process (i.e., on log-variances if \code{logN = TRUE})
-##' \item \code{cov}: (returned if \code{xprime} is given) predictive covariance matrix between \code{x} and \code{xprime}
-##' }
-##' @details The full predictive variance corresponds to the sum of \code{sd2} and \code{nugs}.
-##' See \code{\link[hetGP]{mleHetGP}} for examples.
-##' @method predict hetGP 
-##' @export
+#'Gaussian process predictions using a heterogeneous noise GP object (of class \code{hetGP}) 
+#' @param x matrix of designs locations to predict at (one point per row)
+#' @param object an object of class \code{hetGP}; e.g., as returned by \code{\link[hetGP]{mleHetGP}}
+#' @param noise.var should the variance of the latent variance process be returned?
+#' @param xprime optional second matrix of predictive locations to obtain the predictive covariance matrix between \code{x} and \code{xprime}
+#' @param nugs.only if \code{TRUE}, only return noise variance prediction
+#' @param ... no other argument for this method.
+#' @return list with elements
+#' \itemize{
+#' \item \code{mean}: kriging mean;
+#' \item \code{sd2}: kriging variance (filtered, e.g. without the nugget values)
+#' \item \code{nugs}: noise variance prediction
+#' \item \code{sd2_var}: (returned if \code{noise.var = TRUE}) kriging variance of the noise process (i.e., on log-variances if \code{logN = TRUE})
+#' \item \code{cov}: (returned if \code{xprime} is given) predictive covariance matrix between \code{x} and \code{xprime}
+#' }
+#' @details The full predictive variance corresponds to the sum of \code{sd2} and \code{nugs}.
+#' See \code{\link[hetGP]{mleHetGP}} for examples.
+#' @method predict hetGP 
+#' @export
 predict.hetGP <- function(object, x, noise.var = FALSE, xprime = NULL, nugs.only = FALSE, ...){
   
   if(is.null(dim(x))){
@@ -2127,15 +2128,15 @@ predict.hetGP <- function(object, x, noise.var = FALSE, xprime = NULL, nugs.only
 }
 
 
-##' @method summary hetGP
-##' @export
+#' @method summary hetGP
+#' @export
 summary.hetGP <- function(object,...){
   ans <- object
   class(ans) <- "summary.hetGP"
   ans
 }
 
-##' @export
+#' @export
 print.summary.hetGP <- function(x, ...){
   cat("N = ", length(x$Z), " n = ", length(x$Z0), " d = ", ncol(x$X0), "\n")
   cat(x$covtype, " covariance lengthscale values of the main process: ", x$theta, "\n")
@@ -2164,14 +2165,14 @@ print.summary.hetGP <- function(x, ...){
   
 }
 
-##' @method print hetGP
-##' @export
+#' @method print hetGP
+#' @export
 print.hetGP <- function(x, ...){
   print(summary(x))
 }
 
-##' @method plot hetGP
-##' @export
+#' @method plot hetGP
+#' @export
 plot.hetGP <- function(x, ...){
   LOOpreds <- LOO_preds(x)
   plot(x$Z, LOOpreds$mean[rep(1:nrow(x$X0), times = x$mult)], xlab = "Observed values", ylab = "Predicted values",
@@ -2188,9 +2189,9 @@ plot.hetGP <- function(x, ...){
 ## ' Rebuild inverse covariance matrices of \code{hetGP} (e.g., if exported without inverse matrices \code{Kgi} and/or \code{Ki})
 ## ' @param object \code{hetGP} model without slots \code{Ki} and/or \code{Kgi} (inverse covariance matrices)
 ## ' @param robust if \code{TRUE} \code{\link[MASS]{ginv}} is used for matrix inversion, otherwise it is done via Cholesky.
-##' @method rebuild hetGP
-##' @rdname ExpImp
-##' @export
+#' @method rebuild hetGP
+#' @rdname ExpImp
+#' @export
 rebuild.hetGP <- function(object, robust = FALSE){
   
   if(is.null(object$pX)){
@@ -2216,42 +2217,42 @@ rebuild.hetGP <- function(object, robust = FALSE){
 # ## Appendix: low level functions
 # ###############################################################################
 
-##' Prepare data for use with \code{\link[hetGP]{mleHetGP}}, in particular to find replicated observations
-##' @title Data preprocessing 
-##' @param X matrix of design locations, one point per row
-##' @param Z vector of observations at \code{X}
-##' @param return.Zlist to return \code{Zlist}, see below
-##' @param rescale if \code{TRUE}, the inputs are rescaled to the unit hypercube
-##' @param normalize if \code{TRUE}, the outputs are centered and normalized
-##' @param inputBounds optional matrix of known boundaries in original input space, of size 2 times \code{ncol(X)}. 
-##' If not provided, and \code{rescale == TRUE}, it is estimated from the data.   
-##' @return A list with the following elements that can be passed to the main fitting functions, e.g., \code{\link{mleHetGP}} and \code{\link{mleHomGP}}
-##' \itemize{
-##' \item \code{X0} matrix with unique designs locations, one point per row,
-##' \item \code{Z0} vector of averaged observations at \code{X0},
-##' \item \code{mult} number of replicates at \code{X0},
-##' \item \code{Z} vector with all observations, sorted according to \code{X0},
-##' \item \code{Zlist} optional list, each element corresponds to observations at a design in \code{X0},
-##' \item \code{inputBounds} optional matrix, to rescale back to the original input space,
-##' \item \code{outputStats} optional vector, with mean and variance of the original outputs.
-##' }
-##' @details Replicates are searched based on character representation, using \code{\link[base]{unique}}.
-##' @examples 
-##' ##------------------------------------------------------------
-##' ## Find replicates on the motorcycle data
-##' ##------------------------------------------------------------
-##' ## motorcycle data
-##' library(MASS)
-##' X <- matrix(mcycle$times, ncol = 1)
-##' Z <- mcycle$accel
-##' 
-##' data_m <- find_reps(X, Z)
-##' 
-##' # Initial data
-##' plot(X, Z, ylim = c(-160, 90), ylab = 'acceleration', xlab = "time")
-##' # Display mean values
-##' points(data_m$X0, data_m$Z0, pch = 20)
-##' @export
+#' Prepare data for use with \code{\link[hetGP]{mleHetGP}}, in particular to find replicated observations
+#' @title Data preprocessing 
+#' @param X matrix of design locations, one point per row
+#' @param Z vector of observations at \code{X}
+#' @param return.Zlist to return \code{Zlist}, see below
+#' @param rescale if \code{TRUE}, the inputs are rescaled to the unit hypercube
+#' @param normalize if \code{TRUE}, the outputs are centered and normalized
+#' @param inputBounds optional matrix of known boundaries in original input space, of size 2 times \code{ncol(X)}. 
+#' If not provided, and \code{rescale == TRUE}, it is estimated from the data.   
+#' @return A list with the following elements that can be passed to the main fitting functions, e.g., \code{\link{mleHetGP}} and \code{\link{mleHomGP}}
+#' \itemize{
+#' \item \code{X0} matrix with unique designs locations, one point per row,
+#' \item \code{Z0} vector of averaged observations at \code{X0},
+#' \item \code{mult} number of replicates at \code{X0},
+#' \item \code{Z} vector with all observations, sorted according to \code{X0},
+#' \item \code{Zlist} optional list, each element corresponds to observations at a design in \code{X0},
+#' \item \code{inputBounds} optional matrix, to rescale back to the original input space,
+#' \item \code{outputStats} optional vector, with mean and variance of the original outputs.
+#' }
+#' @details Replicates are searched based on character representation, using \code{\link[base]{unique}}.
+#' @examples 
+#' ##------------------------------------------------------------
+#' ## Find replicates on the motorcycle data
+#' ##------------------------------------------------------------
+#' ## motorcycle data
+#' library(MASS)
+#' X <- matrix(mcycle$times, ncol = 1)
+#' Z <- mcycle$accel
+#' 
+#' data_m <- find_reps(X, Z)
+#' 
+#' # Initial data
+#' plot(X, Z, ylim = c(-160, 90), ylab = 'acceleration', xlab = "time")
+#' # Display mean values
+#' points(data_m$X0, data_m$Z0, pch = 20)
+#' @export
 find_reps <- function(X, Z, return.Zlist = TRUE, rescale = FALSE, normalize = FALSE, inputBounds = NULL){
   if(is.null(dim(X)))
     X <- matrix(X, ncol = 1)
@@ -2351,7 +2352,7 @@ scores <- function(model, Xtest, Ztest, return.rmse = FALSE){
     sc <- - se/s2 - log(s2)
   }
   
-  if(is.vector(ncol(Ztest))){
+  if(is.vector(Ztest, mode = "numeric")){
     se <- (Ztest - p$mean)^2
     sc <- -se/ps2 - log(ps2)
   }

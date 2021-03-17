@@ -4,8 +4,15 @@
 \alias{IMSPE}
 \title{Integrated Mean Square Prediction Error}
 \usage{
-IMSPE(X, theta = NULL, Lambda = NULL, mult = NULL, covtype = NULL,
-  nu = NULL, eps = sqrt(.Machine$double.eps))
+IMSPE(
+  X,
+  theta = NULL,
+  Lambda = NULL,
+  mult = NULL,
+  covtype = NULL,
+  nu = NULL,
+  eps = sqrt(.Machine$double.eps)
+)
 }
 \arguments{
 \item{X}{\code{hetGP} or \code{homGP} model. Alternatively, one can provide a matrix of unique designs considered}

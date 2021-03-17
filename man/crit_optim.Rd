@@ -4,9 +4,16 @@
 \alias{crit_optim}
 \title{Criterion optimization}
 \usage{
-crit_optim(model, crit, ..., h = 2, Xcand = NULL,
-  control = list(multi.start = 10, maxit = 100), seed = NULL,
-  ncores = 1)
+crit_optim(
+  model,
+  crit,
+  ...,
+  h = 2,
+  Xcand = NULL,
+  control = list(multi.start = 10, maxit = 100),
+  seed = NULL,
+  ncores = 1
+)
 }
 \arguments{
 \item{model}{\code{homGP} or \code{hetGP} model}
@@ -24,7 +31,7 @@ The decision is made between:
 }
 Use \code{h = 0} for the myopic criterion, i.e., not looking ahead.}
 
-\item{Xcand}{optional discrete set of candidates (otherwise a maximin LHS is used to initialise continuous search)}
+\item{Xcand}{optional discrete set of candidates (otherwise a maximin LHS is used to initialize continuous search)}
 
 \item{control}{list in case \code{Xcand == NULL}, with elements \code{multi.start},
 to perform a multi-start optimization based on \code{\link[stats]{optim}}, with \code{maxit} iterations each.
@@ -162,7 +169,8 @@ for(i in 1:nsteps){
 }
 }
 \references{
-M. Binois, J. Huang, R. B. Gramacy, M. Ludkovski (2018+), Replication or exploration? Sequential design for stochastic simulation experiments,
-Technometrics (to appear).\cr 
+M. Binois, J. Huang, R. B. Gramacy, M. Ludkovski (2019), 
+Replication or exploration? Sequential design for stochastic simulation experiments,
+Technometrics, 61(1), 7-23.\cr 
 Preprint available on arXiv:1710.03206.
 }
