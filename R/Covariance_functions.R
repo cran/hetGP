@@ -19,7 +19,7 @@
 #' \item "\code{Matern3_2}": \eqn{c(x, y) = (1+sqrt(3)/theta * abs(x-y)) * exp(-sqrt(3)*abs(x-y)/theta)}
 #' }
 #' Multivariate correlations are product of univariate ones.
-#' @useDynLib hetGP
+#' @useDynLib hetGP, .registration = TRUE
 #' @importFrom  Rcpp evalCpp
 cov_gen <- function(X1, X2 = NULL, theta, type = c("Gaussian", "Matern5_2", "Matern3_2")){
   type <- match.arg(type)

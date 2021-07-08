@@ -1,0 +1,17 @@
+bibentry(bibtype = "Article",
+  title        = "{hetGP}: Heteroskedastic {G}aussian Process Modeling and Sequential Design in {R}",
+  author       = c(person(given = "Micka\\\"el",
+                          family = "Binois",
+                          email = "mbinois@mcs.anl.gov"),
+                   person(given = c("Robert", "B."),
+                          family = "Gramacy",
+                          email = "rbg@vt.edu")),
+  journal      = "Journal of Statistical Software",
+  year         = "2021",
+  volume       = "98",
+  number       = "13",
+  pages        = "1--44",
+  doi          = "10.18637/jss.v098.i13",
+  header       = "To cite hetGP in publications use:"
+)
+

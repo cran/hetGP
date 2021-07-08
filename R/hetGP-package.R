@@ -15,13 +15,18 @@
 #' 
 #' M. Binois, J. Huang, R. B. Gramacy, M. Ludkovski (2019), 
 #' Replication or exploration? Sequential design for stochastic simulation experiments,
-#' Technometrics, 61(1), 7-23.\cr 
-#' Preprint available on arXiv:1710.03206.
+#' Technometrics, 61(1), 7--23.\cr 
+#' Preprint available on arXiv:1710.03206. \cr \cr
 #' 
-#'  M. Chung, M. Binois, RB Gramacy, DJ Moquin, AP Smith, AM Smith (2019). 
+#' M. Chung, M. Binois, R. B. Gramacy, DJ Moquin, AP Smith, AM Smith (2019). 
 #' Parameter and Uncertainty Estimation for Dynamical Systems Using Surrogate Stochastic Processes.
-#' SIAM Journal on Scientific Computing, 41(4), 2212-2238.\cr
-#' Preprint available on arXiv:1802.00852. 
+#' SIAM Journal on Scientific Computing, 41(4), 2212--2238.\cr
+#' Preprint available on arXiv:1802.00852.\cr \cr
+#' 
+#' M. Binois, R. B. Gramacy (2021).
+#' hetGP: Heteroskedastic Gaussian Process Modeling and Sequential Design in R.
+#' Journal of Statistical Software, 98(13), 1--44.
+#'  
 #' @details 
 #' Important functions: \cr
 #' \code{\link[hetGP]{mleHetGP}} as the main function to build a model. \cr
