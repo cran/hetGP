@@ -1,3 +1,7 @@
+## hetGP 1.1.5
+  * bug corrections
+  * modify class checks
+
 ## hetGP 1.1.4
   * add JSS article CITATION file
   * add citation in DESCRIPTION and some .Rd files

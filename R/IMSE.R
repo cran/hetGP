@@ -11,7 +11,7 @@
 #' One can provide directly a model of class \code{hetGP} or \code{homGP}, or provide \code{X} and all other arguments
 #' @export
 IMSPE <- function(X, theta = NULL, Lambda = NULL, mult = NULL, covtype = NULL, nu= NULL, eps = sqrt(.Machine$double.eps)){
-  if(class(X) %in% c("homGP", "hetGP")){
+  if(is(X, "homGP") || is(X, "hetGP")){
     Wij <- Wij(mu1 = X$X0, theta = X$theta, type = X$covtype)
     if(X$trendtype == "OK"){
       tmp <- drop(1 - 2 * colSums(X$Ki) %*% mi(mu1 = X$X0, theta = X$theta, type = X$covtype) + colSums(X$Ki) %*% Wij %*% rowSums(X$Ki))/sum(X$Ki)
@@ -220,7 +220,7 @@ deriv_crit_IMSPE <- function(x, model, Wijs = NULL){
     x <- matrix(x, nrow = 1)
   
   kn1 <- cov_gen(model$X0, x, theta = model$theta, type = model$covtype)
-  if(class(model) == 'hetGP') kng1 <- cov_gen(model$X0, x, theta = model$theta_g, type = model$covtype)
+  if(is(model, 'hetGP')) kng1 <- cov_gen(model$X0, x, theta = model$theta_g, type = model$covtype)
   new_lambda <- predict(object = model, x = x, nugs.only = TRUE)$nugs/model$nu_hat
   k11 <- 1 + new_lambda
   
@@ -234,9 +234,9 @@ deriv_crit_IMSPE <- function(x, model, Wijs = NULL){
   
   tmp <- rep(NA, ncol(x))
   dlambda <- 0
-  if(class(model) == 'hetGP') KgiD <- model$Kgi %*% (model$Delta - model$nmean)
+  if(is(model, 'hetGP')) KgiD <- model$Kgi %*% (model$Delta - model$nmean)
   if(length(model$theta) < length(x)) model$theta <- rep(model$theta, length(x))
-  if(class(model) == 'hetGP' && length(model$theta_g) < length(x)) model$theta_g <- rep(model$theta, length(x))
+  if(is(model, 'hetGP') && length(model$theta_g) < length(x)) model$theta_g <- rep(model$theta, length(x))
   
   Wig <- Wijs %*% g
   
@@ -246,7 +246,7 @@ deriv_crit_IMSPE <- function(x, model, Wijs = NULL){
     
     dis <- drop(d1(X = model$X0[,m], x = x[m], sigma = model$theta[m], type = model$covtype) * kn1)
     
-    if(class(model)=='hetGP'){
+    if(is(model, 'hetGP')){
       dlambda <- crossprod(d1(X = model$X0[,m], x = x[m], sigma = model$theta_g[m], type = model$covtype) * kng1, KgiD) 
       if(model$logN)
         dlambda <- new_lambda *dlambda
@@ -390,7 +390,7 @@ IMSPE.search <- function(model, replicate = FALSE, Xcand = NULL,
     local_opt_fun <- function(i){
       out <- try(optim(Xstart[i,, drop = FALSE], crit_IMSPE, method = "L-BFGS-B", lower = rep(0, d), upper = rep(1, d),
                    Wijs = Wijs, model = model, control = list(maxit = control$maxit), gr = deriv_crit_IMSPE))
-      if(class(out) == "try-error") return(NULL)
+      if(is(out, "try-error")) return(NULL)
       return(out)
     }
     
@@ -763,7 +763,7 @@ allocate_mult <- function(model, N, Wijs = NULL, use.Ki = FALSE){
     Ci <- pmax(0, diag(Ci %*% Wijs %*% Ci))
   }
   
-  if(class(model) == "hetGP") V <- model$Lambda
+  if(is(model, "hetGP")) V <- model$Lambda
   else V <- rep(model$g, length(model$Z0))
   
   res <- N * sqrt(Ci * V) / sum(sqrt(Ci * V))

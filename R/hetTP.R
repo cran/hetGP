@@ -360,7 +360,7 @@ mleHomTP <- function(X, Z, lower = NULL, upper = NULL, known = list(beta0 = 0),
                  X0 = X0, Z0 = Z0, Z = Z, mult = mult, beta0 = beta0,
                  control = list(fnscale = -1, maxit = maxit, factr = settings$factr, pgtol = settings$pgtol)))
     ## Catch errors when at least one likelihood evaluation worked
-    if(class(out) == "try-error")
+    if(is(out, "try-error"))
       out <- list(par = envtmp$arg_max, value = envtmp$max_loglik, counts = NA,
                   message = "Optimization stopped due to NAs, use best value so far")
     
@@ -1584,7 +1584,7 @@ mleHetTP <- function(X, Z, lower = NULL, upper = NULL,
   
   if(is.null(known$Delta)){
     
-    if(is.null(noiseControl$lowerDelta)){
+    if(is.null(noiseControl$lowerDelta) || length(noiseControl$lowerDelta) != n){
       if(logN){
         noiseControl$lowerDelta <- log(eps)
       }else{
@@ -1598,7 +1598,7 @@ mleHetTP <- function(X, Z, lower = NULL, upper = NULL,
     
     if(is.null(noiseControl$g_max)) noiseControl$g_max <- 1e2 
     
-    if(is.null(noiseControl$upperDelta)){
+    if(is.null(noiseControl$upperDelta) || length(noiseControl$upperDelta) != n){
       if(logN){
         noiseControl$upperDelta <- log(noiseControl$g_max)
       }else{
@@ -1684,7 +1684,7 @@ mleHetTP <- function(X, Z, lower = NULL, upper = NULL,
                  control = list(fnscale = -1, maxit = maxit, factr = settings$factr, pgtol = settings$pgtol)))
     
     ## Catch errors when at least one likelihood evaluation worked
-    if(class(out) == "try-error")
+    if(is(out, "try-error"))
       out <- list(par = envtmp$arg_max, value = envtmp$max_loglik, counts = NA,
                   message = "Optimization stopped due to NAs, use best value so far")
     

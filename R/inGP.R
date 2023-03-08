@@ -181,6 +181,9 @@ predict_Hess <- function(object, x){
   kvec <-  cov_gen(X1 = object$X0, X2 = x, theta = object$theta, type = object$covtype)
   ZKi <-  crossprod(object$Z0 - object$beta0, object$Ki)
   d <- ncol(x)
+  if(length(object$theta) < ncol(object$X0)){
+    object$theta <- rep(object$theta, ncol(object$X0))
+  }
   
   # dvec_num <- matrix(NA, nrow = length(kvec), ncol = ncol(x))
   # d2vec_num <- matrix(NA, nrow = length(kvec), ncol = ncol(x)^2)

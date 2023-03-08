@@ -9,11 +9,10 @@ mleHetGP(
   Z,
   lower = NULL,
   upper = NULL,
-  noiseControl = list(k_theta_g_bounds = c(1, 100), g_max = 100, g_bounds = c(1e-06,
-    1)),
-  settings = list(linkThetas = "joint", logN = TRUE, initStrategy = "residuals",
-    checkHom = TRUE, penalty = TRUE, trace = 0, return.matrices = TRUE, return.hom =
-    FALSE, factr = 1e+09),
+  noiseControl = list(k_theta_g_bounds = c(1, 100), g_max = 100, g_bounds = c(1e-06, 1)),
+  settings = list(linkThetas = "joint", logN = TRUE, initStrategy = "residuals", checkHom
+    = TRUE, penalty = TRUE, trace = 0, return.matrices = TRUE, return.hom = FALSE, factr
+    = 1e+09),
   covtype = c("Gaussian", "Matern5_2", "Matern3_2"),
   maxit = 100,
   known = NULL,

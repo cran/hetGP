@@ -12,9 +12,9 @@ mleHetTP(
   noiseControl = list(k_theta_g_bounds = c(1, 100), g_max = 10000, g_bounds = c(1e-06,
     0.1), nu_bounds = c(2 + 0.001, 30), sigma2_bounds = c(sqrt(.Machine$double.eps),
     10000)),
-  settings = list(linkThetas = "joint", logN = TRUE, initStrategy = "residuals",
-    checkHom = TRUE, penalty = TRUE, trace = 0, return.matrices = TRUE, return.hom =
-    FALSE, factr = 1e+09),
+  settings = list(linkThetas = "joint", logN = TRUE, initStrategy = "residuals", checkHom
+    = TRUE, penalty = TRUE, trace = 0, return.matrices = TRUE, return.hom = FALSE, factr
+    = 1e+09),
   covtype = c("Gaussian", "Matern5_2", "Matern3_2"),
   maxit = 100,
   known = list(beta0 = 0),

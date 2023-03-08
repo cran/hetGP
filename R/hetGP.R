@@ -127,7 +127,7 @@ dlogLikHom <- function(X0, Z0, Z, mult, theta, g, beta0 = NULL, covtype = "Gauss
 #' @param maxit maximum number of iteration for L-BFGS-B of \code{\link[stats]{optim}}
 #' @param eps jitter used in the inversion of the covariance matrix for numerical stability
 #' @param settings list with argument \code{return.Ki}, to include the inverse covariance matrix in the object for further use (e.g., prediction).
-#' Arguments \code{factr} (default to 1e9) and \code{pgtol} are available to be passed to \code{control} for L-BFGS-B in \code{\link[stats]{optim}}. 
+#' Arguments \code{factr} (default to 1e9) and \code{pgtol} are available to be passed to \code{control} for L-BFGS-B in \code{\link[stats]{optim}} (for the joint likelihood only). 
 #' @return a list which is given the S3 class "\code{homGP}", with elements:
 #' \itemize{
 #' \item \code{theta}: maximum likelihood estimate of the lengthscale parameter(s),
@@ -317,7 +317,7 @@ mleHomGP <- function(X, Z, lower = NULL, upper = NULL, known = NULL,
                      X0 = X0, Z0 = Z0, Z = Z, mult = mult, beta0 = beta0,
                      control = list(fnscale = -1, maxit = maxit, factr = settings$factr, pgtol = settings$pgtol), env = envtmp))
     ## Catch errors when at least one likelihood evaluation worked
-    if(class(out) == "try-error")
+    if(is(out, "try-error"))
       out <- list(par = envtmp$arg_max, value = envtmp$max_loglik, counts = NA,
                   message = "Optimization stopped due to NAs, use best value so far")
     
@@ -664,7 +664,9 @@ logLikHet <- function(X0, Z0, Z, mult, Delta, theta, g, k_theta_g = NULL, theta_
     nu_hat_var <- drop(crossprod(Delta - nmean, Kgi) %*% (Delta - nmean))/length(Delta)
     
     ## To avoid 0 variance, e.g., when Delta = nmean
-    if(nu_hat_var < eps) return(loglik)
+    if(nu_hat_var < eps){
+      return(loglik)
+    } 
     
     # if(hardpenalty)
     #   return(loglik + min(0, - n/2 * log(nu_hat_var) - sum(log(diag(Kg_c))) - n/2*log(2*pi) - n/2))
@@ -1054,10 +1056,10 @@ dlogLikHet <- function(X0, Z0, Z, mult, Delta, theta, g, k_theta_g = NULL, theta
 #' Journal of Computational and Graphical Statistics, 27(4), 808--821.\cr 
 #' Preprint available on arXiv:1611.05902.
 compareGP <- function(model1, model2){
-  if(class(model1) == "hetGP") ll1 <- model1$ll_non_pen
+  if(is(model1, "hetGP")) ll1 <- model1$ll_non_pen
   else ll1 <- model1$ll
   
-  if(class(model2) == "hetGP") ll2 <- model2$ll_non_pen
+  if(is(model2, "hetGP")) ll2 <- model2$ll_non_pen
   else ll2 <- model2$ll
   
   if(ll1 >= ll2) return(model1)
@@ -1525,7 +1527,7 @@ mleHetGP <- function(X, Z, lower = NULL, upper = NULL,
                        known = list(theta = known[["theta"]], g = known$g_H, beta0 = known$beta0),
                        upper = upper, init = list(theta = init$theta, g = g_init), covtype = covtype, maxit = maxit,
                        noiseControl = list(g_bounds = c(noiseControl$g_min, noiseControl$g_max)), eps = eps,
-                       settings = list(return.Ki = rKI, factr = settings$factr, pgtol = settings$pgtol))
+                       settings = list(return.Ki = rKI))
     
     if(is.null(known[["theta"]]))
       init$theta <- modHom$theta
@@ -1536,6 +1538,7 @@ mleHetGP <- function(X, Z, lower = NULL, upper = NULL,
       nugs_est <-  nugs_est / modHom$nu_hat  # to be homegeneous with Delta
       
       if(logN){
+        nugs_est <- pmax(nugs_est, .Machine$double.eps) # to avoid problems on deterministic test functions
         nugs_est <- log(nugs_est)
       }
       
@@ -1605,7 +1608,7 @@ mleHetGP <- function(X, Z, lower = NULL, upper = NULL,
       modNugs <- mleHomGP(X = list(X0 = X0, Z0 = nugs_est0, mult = mult), Z = nugs_est,
                           lower = noiseControl$lowerTheta_g, upper = noiseControl$upperTheta_g,
                           init = list(theta = init$theta_g, g =  init$g), covtype = covtype, noiseControl = noiseControl,
-                          maxit = maxit, eps = eps, settings = list(return.Ki = F, factr = settings$factr, pgtol = settings$pgtol))
+                          maxit = maxit, eps = eps, settings = list(return.Ki = F))
       prednugs <- suppressWarnings(predict(x = X0, object = modNugs))
       
     }else{
@@ -1618,7 +1621,7 @@ mleHetGP <- function(X, Z, lower = NULL, upper = NULL,
       modNugs <- mleHomGP(X = list(X0 = X0, Z0 = nugs_est0, mult = rep(1, nrow(X0))), Z = nugs_est0,
                           lower = noiseControl$lowerTheta_g, upper = noiseControl$upperTheta_g,
                           init = list(theta = init$theta_g, g =  init$g), covtype = covtype, noiseControl = noiseControl,
-                          maxit = maxit, eps = eps, settings = list(return.Ki = F, factr = settings$factr, pgtol = settings$pgtol))
+                          maxit = maxit, eps = eps, settings = list(return.Ki = F))
       prednugs <- suppressWarnings(predict(x = X0, object = modNugs))
     }
     
@@ -1749,7 +1752,7 @@ mleHetGP <- function(X, Z, lower = NULL, upper = NULL,
   
   if(is.null(known$Delta)){
     
-    if(is.null(noiseControl$lowerDelta)){
+    if(is.null(noiseControl$lowerDelta) || length(noiseControl$lowerDelta) != n){
       if(logN){
         noiseControl$lowerDelta <- log(eps)
       }else{
@@ -1763,7 +1766,7 @@ mleHetGP <- function(X, Z, lower = NULL, upper = NULL,
     
     if(is.null(noiseControl$g_max)) noiseControl$g_max <- 1e2 
     
-    if(is.null(noiseControl$upperDelta)){
+    if(is.null(noiseControl$upperDelta) || length(noiseControl$upperDelta) != n){
       if(logN){
         noiseControl$upperDelta <- log(noiseControl$g_max)
       }else{
@@ -1845,7 +1848,7 @@ mleHetGP <- function(X, Z, lower = NULL, upper = NULL,
                      control = list(fnscale = -1, maxit = maxit, factr = settings$factr, pgtol = settings$pgtol)))
     
     ## Catch errors when at least one likelihood evaluation worked
-    if(class(out) == "try-error")
+    if(is(out, "try-error"))
       out <- list(par = envtmp$arg_max, value = envtmp$max_loglik, counts = NA,
                   message = "Optimization stopped due to NAs, use best value so far")
     

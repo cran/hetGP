@@ -75,7 +75,7 @@ crit_EI <- function(x, model, cst = NULL, preds = NULL){
   if(is.null(dim(x))) x <- matrix(x, nrow = 1)
   if(is.null(preds)) preds <- predict(model, x = x)
   
-  if(class(model) %in% c("homTP", "hetTP")){
+  if(is(model, "homTP") || is(model, "hetTP")){
     gamma <- (cst - preds$mean)/sqrt(preds$sd2)
     res <- (cst - preds$mean) * pt(gamma, df = model$nu + length(model$Z))
     res <- res + sqrt(preds$sd2) * (1 + (gamma^2 - 1)/(model$nu + length(model$Z) - 1)) * dt(x = gamma, df = model$nu + length(model$Z))
@@ -109,7 +109,7 @@ deriv_crit_EI <- function(x, model, cst = NULL, preds = NULL){
   
   z <- (cst - preds$mean)/sqrt(preds$sd2)
   
-  if(class(model) %in% c("homGP", "hetGP")){
+  if(is(model, "homGP") || is(model, "hetGP")){
     res <- pred_gr$sd2 / (2 * sqrt(preds$sd2)) * dnorm(z) - pred_gr$mean * pnorm(z)
   }else{
     # dz = - dm/s - z ds/s = -dm/s - z * ds2/(2s2) 
@@ -145,10 +145,10 @@ predict_gr <- function(object, x){
     for(j in 1:ncol(x)) dkvec[, j] <- drop(partial_cov_gen(X1 = x[i,,drop = F], X2 = object$X0, theta = object$theta, i1 = 1, i2 = j, arg = "X_i_j", type = object$covtype)) * kvec[,i]
     
     dm[i,] <- crossprod(object$Z0 - object$beta0, object$Ki) %*% dkvec
-    if(class(object) %in% c("hetGP", "homGP") && object$trendtype == "OK") tmp <- drop(1 - colSums(object$Ki) %*% kvec[,i])/(sum(object$Ki)) * colSums(object$Ki) %*% dkvec else tmp <- 0
+    if((is(object, "hetGP") || is(object, "homGP")) && object$trendtype == "OK") tmp <- drop(1 - colSums(object$Ki) %*% kvec[,i])/(sum(object$Ki)) * colSums(object$Ki) %*% dkvec else tmp <- 0
     ds2[i,] <- -2 * (crossprod(kvec[,i], object$Ki) %*% dkvec + tmp)
   }
-  if(class(object) %in% c("hetGP", "homGP")){
+  if(is(object, "hetGP") || is(object, "homGP")){
     return(list(mean = dm, sd2 = object$nu_hat * ds2))
   }else{
     return(list(mean = object$sigma2 * dm, sd2 =  (object$nu + object$psi - 2) / (object$nu + length(object$Z) - 2) * object$sigma2^2 * ds2)) 
@@ -364,7 +364,7 @@ crit.search <- function(model, crit, ..., replicate = FALSE, Xcand = NULL,
       out <- try(optim(Xstart[i,, drop = FALSE], crit, ... = ..., method = "L-BFGS-B", gr = gr, 
                        lower = rep(0, d), upper = rep(1, d),
                        model = model, control = list(maxit = control$maxit, fnscale = -1)))
-      if(class(out) == "try-error") return(NULL)
+      if(is(out, "try-error")) return(NULL)
       return(out)
     }
     

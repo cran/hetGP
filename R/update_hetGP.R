@@ -978,7 +978,7 @@ update.hetTP <- function(object, Xnew, Znew, ginit = 1e-2, lower = NULL, upper =
 ## ' print(max(abs(Kni %*% Kn - diag(nrow(model$X0) + 1))))                                 
 ## ' }
 update_Ki <- function(x, model, new_lambda = NULL, nrep = 1){
-  if(class(model) %in% c("homTP", "hetTP")){
+  if(is(model, "homTP") || is(model, "hetTP")){
     kn1 <- model$sigma2 * cov_gen(x, model$X0, theta = model$theta, type = model$covtype)
     if(is.null(new_lambda))
       new_lambda <- predict(object = model, x = x, nugs.only = TRUE)$nugs
@@ -1109,21 +1109,21 @@ LOO_preds <- function(model, ids = NULL){
   if(!is.null(model$trendtype) && model$trendtype == "OK") 
     model$Ki <- model$Ki - matrix(rowSums(model$Ki), ncol = 1) %*% matrix(rowSums(model$Ki), nrow = 1) / sum(model$Ki)
   
-  if(class(model) == "homGP"){
+  if(is(model, "homGP")){
     sds <- model$nu_hat * (1/diag(model$Ki)[ids] - model$g/model$mult[ids])
   } 
   
-  if(class(model) == "hetGP"){
+  if(is(model, "hetGP")){
     sds <- model$nu_hat * (1/diag(model$Ki)[ids] - model$Lambda[ids]/model$mult[ids])
   }
   
-  if(class(model) == "homTP"){
+  if(is(model, "homTP")){
     sds <- (1/diag(model$Ki)[ids] - model$g/model$mult[ids])
     # TP correction
     sds <- (model$nu + model$psi - 2) / (model$nu + length(model$Z) - model$mult[ids] - 2) * sds
   }
   
-  if(class(model) == "hetTP"){
+  if(is(model, "hetTP")){
     sds <- (1/diag(model$Ki)[ids] - model$Lambda[ids]/model$mult[ids])
     # TP correction
     sds <- (model$nu + model$psi - 2) / (model$nu + length(model$Z) - model$mult[ids] - 2) * sds
