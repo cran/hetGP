@@ -2,8 +2,8 @@ Package: hetGP
 Type: Package
 Title: Heteroskedastic Gaussian Process Modeling and Design under
         Replication
-Version: 1.1.5
-Date: 2023-03-06
+Version: 1.1.6
+Date: 2023-09-29
 Author: Mickael Binois, Robert B. Gramacy
 Maintainer: Mickael Binois <mickael.binois@inria.fr>
 Description: Performs Gaussian process regression with heteroskedastic noise following the model by Binois, M., Gramacy, R., Ludkovski, M. (2016) <arXiv:1611.05902>, with implementation details in Binois, M. & Gramacy, R. B. (2021) <doi:10.18637/jss.v098.i13>. The input dependent noise is modeled as another Gaussian process. Replicated observations are encouraged as they yield computational savings. Sequential design procedures based on the integrated mean square prediction error and lookahead heuristics are provided, and notably fast update functions when adding new observations.
@@ -16,6 +16,6 @@ Suggests: knitr, monomvn, lhs, colorspace
 VignetteBuilder: knitr
 RoxygenNote: 7.2.3
 NeedsCompilation: yes
-Packaged: 2023-03-06 22:39:15 UTC; mbinois
+Packaged: 2023-10-02 11:43:12 UTC; mbinois
 Repository: CRAN
-Date/Publication: 2023-03-08 09:40:06 UTC
+Date/Publication: 2023-10-02 21:40:02 UTC

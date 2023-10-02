@@ -2384,8 +2384,8 @@ auto_bounds <- function(X, min_cor = 0.01, max_cor = 0.5, covtype = "Gaussian", 
   Xsc <- find_reps(X, rep(1, nrow(X)), rescale = T) # rescaled distances
   
   dists <- distance_cpp(Xsc$X0) # find 2 closest points
-  repr_low_dist <- quantile(x = dists[lower.tri(dists)], probs = p) # (quantile on squared Euclidean distances)
-  repr_lar_dist <- quantile(x = dists[lower.tri(dists)], probs = 1-p)
+  repr_low_dist <- quantile(x = dists[lower.tri(dists)], probs = p, names = FALSE) # (quantile on squared Euclidean distances)
+  repr_lar_dist <- quantile(x = dists[lower.tri(dists)], probs = 1-p, names = FALSE)
   
   if(covtype == "Gaussian"){
     theta_min <- - repr_low_dist/log(min_cor)
@@ -2396,10 +2396,17 @@ auto_bounds <- function(X, min_cor = 0.01, max_cor = 0.5, covtype = "Gaussian", 
     tmpfun <- function(theta, repr_dist, covtype, value){
       cov_gen(matrix(sqrt(repr_dist/ncol(X)), ncol = ncol(X)), matrix(0, ncol = ncol(X)), type = covtype, theta = theta) - value
     }
-    theta_min <- uniroot(tmpfun, interval = c(sqrt(.Machine$double.eps), 100), covtype = covtype, value = min_cor, 
-                         repr_dist = repr_low_dist, tol = sqrt(.Machine$double.eps))$root
-    theta_max <- uniroot(tmpfun, interval = c(sqrt(.Machine$double.eps), 100), covtype = covtype, value = max_cor,
-                         repr_dist = repr_lar_dist, tol = sqrt(.Machine$double.eps))$root
+    theta_min <- try(uniroot(tmpfun, interval = c(sqrt(.Machine$double.eps), 100), covtype = covtype, value = min_cor, 
+                         repr_dist = repr_low_dist, tol = sqrt(.Machine$double.eps))$root)
+    if(is(theta_min, "try-error")){
+      warning("The automatic selection of lengthscales bounds was not successful. Perhaps provide lower and upper values.")
+      theta_min <- 1e-2
+    }
+    theta_max <- try(uniroot(tmpfun, interval = c(sqrt(.Machine$double.eps), 100), covtype = covtype, value = max_cor,
+                         repr_dist = repr_lar_dist, tol = sqrt(.Machine$double.eps))$root, silent = TRUE)
+    if(is(theta_max, "try-error")){
+      theta_max <- 5
+    }
     return(list(lower = theta_min * (Xsc$inputBounds[2,] - Xsc$inputBounds[1,]),
                 upper = max(1, theta_max) * (Xsc$inputBounds[2,] - Xsc$inputBounds[1,])))
   }

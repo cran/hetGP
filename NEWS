@@ -1,3 +1,8 @@
+## hetGP 1.1.6
+  * Add new GP model allowing for common random numbers
+  * Fix some sign problems in derivatives with Matern3_2
+  * Avoid some name propagations in internal functions
+  
 ## hetGP 1.1.5
   * bug corrections
   * modify class checks

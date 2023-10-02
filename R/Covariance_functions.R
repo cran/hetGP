@@ -31,15 +31,47 @@ cov_gen <- function(X1, X2 = NULL, theta, type = c("Gaussian", "Matern5_2", "Mat
     return(cov_Matern3_2(X1 = X1, X2 = X2, theta = theta))
 }
 
-## ' Partial derivative of covariance function
-## ' @details for compatibility and efficiency, the results is to be multiplied by the matrix it is derived from
-## ' @param X1 matrix of design locations
-## ' @param X2 matrix of design locations if covariance is calculated between X1 and X2
-## ' @param theta vector of lengthscale parameters (either of size one if isotropic or of size d if anisotropic)
-## ' @param type one of "Gaussian", "Matern5_2"
-## ' @param arg argument corresponding to the required partial derivative: "theta_k", "k_theta_g", "X_i_j"
-## ' @param ... additional arguments to be passed for the derivative computation
-## ' @export
+# ' Partial derivative of covariance function
+# ' @details for compatibility and efficiency, the results is to be multiplied by the matrix it is derived from
+# ' @param X1 matrix of design locations
+# ' @param X2 matrix of design locations if covariance is calculated between X1 and X2
+# ' @param theta vector of lengthscale parameters (either of size one if isotropic or of size d if anisotropic)
+# ' @param type one of "Gaussian", "Matern5_2"
+# ' @param arg argument corresponding to the required partial derivative: "theta_k", "k_theta_g", "X_i_j"
+# ' @param ... additional arguments to be passed for the derivative computation
+# ' @export
+# ' @noRd
+# ' @examples
+# ' # Test gradients
+# ' library(hetGP)
+# ' d <- 3
+# ' X <- matrix(runif(4*d), 4, d)
+# ' theta <- runif(d) + 0.2
+# ' type <- 'Matern3_2'
+# ' K <- cov_gen(X, theta= theta, type = type)
+# ' 
+# ' hetGP:::partial_cov_gen(X1 = X[,1,drop = F], theta = theta[1], type = type, arg = "theta_k")*K
+# ' 1e4 * (cov_gen(X1 = X, theta = theta + c(1e-4, 0, 0), type = type) - cov_gen(X1 = X, theta = theta, type = type))
+# ' 
+# ' hetGP:::partial_cov_gen(X1 = X[,2,drop = F], theta = theta[2], type = type, arg = "theta_k")*K
+# ' 1e4 * (cov_gen(X1 = X, theta = theta + c(0, 1e-4, 0), type = type) - cov_gen(X1 = X, theta = theta, type = type))
+# ' 
+# ' hetGP:::partial_cov_gen(X1 = X[,3,drop = F], theta = theta[3], type = type, arg = "theta_k")*K
+# ' 1e4 * (cov_gen(X1 = X, theta = theta + c(0, 0, 1e-4), type = type) - cov_gen(X1 = X, theta = theta, type = type))
+# '
+# ' # cross matrix case
+# ' Y <- matrix(runif(6*d), 6, d)
+# ' K <- cov_gen(X, Y, theta= theta, type = type)
+# ' 
+# ' hetGP:::partial_cov_gen(X1 = X[,1,drop = F], X2 = Y[,1,drop = F], theta = theta[1], type = type, arg = "theta_k")*K
+# ' 1e4 * (cov_gen(X1 = X, X2 = Y, theta = theta + c(1e-4, 0, 0), type = type) - cov_gen(X1 = X, X2 = Y, theta = theta, type = type))
+# ' 
+# ' hetGP:::partial_cov_gen(X1 = X[,2,drop = F], X2 = Y[,2,drop = F], theta = theta[2], type = type, arg = "theta_k")*K
+# ' 1e4 * (cov_gen(X1 = X, X2 = Y, theta = theta + c(0, 1e-4, 0), type = type) - cov_gen(X1 = X, X2 = Y, theta = theta, type = type))
+# ' 
+# ' hetGP:::partial_cov_gen(X1 = X[,3,drop = F], X2 = Y[,3,drop = F], theta = theta[3], type = type, arg = "theta_k")*K
+# ' 1e4 * (cov_gen(X1 = X, X2 = Y, theta = theta + c(0, 0, 1e-4), type = type) - cov_gen(X1 = X, X2 = Y, theta = theta, type = type))
+
 partial_cov_gen <- function(X1, theta, type = "Gaussian", arg, ..., X2 = NULL){
   if(is.null(X2)){
     if(type == "Gaussian"){

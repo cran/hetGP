@@ -104,7 +104,7 @@ test_that("optim",{
   ### Test of deriv_crit_EI
   grads_ei_ref <- t(apply(Xgrid, 1, grad, func = crit_EI, model = model, cst = -30))
   grads_ei <- deriv_crit_EI(Xgrid, model, cst = -30)
-  expect_equal(grads_ei, grads_ei_ref, tol = 1e-8)
+  expect_equal(grads_ei, grads_ei_ref, tol = 1e-6)
   
   ## Eventually, qEI verification
   # nq <- 100
