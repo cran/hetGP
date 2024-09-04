@@ -80,7 +80,7 @@ test_that("optim",{
   grads_ei_ref <- t(apply(Xgrid, 1, grad, func = crit_EI, model = model, cst = -30))
   grads_ei <- hetGP:::deriv_crit_EI(Xgrid, model, cst = -30)
   expect_equal(grads_ei, grads_ei_ref, tol = 1e-8)
-
+  
   
   ## Same for TPs
   ## Model fitting
@@ -93,7 +93,7 @@ test_that("optim",{
   eps <- 1e-6
   predictions1 <- predict(x = Xgrid + matrix(c(eps, 0), nrow(Xgrid), 2, byrow = T), object =  model)
   predictions2 <- predict(x = Xgrid + matrix(c(0, eps), nrow(Xgrid), 2, byrow = T), object =  model)
-
+  
   grad_preds <- hetGP:::predict_gr(model, Xgrid)
   expect_equal(grad_preds$mean, 
                cbind((predictions1$mean - predictions$mean)/eps, (predictions2$mean - predictions$mean)/eps), tol = 1e-4)
@@ -121,3 +121,64 @@ test_that("optim",{
   # }
   
 })
+
+test_that("derivGP",{
+  # Derivative GP validation
+  
+  # Constant expressions
+  for(ct in c("Gaussian", "Matern3_2", "Matern5_2")){
+    x <- matrix(runif(1), 1, 1)
+    theta <- runif(1)
+    eps <- 1e-6
+    dleft <- function(x, y, eps){
+      return((cov_gen(X1 = x + eps, X2 = y, theta = theta, type = ct) - cov_gen(X1 = x, X2 = y, theta = theta, type = ct))/eps)
+    }
+    dldr <- (dleft(x, x + eps, eps) - dleft(x, x, eps))/eps
+    if(ct == "Gaussian") res <- 2/theta
+    if(ct == "Matern3_2") res <- 3/theta^2
+    if(ct == "Matern5_2") res <- 5/(3*theta^2)
+    expect_equal(drop(dldr), res, tolerance = 1e-4)
+  }
+  
+  # Test derivative predictive equations
+  for(ct in c("Gaussian", "Matern3_2", "Matern5_2")){
+    set.seed(1)
+    nvar <- 2
+    
+    ## Branin redefined in [0,1]^2
+    ftest <- function(x){
+      if(is.null(nrow(x)))
+        x <- matrix(x, nrow = 1)
+      x1 <- x[,1] * 15 - 5
+      x2 <- x[,2] * 15
+      (x2 - 5/(4 * pi^2) * (x1^2) + 5/pi * x1 - 6)^2 + 10 * (1 - 1/(8 * pi)) * cos(x1) + 10
+    }
+    
+    ## Unique (randomly chosen) design locations
+    n <- 20
+    X <- matrix(runif(n * 2), n)
+    
+    ## obtain training data response at design locations X
+    Z <- ftest(X)
+    
+    ## Model fitting
+    model <- mleHetGP(X = X, Z = Z, known = list(beta0 = 0),
+                      lower = rep(0.01, nvar), upper = rep(10, nvar),
+                      covtype = ct)
+    
+    xtest <- matrix(runif(2), 1)
+    gr_1 <- hetGP:::predict_derivGP(model, xtest)
+    
+    # Simul gr version
+    nmc <- 1e6
+    eps <- 1e-5
+    xtests <- rbind(xtest, xtest + c(eps, 0), xtest + c(0, eps))
+    preds <- predict(model, x = xtests, xprime = xtests)
+    sims <- MASS::mvrnorm(n = nmc, mu = preds$mean, Sigma = 1/2 * (preds$cov + t(preds$cov)))
+    gr_emp <- cbind(sims[,2] - sims[, 1], sims[,3] - sims[, 1]) / eps
+    # print(gr_1)
+    expect_equal(drop(gr_1$mean), colMeans(gr_emp), tolerance = 0.1)
+    expect_equal(drop(gr_1$sd2), apply(gr_emp, 2, var), tolerance = 0.1)
+  }
+}
+)

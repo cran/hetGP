@@ -135,7 +135,7 @@ dlogLikHomTP <- function(X0, Z0, Z, mult, theta, g, nu, sigma2, beta0 = 0, covty
 #' \item \code{X0}, \code{Z0}, \code{Z}, \code{mult}, \code{eps}, \code{covtype}: values given in input,
 #' \item \code{call}: user call of the function
 #' \item \code{used_args}: list with arguments provided in the call
-#' \item \code{nit_opt}, \code{msg}: \code{counts} and {msg} returned by \code{\link[stats]{optim}}
+#' \item \code{nit_opt}, \code{msg}: \code{counts} and \code{msg} returned by \code{\link[stats]{optim}}
 #' \item \code{Ki}, inverse covariance matrix (if \code{return.Ki} is \code{TRUE} in \code{settings})
 #' \item \code{time}: time to train the model, in seconds.
 #' 
@@ -891,7 +891,7 @@ dlogLikHetTP <- function(X0, Z0, Z, mult, Delta, theta, nu, sigma2, g, k_theta_g
 #'   \item \code{checkHom} when \code{TRUE}, if the log-likelihood with a homoskedastic model is better, then return it.
 #'   \item \code{trace} optional scalar (default to \code{0}). If positive, tracing information on the fitting process.
 #' If \code{1}, information is given about the result of the heterogeneous model optimization.
-#' Level \code{2} gives more details. Level {3} additionaly displays all details about initialization of hyperparameters.
+#' Level \code{2} gives more details. Level \code{3} additionaly displays all details about initialization of hyperparameters.
 #' \item \code{return.matrices} boolean too include the inverse covariance matrix in the object for further use (e.g., prediction).
 #' \item Arguments \code{factr} (default to 1e9) and \code{pgtol} are available to be passed to \code{control} for L-BFGS-B in \code{\link[stats]{optim}}.   
 #' }

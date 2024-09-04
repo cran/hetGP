@@ -6,8 +6,6 @@
 #' and notably fast update functions when adding new observations.
 #' @title Package hetGP
 #' @author Mickael Binois, Robert B. Gramacy
-#' @docType package
-#' @name hetGP-package
 #' @references 
 #' M. Binois, Robert B. Gramacy, M. Ludkovski (2018), Practical heteroskedastic Gaussian process modeling for large simulation experiments,
 #' Journal of Computational and Graphical Statistics, 27(4), 808--821.\cr 
@@ -179,4 +177,5 @@
 #' mtext(side = 2, line = 2, expression(f(x)), cex = 0.8)
 #' mtext(side = 1, line = 2, 'x', cex = 0.8)
 #' }
-NULL
+#' @keywords internal
+"_PACKAGE"

@@ -130,9 +130,15 @@ deriv_crit_EI <- function(x, model, cst = NULL, preds = NULL){
   return(res)
 }
 
-#' Prediction of the gradient
+#' Prediction of the gradient of the predictive quantities
 #' @param object GP/TP
 #' @param x design location
+#' @returns A list with elements:
+#' \itemize{
+#' \item \code{mean}: the gradient of the predictive mean;
+#' \item \code{sd2}: the gradient of the predictive variance (not the variance of the gradient GP);
+#' }
+#' @seealso \code{\link[hetGP]{predict_derivgp}} for the prediction for the derivative GP itself
 #' @noRd
 predict_gr <- function(object, x){
   if(is.null(dim(x))) x <- matrix(x, nrow = 1)
@@ -148,11 +154,59 @@ predict_gr <- function(object, x){
     if((is(object, "hetGP") || is(object, "homGP")) && object$trendtype == "OK") tmp <- drop(1 - colSums(object$Ki) %*% kvec[,i])/(sum(object$Ki)) * colSums(object$Ki) %*% dkvec else tmp <- 0
     ds2[i,] <- -2 * (crossprod(kvec[,i], object$Ki) %*% dkvec + tmp)
   }
+  
   if(is(object, "hetGP") || is(object, "homGP")){
     return(list(mean = dm, sd2 = object$nu_hat * ds2))
   }else{
     return(list(mean = object$sigma2 * dm, sd2 =  (object$nu + object$psi - 2) / (object$nu + length(object$Z) - 2) * object$sigma2^2 * ds2)) 
   }
+}
+
+
+#' @param object GP/TP object
+#' @param x design location
+#' @returns A list with elements:
+#' \itemize{
+#' \item \code{mean}: the gradient gp mean
+#' \item \code{sd2}: the gradient gp predictive variance;
+#' }
+#' @seealso \code{\link[hetGP]{predict_gr}} for the prediction for the derivative GP itself
+#' @noRd
+#' @note untested for TP objects. The cross covariance between x locations is not computed yet.
+#' @references 
+#' N. Wycoff, M. Binois, S. Wild (2021), Sequential Learning of Active Subspaces, JCGS \cr \cr
+#' 
+#' Wu, A.; Aoi, M. C. & Pillow, J. W. (2017), Exploiting gradients and Hessians in Bayesian optimization and Bayesian quadrature, arXiv preprint arXiv:1704.00060, 2017
+predict_derivGP <- function(object, x){
+  if(is.null(dim(x))) x <- matrix(x, nrow = 1)
+  if(object$trendtype != 'SK') warning("Only the Simple kriging case is treated.")
+  
+  kvec <-  cov_gen(X1 = object$X0, X2 = x, theta = object$theta, type = object$covtype)
+  
+  dm <- ds2 <- matrix(NA, nrow(x), ncol(x))
+  
+  
+  for(i in 1:ncol(x)){
+    if(object$covtype == "Gaussian") Km <- 2 / object$theta
+    if(object$covtype == "Matern3_2") Km <- 3 / object$theta^2
+    if(object$covtype == "Matern5_2") Km <- 5 / (3 * object$theta^2)
+  }
+  
+  for(i in 1:nrow(x)){
+    dkvec <- matrix(NA, nrow(object$X0), ncol(x))
+    for(j in 1:ncol(x)) dkvec[, j] <- drop(partial_cov_gen(X1 = x[i,,drop = F], X2 = object$X0, theta = object$theta, i1 = 1, i2 = j, arg = "X_i_j", type = object$covtype)) * kvec[,i]
+    
+    dm[i,] <- crossprod(object$Z0 - object$beta0, object$Ki) %*% dkvec
+    # if((is(object, "hetGP") || is(object, "homGP")) && object$trendtype == "OK") tmp <- drop(1 - colSums(object$Ki) %*% kvec[,i])/(sum(object$Ki)) * colSums(object$Ki) %*% dkvec else tmp <- 0
+    tmp <- 0
+    ds2[i,] <- as.vector(Km) - (fast_diag(crossprod(dkvec, object$Ki), dkvec) + tmp)
+  }
+  
+  if(is(object, "hetGP") || is(object, "homGP")){
+    return(list(mean = dm, sd2 = object$nu_hat * ds2))
+  }else{
+    return(list(mean = object$sigma2 * dm, sd2 =  (object$nu + object$psi - 2) / (object$nu + length(object$Z) - 2) * object$sigma2^2 * ds2)) 
+  }  
 }
 
 #' Derivative of the student-t pdf
@@ -647,3 +701,129 @@ crit_optim <- function(model, crit, ..., h = 2, Xcand = NULL, control = list(mul
   
 }
 
+
+#' log1mexp function
+#' @references Maechler, Martin (2012). Accurately Computing log(1-exp(-|a|)). Assessed from the Rmpfr package.
+#' @noRd
+log1mexp <- function(x){
+  if (is.na(x)){
+    warnings("x is NA")
+    return(NA)
+  }
+  if(any(x < 0)){
+    warnings("x < 0")
+    return(NA)
+  }
+  
+  ifelse(x <= log(2), log(-expm1(-x)), log1p(-exp(-x)))
+}
+
+erfc <- function(x){
+  2 * pnorm(x * sqrt(2), lower.tail = FALSE)
+} 
+
+erfcx <- function (x) 
+{
+  exp(x^2) * erfc(x)
+}
+
+#' log_h function from 
+#' @references Ament, S., Daulton, S., Eriksson, D., Balandat, M., & Bakshy, E. (2024). Unexpected improvements to expected improvement for bayesian optimization. Advances in Neural Information Processing Systems, 36.
+#' @noRd
+log_h <- function(z, eps = .Machine$double.eps){
+  c1 <- log(2*pi)/2
+  c2 <- log(pi/2)/2
+  if(z > -1) return(log(dnorm(z) + z * pnorm(z)))
+  if(z < -1 / sqrt(eps)) return(-z^2/2 - c1 - 2 * log(abs(z)))
+  res <- -z^2/2 - c1 + log1mexp(-(log(erfcx(-z/sqrt(2)) * abs(z)) + c2))
+  if(is.na(res)) res <- -750
+  return(res)
+}
+
+#' Computes log of EI for minimization, with improved stability with respect to EI
+#' @title Logarithm of Expected Improvement criterion
+#' @param x matrix of new designs, one point per row (size n x d)
+#' @param model \code{homGP} or \code{hetGP} model, or their TP equivalents, including inverse matrices. For TP models, the computation is using the one from regular EI.
+#' @param cst optional plugin value used in the EI, see details
+#' @param preds optional predictions at \code{x} to avoid recomputing if already done
+#' @note This is a beta version at this point.
+#' @seealso \code{\link[hetGP]{crit_EI}} for the regular EI criterion and compare the outcomes
+#' @details 
+#' \code{cst} is classically the observed minimum in the deterministic case. 
+#' In the noisy case, the min of the predictive mean works fine.
+#'  
+#' @references
+#' Ament, S., Daulton, S., Eriksson, D., Balandat, M., & Bakshy, E. (2024). Unexpected improvements to expected improvement for Bayesian optimization. Advances in Neural Information Processing Systems, 36.
+#' @importFrom stats dt qt
+#' @export
+#' @examples 
+#' ## Optimization example
+#' set.seed(42)
+#' 
+#' 
+#' ## Noise field via standard deviation
+#' noiseFun <- function(x, coef = 1.1, scale = 1){
+#' if(is.null(nrow(x)))
+#'  x <- matrix(x, nrow = 1)
+#'    return(scale*(coef + cos(x * 2 * pi)))
+#' }
+#' 
+#' ## Test function defined in [0,1]
+#' ftest <- function(x){
+#' if(is.null(nrow(x)))
+#' x <- matrix(x, ncol = 1)
+#' return(f1d(x) + rnorm(nrow(x), mean = 0, sd = noiseFun(x)))
+#' }
+#' 
+#' n_init <- 10 # number of unique designs
+#' N_init <- 100 # total number of points
+#' X <- seq(0, 1, length.out = n_init)
+#' X <- matrix(X[sample(1:n_init, N_init, replace = TRUE)], ncol = 1)
+#' Z <- ftest(X)
+#' 
+#' ## Predictive grid
+#' ngrid <- 51
+#' xgrid <- seq(0,1, length.out = ngrid)
+#' Xgrid <- matrix(xgrid, ncol = 1)
+#' 
+#' model <- mleHetGP(X = X, Z = Z, lower = 0.001, upper = 1)
+#' 
+#' logEIgrid <- crit_logEI(Xgrid, model)
+#' preds <- predict(x = Xgrid, model)
+#' 
+#' par(mar = c(3,3,2,3)+0.1)
+#' plot(xgrid, f1d(xgrid), type = 'l', lwd = 1, col = "blue", lty = 3,
+#' xlab = '', ylab = '', ylim = c(-8,16))
+#' points(X, Z)
+#' lines(Xgrid, preds$mean, col = 'red', lwd = 2)
+#' lines(Xgrid, qnorm(0.05, preds$mean, sqrt(preds$sd2)), col = 2, lty = 2)
+#' lines(Xgrid, qnorm(0.95, preds$mean, sqrt(preds$sd2)), col = 2, lty = 2)
+#' lines(Xgrid, qnorm(0.05, preds$mean, sqrt(preds$sd2 + preds$nugs)), col = 3, lty = 2)
+#' lines(Xgrid, qnorm(0.95, preds$mean, sqrt(preds$sd2 + preds$nugs)), col = 3, lty = 2)
+#' par(new = TRUE)
+#' plot(NA, NA, xlim = c(0, 1), ylim = range(logEIgrid), axes = FALSE, ylab = "", xlab = "")
+#' lines(xgrid, logEIgrid, lwd = 2, col = 'cyan')
+#' axis(side = 4)
+#' mtext(side = 4, line = 2, expression(logEI(x)), cex = 0.8)
+#' mtext(side = 2, line = 2, expression(f(x)), cex = 0.8)
+crit_logEI <- function(x, model, cst = NULL, preds = NULL){
+  if(is.null(cst)) cst <- min(predict(model, x = model$X0)$mean)
+  if(is.null(dim(x))) x <- matrix(x, nrow = 1)
+  if(is.null(preds)) preds <- predict(model, x = x)
+  
+  if(is(model, "homTP") || is(model, "hetTP")){
+    gamma <- (cst - preds$mean)/sqrt(preds$sd2)
+    res <- (cst - preds$mean) * pt(gamma, df = model$nu + length(model$Z))
+    res <- res + sqrt(preds$sd2) * (1 + (gamma^2 - 1)/(model$nu + length(model$Z) - 1)) * dt(x = gamma, df = model$nu + length(model$Z))
+    res[which(res < 1e-12)] <- 1e-14 # for stability
+    return(log(res))
+  }
+  
+  xcr <- (cst - preds$mean)/sqrt(preds$sd2)
+  res <- sapply(xcr, log_h) + log(sqrt(preds$sd2))
+  res[preds$sd2 == 0] <- -800
+  # res <- (cst - preds$mean) * pnorm(xcr)
+  # res <- res + sqrt(preds$sd2) * dnorm(xcr)
+  # res[which(preds$sd2 < sqrt(.Machine$double.eps) | res < 1e-12)] <- 0 # for stability
+  return(res) 
+}

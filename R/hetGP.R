@@ -1103,7 +1103,7 @@ compareGP <- function(model1, model2){
 #'   \item \code{checkHom} when \code{TRUE}, if the log-likelihood with a homoskedastic model is better, then return it.
 #'   \item \code{trace} optional scalar (default to \code{0}). If positive, tracing information on the fitting process.
 #' If \code{1}, information is given about the result of the heterogeneous model optimization.
-#' Level \code{2} gives more details. Level {3} additionaly displays all details about initialization of hyperparameters.
+#' Level \code{2} gives more details. Level \code{3} additionaly displays all details about initialization of hyperparameters.
 #' \item \code{return.matrices} boolean to include the inverse covariance matrix in the object for further use (e.g., prediction).
 #' \item \code{return.hom} boolean to include homoskedastic GP models used for initialization (i.e., \code{modHom} and \code{modNugs}).
 #' \item \code{factr} (default to 1e9) and \code{pgtol} are available to be passed to \code{control} for L-BFGS-B in \code{\link[stats]{optim}}.   
@@ -2397,13 +2397,13 @@ auto_bounds <- function(X, min_cor = 0.01, max_cor = 0.5, covtype = "Gaussian", 
       cov_gen(matrix(sqrt(repr_dist/ncol(X)), ncol = ncol(X)), matrix(0, ncol = ncol(X)), type = covtype, theta = theta) - value
     }
     theta_min <- try(uniroot(tmpfun, interval = c(sqrt(.Machine$double.eps), 100), covtype = covtype, value = min_cor, 
-                         repr_dist = repr_low_dist, tol = sqrt(.Machine$double.eps))$root)
+                             repr_dist = repr_low_dist, tol = sqrt(.Machine$double.eps))$root)
     if(is(theta_min, "try-error")){
       warning("The automatic selection of lengthscales bounds was not successful. Perhaps provide lower and upper values.")
       theta_min <- 1e-2
     }
     theta_max <- try(uniroot(tmpfun, interval = c(sqrt(.Machine$double.eps), 100), covtype = covtype, value = max_cor,
-                         repr_dist = repr_lar_dist, tol = sqrt(.Machine$double.eps))$root, silent = TRUE)
+                             repr_dist = repr_lar_dist, tol = sqrt(.Machine$double.eps))$root, silent = TRUE)
     if(is(theta_max, "try-error")){
       theta_max <- 5
     }

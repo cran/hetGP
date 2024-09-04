@@ -772,6 +772,26 @@ predict.CRNGP <- function(object, x, xprime = NULL, t0 = NULL, ...){
   return(list(mean = mean, sd2 = sd2, nugs = nugs, cov = cov))
 }
 
+#' @method plot CRNGP
+#' @export
+#' @importFrom graphics abline legend plot points arrows
+#' @importFrom stats qnorm
+plot.CRNGP <- function(x, ...){
+  ids <- 1:nrow(x$X)
+  sd2 <- x$nu_hat * (1/diag(x$Ki)[ids] - x$g)
+  mean <- x$Z[ids] - (x$Ki %*% (x$Z - x$beta0))[ids]/diag(x$Ki)[ids]
+
+  plot(x$Z, mean, xlab = "Observed values", ylab = "Predicted values",
+       main = "Leave-one-out predictions")
+  arrows(x0 = mean + sqrt(sd2) * qnorm(0.05),
+         x1 = mean + sqrt(sd2) * qnorm(0.95),
+         y0 = mean, length = 0, col = "blue")
+  abline(a = 0, b = 1, lty = 3)
+  legend("topleft", pch = c(1, NA), lty = c(NA, 1), col = c(1, 4),
+         legend = c("observations", "LOO prediction interval"))
+}
+
+
 if(!isGeneric("simul")) {
   setGeneric(name = "simul",
              def = function(object, ...) standardGeneric("simul")
@@ -1150,7 +1170,6 @@ dlogLikHomCRNT <- function(X0, T0, S0, Z, theta, g, rho, stype, beta0 = NULL, co
 #' \itemize{
 #'   \item \code{X0} matrix of unique design locations, one point per row
 #'   \item \code{Z0} vector of averaged observations, of length \code{nrow(X0)}
-#'   \item \code{mult} number of replicates at designs in \code{X0}, of length \code{nrow(X0)}
 #' } 
 #' @param Z vector of all observations. If using a list with \code{X}, \code{Z} has to be ordered with respect to \code{X0}, and of length \code{sum(mult)}
 #' @param lower,upper optional bounds for the \code{theta} parameter (see \code{\link[hetGP]{cov_gen}} for the exact parameterization).

@@ -109,7 +109,7 @@ Robert B. Gramacy, \email{rbg@vt.edu}
 \references{
   Hong L., Nelson B. (2006), Discrete optimization via simulation using COMPASS. Operations Research, 54(1), 115-129.
 
-  Xie J., Frazier P., Chick S. (2012). Assemble to Order Simulator. \url{http://simopt.org/wiki/index.php?title=Assemble_to_Order&oldid=447}.
+  Xie J., Frazier P., Chick S. (2012). Assemble to Order Simulator. \url{https://web.archive.org/web/20210308024531/http://simopt.org/wiki/index.php?title=Assemble_to_Order&oldid=447}.
 
   M. Binois, J. Huang, R. Gramacy, M. Ludkovski (2018a), Replication or exploration? Sequential design for stochastic simulation experiments,
   arXiv preprint arXiv:1710.03206.

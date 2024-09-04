@@ -73,7 +73,7 @@ a list which is given the S3 class "\code{homGP}", with elements:
 \item \code{X0}, \code{Z0}, \code{Z}, \code{mult}, \code{eps}, \code{covtype}: values given in input,
 \item \code{call}: user call of the function
 \item \code{used_args}: list with arguments provided in the call
-\item \code{nit_opt}, \code{msg}: \code{counts} and {msg} returned by \code{\link[stats]{optim}}
+\item \code{nit_opt}, \code{msg}: \code{counts} and \code{msg} returned by \code{\link[stats]{optim}}
 \item \code{Ki}, inverse covariance matrix (if \code{return.Ki} is \code{TRUE} in \code{settings})
 \item \code{time}: time to train the model, in seconds.
 

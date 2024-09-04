@@ -2,6 +2,7 @@
 % Please edit documentation in R/hetGP-package.R
 \docType{package}
 \name{hetGP-package}
+\alias{hetGP}
 \alias{hetGP-package}
 \title{Package hetGP}
 \description{
@@ -189,3 +190,4 @@ Journal of Statistical Software, 98(13), 1--44.
 \author{
 Mickael Binois, Robert B. Gramacy
 }
+\keyword{internal}

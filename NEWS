@@ -1,3 +1,9 @@
+## hetGP 1.1.7
+  * Add plot method for CRNGP
+  * Add logEI optimization criterion
+  * Clarify internal derivatives
+  * Fix some NOTE issues
+
 ## hetGP 1.1.6
   * Add new GP model allowing for common random numbers
   * Fix some sign problems in derivatives with Matern3_2
