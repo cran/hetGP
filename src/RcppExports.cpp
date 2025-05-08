@@ -505,6 +505,29 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// nonDomInd_cpp
+std::vector<int> nonDomInd_cpp(NumericMatrix mat);
+RcppExport SEXP _hetGP_nonDomInd_cpp(SEXP matSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type mat(matSEXP);
+    rcpp_result_gen = Rcpp::wrap(nonDomInd_cpp(mat));
+    return rcpp_result_gen;
+END_RCPP
+}
+// nonDomSet
+LogicalVector nonDomSet(NumericMatrix points, NumericMatrix ref);
+RcppExport SEXP _hetGP_nonDomSet(SEXP pointsSEXP, SEXP refSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type points(pointsSEXP);
+    Rcpp::traits::input_parameter< NumericMatrix >::type ref(refSEXP);
+    rcpp_result_gen = Rcpp::wrap(nonDomSet(points, ref));
+    return rcpp_result_gen;
+END_RCPP
+}
 // fast_diag
 NumericVector fast_diag(NumericMatrix A, NumericMatrix B);
 RcppExport SEXP _hetGP_fast_diag(SEXP ASEXP, SEXP BSEXP) {
@@ -638,6 +661,19 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// hyperSharperP
+NumericMatrix hyperSharperP(NumericMatrix A, NumericVector l, NumericVector u);
+RcppExport SEXP _hetGP_hyperSharperP(SEXP ASEXP, SEXP lSEXP, SEXP uSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type A(ASEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type l(lSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type u(uSEXP);
+    rcpp_result_gen = Rcpp::wrap(hyperSharperP(A, l, u));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_hetGP_mi_gauss_cpp", (DL_FUNC) &_hetGP_mi_gauss_cpp, 2},
@@ -679,6 +715,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_hetGP_distance_cpp", (DL_FUNC) &_hetGP_distance_cpp, 3},
     {"_hetGP_partial_d_dist_dX_i1_i2", (DL_FUNC) &_hetGP_partial_d_dist_dX_i1_i2, 3},
     {"_hetGP_partial_d_dist_dX1_i1_i2_X2", (DL_FUNC) &_hetGP_partial_d_dist_dX1_i1_i2_X2, 4},
+    {"_hetGP_nonDomInd_cpp", (DL_FUNC) &_hetGP_nonDomInd_cpp, 1},
+    {"_hetGP_nonDomSet", (DL_FUNC) &_hetGP_nonDomSet, 2},
     {"_hetGP_fast_diag", (DL_FUNC) &_hetGP_fast_diag, 2},
     {"_hetGP_add_diag", (DL_FUNC) &_hetGP_add_diag, 2},
     {"_hetGP_fast_tUY2", (DL_FUNC) &_hetGP_fast_tUY2, 2},
@@ -689,6 +727,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_hetGP_v2cpp", (DL_FUNC) &_hetGP_v2cpp, 5},
     {"_hetGP_r_cpp", (DL_FUNC) &_hetGP_r_cpp, 7},
     {"_hetGP_qEI_cpp", (DL_FUNC) &_hetGP_qEI_cpp, 4},
+    {"_hetGP_hyperSharperP", (DL_FUNC) &_hetGP_hyperSharperP, 3},
     {NULL, NULL, 0}
 };
 

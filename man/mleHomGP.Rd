@@ -15,7 +15,7 @@ mleHomGP(
   covtype = c("Gaussian", "Matern5_2", "Matern3_2"),
   maxit = 100,
   eps = sqrt(.Machine$double.eps),
-  settings = list(return.Ki = TRUE, factr = 1e+07)
+  settings = list(return.Ki = TRUE, factr = 1e+07, method = "MLE")
 )
 }
 \arguments{
@@ -51,7 +51,8 @@ In the multivariate case, it is possible to give vectors for bounds (resp. scala
 \item{eps}{jitter used in the inversion of the covariance matrix for numerical stability}
 
 \item{settings}{list with argument \code{return.Ki}, to include the inverse covariance matrix in the object for further use (e.g., prediction).
-Arguments \code{factr} (default to 1e9) and \code{pgtol} are available to be passed to \code{control} for L-BFGS-B in \code{\link[stats]{optim}} (for the joint likelihood only).}
+Arguments \code{factr} (default to 1e9) and \code{pgtol} are available to be passed to \code{control} for L-BFGS-B in \code{\link[stats]{optim}} (for the joint likelihood only). 
+Argument \code{method} is for the fitting method: either 'MLE' for maximum likelihood or 'LOO' for leave-one-out estimation.}
 }
 \value{
 a list which is given the S3 class "\code{homGP}", with elements:

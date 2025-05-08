@@ -9,6 +9,9 @@ NumericMatrix matern5_2_1args(NumericMatrix X1){
   NumericMatrix s(nr, nr);
   NumericMatrix r(nr, nr);
   s.fill(1.);
+  if(nr == 1){
+    return(s);
+  }
   double tmp;
   
   // First compute polynomial term and distance
@@ -312,6 +315,9 @@ NumericMatrix matern3_2_1args(NumericMatrix X1){
   NumericMatrix s(nr, nr);
   NumericMatrix r(nr, nr);
   s.fill(1.);
+  if(nr == 1){
+    return(s);
+  }
   double tmp;
   
   // First compute polynomial term and distance

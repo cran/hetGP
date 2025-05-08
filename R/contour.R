@@ -15,7 +15,7 @@
 #' Efficient global  reliability  analysis  for  nonlinear  implicit  performance  functions, 
 #' AIAA Journal, 46, pp. 2459-2468. \cr \cr
 #' 
-#' Lyu, X., Binois, M. & Ludkovski, M. (2018+). Evaluating Gaussian Process Metamodels and Sequential Designs for Noisy Level Set Estimation. arXiv:1807.06712. \cr
+#' Lyu, X., Binois, M. & Ludkovski, M. (2021). Evaluating Gaussian Process Metamodels and Sequential Designs for Noisy Level Set Estimation. Statistics and Computing, 31(4), 43. arXiv:1807.06712.
 #' 
 #' @examples 
 #' ## Infill criterion example
@@ -71,7 +71,7 @@ crit_MEE <- function(x, model, thres = 0, preds = NULL){
 #' @param thres for contour finding
 #' @param preds optional predictions at \code{x} to avoid recomputing if already done (must contain \code{cov})
 #' @references
-#' Lyu, X., Binois, M. & Ludkovski, M. (2018+). Evaluating Gaussian Process Metamodels and Sequential Designs for Noisy Level Set Estimation. arXiv:1807.06712. \cr
+#' Lyu, X., Binois, M. & Ludkovski, M. (2021). Evaluating Gaussian Process Metamodels and Sequential Designs for Noisy Level Set Estimation. Statistics and Computing, 31(4), 43. arXiv:1807.06712.
 #' @export
 ## ' @details TODO: deal with replication
 #' @examples 
@@ -150,7 +150,7 @@ crit_cSUR <- function(x, model, thres = 0, preds = NULL){
 #' @param preds optional predictions at \code{Xref} to avoid recomputing if already done
 #' @param kxprime optional covariance matrix between \code{model$X0} and \code{Xref} to avoid its recomputation
 #' @references
-#' Lyu, X., Binois, M. & Ludkovski, M. (2018+). Evaluating Gaussian Process Metamodels and Sequential Designs for Noisy Level Set Estimation. arXiv:1807.06712. \cr
+#' Lyu, X., Binois, M. & Ludkovski, M. (2021). Evaluating Gaussian Process Metamodels and Sequential Designs for Noisy Level Set Estimation. Statistics and Computing, 31(4), 43. arXiv:1807.06712.
 #' @export
 ## ' @details TODO: deal with replication
 #' @examples 
@@ -251,8 +251,7 @@ crit_ICU <- function(x, model, thres = 0, Xref, w = NULL, preds = NULL, kxprime 
 #' Adaptive designs of experiments for accurate approximation of a target region,
 #' Journal of Mechanical Design (132), p. 071008.\cr \cr
 #' 
-#' Lyu, X., Binois, M. & Ludkovski, M. (2018+). 
-#' Evaluating Gaussian Process Metamodels and Sequential Designs for Noisy Level Set Estimation. arXiv:1807.06712. \cr
+#' Lyu, X., Binois, M. & Ludkovski, M. (2021). Evaluating Gaussian Process Metamodels and Sequential Designs for Noisy Level Set Estimation. Statistics and Computing, 31(4), 43. arXiv:1807.06712.
 #' @export
 #' @examples 
 #' ## Infill criterion example
@@ -314,8 +313,7 @@ crit_tMSE <- function(x, model, thres = 0, preds = NULL, seps = 0.05){
 #' Truncated variance reduction: A unified approach to Bayesian optimization and level-set estimation,
 #' in Advances in neural information processing systems, pp. 1507-1515. \cr \cr
 #' 
-#' Lyu, X., Binois, M. & Ludkovski, M. (2018+). 
-#' Evaluating Gaussian Process Metamodels and Sequential Designs for Noisy Level Set Estimation. arXiv:1807.06712. \cr
+#' Lyu, X., Binois, M. & Ludkovski, M. (2021). Evaluating Gaussian Process Metamodels and Sequential Designs for Noisy Level Set Estimation. Statistics and Computing, 31(4), 43. arXiv:1807.06712.
 #' 
 #' @examples 
 #' ## Infill criterion example

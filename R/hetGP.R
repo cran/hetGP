@@ -101,6 +101,116 @@ dlogLikHom <- function(X0, Z0, Z, mult, theta, g, beta0 = NULL, covtype = "Gauss
   return(c(tmp1, tmp2))
 }
 
+## K = nu^2 * (C + g * I)
+# X0 unique designs matrix
+# Z0 averaged observations at X0
+# Z observations vector (all observations)
+# mult number of replicates at each unique design
+# theta vector of lengthscale hyperparameters (or one for isotropy)
+# g noise variance for the process
+# beta0 trend
+# @return Leave-one-out error value
+LOO_hom <- function(X0, Z0, Z, mult, theta, g, beta0 = NULL, covtype = "Gaussian", eps = sqrt(.Machine$double.eps), env = NULL){
+  n <- nrow(X0)
+  N <- length(Z)
+  
+  # Temporarily store Cholesky transform of K in Ki
+  C <- cov_gen(X1 = X0, theta = theta, type = covtype)
+  if(!is.null(env)) env$C <- C
+  Ki <- chol(C + diag(eps + g / mult))
+  Ki <- chol2inv(Ki)
+  
+  if(!is.null(env)) env$Ki <- Ki
+  
+  if(is.null(beta0))
+    beta0 <- drop(colSums(Ki) %*% Z0 / sum(Ki))
+  
+  vn <-  (1/g * (mult-1)/mult + diag(Ki)/mult^2)^(-1)
+  
+  loo_err <- sum((Z/g)^2 * (rep(vn, times = mult))) - sum(drop(Z0 / g)^2 * vn * mult) + t(Z0) %*% Ki %*% diag(vn/mult) %*% Ki %*% Z0
+  loo_err <- loo_err + sum(log(rep(vn, times = mult)))
+  return(drop(loo_err)/N)
+}
+
+# derivative of the leave one out error, LOO_hom,  with respect to theta with all observations
+## Model: noisy observations with unknown homoskedastic noise
+## K = nu^2 * (C + g * I)
+# X0  design matrix (no replicates)
+# Z0 averaged observations
+# Z observations vector (all observations)
+# mult number of replicates per unique design point
+# theta vector of lengthscale hyperparameters (or one for isotropy)
+# g noise variance for the process
+# beta0 trend
+## @return gradient with respect to theta and g
+dLOOHom <- function(X0, Z0, Z, mult, theta, g, beta0 = NULL, covtype = "Gaussian",
+                    eps = sqrt(.Machine$double.eps), components = c("theta", "g"), env = NULL){
+  k <- length(Z)
+  n <- nrow(X0)
+  
+  if(!is.null(env)){
+    C <- env$C
+    Ki <- env$Ki
+  }else{
+    C <- cov_gen(X1 = X0, theta = theta, type = covtype)
+    Ki <- chol2inv(chol(C + diag(eps + g / mult)))
+  }
+  
+  if(is.null(beta0))
+    beta0 <- drop(colSums(Ki) %*% Z0 / sum(Ki))
+  
+  Z0 <- Z0 - beta0
+  Z <- Z - beta0
+  
+  KiZ0 <- Ki %*% Z0 ## to avoid recomputing
+  diKi <- diag(Ki)
+  
+  tmp1 <- tmp2 <- NULL
+  
+  # First component, derivative with respect to theta
+  if("theta" %in% components){
+    tmp1 <- rep(NA, length(theta))
+    if(length(theta)==1){
+      dC_dthetak <- partial_cov_gen(X1 = X0, theta = theta, type = covtype, arg = "theta_k") * C
+      
+      p1 <- 1/2 * sum(rep((1/g * (mult-1) / mult + diKi/mult^2)^(-2) * mult^(-2) * diag(Ki %*% dC_dthetak %*% Ki), times = mult) * (Z/g + rep(-Z0/g + Ki %*% Z0/mult, times = mult))^2)
+      
+      p2 <- -sum(rep((1/g * (mult-1) / mult + diKi/mult^2)^(-1) * mult^(-1) * drop(Ki %*% (dC_dthetak) %*% Ki %*% Z0), times = mult) * (Z/g + rep(-Z0/g + Ki %*% Z0/mult, times = mult)))
+
+      p4 <- sum(rep((1/g * (mult-1) / mult + diKi/mult^2)^(-1) *mult^(-2) * diag(Ki %*% dC_dthetak %*% Ki), times = mult))
+      
+      tmp1 <- 2 * (p1 + p2) + p4
+    }else{
+      for(i in 1:length(theta)){
+        dC_dthetak <- partial_cov_gen(X1 = X0[,i, drop = F], theta = theta[i], type = covtype, arg = "theta_k") * C
+        
+        p1 <- 1/2 * sum(rep((1/g * (mult-1) / mult + diKi/mult^2)^(-2) * mult^(-2) * diag(Ki %*% dC_dthetak %*% Ki), times = mult) * (Z/g + rep(-Z0/g + Ki %*% Z0/mult, times = mult))^2)
+        
+        p2 <- -sum(rep((1/g * (mult-1) / mult + diKi/mult^2)^(-1) * mult^(-1) * drop(Ki %*% (dC_dthetak) %*% Ki %*% Z0), times = mult) * (Z/g + rep(-Z0/g + Ki %*% Z0/mult, times = mult)))
+        
+        p4 <- sum(rep((1/g * (mult-1) / mult + diKi/mult^2)^(-1) *mult^(-2) * diag(Ki %*% dC_dthetak %*% Ki), times = mult))
+        tmp1[i] <- 2 * (p1 + p2) + p4
+      }
+    } 
+  }
+  
+  # Second component derivative with respect to g
+  if("g" %in% components){
+    # tmp2 <- 2 * sum(rep((1/g * (mult-1) / mult + diag(Ki)/mult^2)^(-3) * (1/g^2 - 1/(mult * g^2) + diag(Ki %*% diag(1/mult)%*% Ki)/ mult^2), times = mult) * (Z/g + rep(-Z0/g + Ki %*% Z0/mult, times = mult))^2-
+    #                   rep((1/g * (mult-1) / mult + diag(Ki)/mult^2)^(-2), times = mult) * (Z/g + rep(-Z0/g + Ki %*% Z0/mult, times = mult)) * (Z/g + rep(-Z0/g + Ki %*% (Ki %*% Z0*g/mult)/mult, times = mult))/g)
+    
+    p1 <- sum(1/2*rep((1/g * (mult-1) / mult + diKi/mult^2)^(-2) * (1/g^2 - 1/(mult * g^2) + diag(Ki %*% diag(1/mult)%*% Ki)/ mult^2), times = mult) * (Z/g + rep(-Z0/g + Ki %*% Z0/mult, times = mult))^2)
+    
+    p2 <- -sum(rep((1/g * (mult-1) / mult + diKi/mult^2)^(-1), times = mult) * (Z/g + rep(-Z0/g + Ki %*% Z0/mult, times = mult)) * (Z/g + rep(-Z0/g + Ki %*% (Ki %*% Z0*g/mult)/mult, times = mult))/g)
+
+    p4 <- sum(rep((1/g * (mult-1) / mult + diKi/mult^2)^(-1) * (1/g^2 - 1/(mult * g^2) + diag(Ki %*% diag(1/mult)%*% Ki) / mult^2), times= mult))
+    
+    tmp2 <- 2*(p1 + p2) + p4
+  }
+  return(c(tmp1, tmp2)/k)
+}
+
+
 #' Gaussian process regression under homoskedastic noise based on maximum likelihood estimation of the 
 #' hyperparameters. This function is enhanced to deal with replicated observations.
 #' @title Gaussian process modeling with homoskedastic noise
@@ -128,6 +238,7 @@ dlogLikHom <- function(X0, Z0, Z, mult, theta, g, beta0 = NULL, covtype = "Gauss
 #' @param eps jitter used in the inversion of the covariance matrix for numerical stability
 #' @param settings list with argument \code{return.Ki}, to include the inverse covariance matrix in the object for further use (e.g., prediction).
 #' Arguments \code{factr} (default to 1e9) and \code{pgtol} are available to be passed to \code{control} for L-BFGS-B in \code{\link[stats]{optim}} (for the joint likelihood only). 
+#' Argument \code{method} is for the fitting method: either 'MLE' for maximum likelihood or 'LOO' for leave-one-out estimation.
 #' @return a list which is given the S3 class "\code{homGP}", with elements:
 #' \itemize{
 #' \item \code{theta}: maximum likelihood estimate of the lengthscale parameter(s),
@@ -195,7 +306,8 @@ mleHomGP <- function(X, Z, lower = NULL, upper = NULL, known = NULL,
                      noiseControl = list(g_bounds = c(sqrt(.Machine$double.eps), 1e2)),
                      init = NULL,
                      covtype = c("Gaussian", "Matern5_2", "Matern3_2"),
-                     maxit = 100, eps = sqrt(.Machine$double.eps), settings = list(return.Ki = TRUE, factr = 1e7)){
+                     maxit = 100, eps = sqrt(.Machine$double.eps), 
+                     settings = list(return.Ki = TRUE, factr = 1e7, method = "MLE")){
   
   if(typeof(X)=="list"){
     X0 <- X$X0
@@ -215,6 +327,11 @@ mleHomGP <- function(X, Z, lower = NULL, upper = NULL, known = NULL,
   }
   
   covtype <- match.arg(covtype)
+  if(is.null(settings$method)) settings$method <- "MLE"
+  if(settings$method == "LOO" && is.null(known$beta0)){
+    warning("LOO can only be used for known beta0 at this stage. beta0 = 0 is used.")
+    known$beta0 <- 0
+  }
   
   if(is.null(lower) || is.null(upper)){
     auto_thetas <- auto_bounds(X = X0, covtype = covtype)
@@ -262,17 +379,20 @@ mleHomGP <- function(X, Z, lower = NULL, upper = NULL, known = NULL,
     if(is.null(g)){
       g <- par[idx]
     }
+    if(settings$method == "MLE"){
+      value <- logLikHom(X0 = X0, Z0 = Z0, Z = Z, mult = mult, theta = theta, g = g, beta0 = beta0, covtype = covtype, eps = eps, env = env)
+    }else{# LOO
+      value <- -LOO_hom(X0 = X0, Z0 = Z0, Z = Z, mult = mult, theta = theta, g = g, beta0 = beta0, covtype = covtype, eps = eps, env = env)
+    }
     
-    loglik <- logLikHom(X0 = X0, Z0 = Z0, Z = Z, mult = mult, theta = theta, g = g, beta0 = beta0, covtype = covtype, eps = eps, env = env)
-    
-    if(!is.null(env) && !is.na(loglik)){
-      if(is.null(env$max_loglik) || loglik > env$max_loglik){
-        env$max_loglik <- loglik
+    if(!is.null(env) && !is.na(value)){
+      if(is.null(env$max_loglik) || value > env$max_loglik){
+        env$max_loglik <- value
         env$arg_max <- par
       }
     } 
     
-    return(loglik)
+    return(value)
   }
   
   gr <- function(par, X0, Z0, Z, mult, beta0, theta, g, env){
@@ -289,8 +409,14 @@ mleHomGP <- function(X, Z, lower = NULL, upper = NULL, known = NULL,
       g <- par[idx]
       components <- c(components, "g")
     }
-    return(dlogLikHom(X0 = X0, Z0 = Z0, Z = Z, mult = mult, theta = theta, g = g, beta0 = beta0, covtype = covtype, eps = eps,
-                      components = components, env = env))
+    if(settings$method == "MLE"){
+      res <- dlogLikHom(X0 = X0, Z0 = Z0, Z = Z, mult = mult, theta = theta, g = g, beta0 = beta0, covtype = covtype, eps = eps,
+                        components = components, env = env)
+    }else{#LOO
+      res <- -dLOOHom(X0 = X0, Z0 = Z0, Z = Z, mult = mult, theta = theta, g = g, beta0 = beta0, covtype = covtype, eps = eps,
+                      components = components, env = env)
+    }
+    return(res)
   }
   
   ## Both known
@@ -298,8 +424,12 @@ mleHomGP <- function(X, Z, lower = NULL, upper = NULL, known = NULL,
   if(!is.null(known$g) && !is.null(known[["theta"]])){
     theta_out <- known[["theta"]]
     g_out <- known$g
-    out <- list(value = logLikHom(X0 = X0, Z0 = Z0, Z = Z, mult = mult, theta = theta_out, g = g_out, beta0 = beta0, covtype = covtype, eps = eps),
-                message = "All hyperparameters given", counts = 0, time = proc.time()[3] - tic)
+    if(settings$method == "MLE"){
+      value <- logLikHom(X0 = X0, Z0 = Z0, Z = Z, mult = mult, theta = theta_out, g = g_out, beta0 = beta0, covtype = covtype, eps = eps)
+    }else{
+      value <- -LOO_hom(X0 = X0, Z0 = Z0, Z = Z, mult = mult, theta = theta_out, g = g_out, beta0 = beta0, covtype = covtype, eps = eps)
+    }
+    out <- list(value = value, message = "All hyperparameters given", counts = 0, time = proc.time()[3] - tic)
   }else{
     parinit <- lowerOpt <- upperOpt <- NULL
     if(is.null(known[["theta"]])){
@@ -331,9 +461,15 @@ mleHomGP <- function(X, Z, lower = NULL, upper = NULL, known = NULL,
   if(is.null(beta0))
     beta0 <- drop(colSums(Ki) %*% Z0 / sum(Ki))
   
-  psi_0 <- drop(crossprod(Z0 - beta0, Ki) %*% (Z0 - beta0))
+  if(settings$method == "MLE"){
+    psi_0 <- drop(crossprod(Z0 - beta0, Ki) %*% (Z0 - beta0))
+    nu <- 1/N * ((crossprod(Z - beta0) - crossprod((Z0 - beta0) * mult, Z0 - beta0))/g_out + psi_0)
+  }else{
+    vn <-  drop(1/g_out * (mult-1)/mult + diag(Ki)/mult^2)^(-1)
+    loo_err <- sum((Z/g_out)^2 * (rep(vn, times = mult))) - sum(drop(Z0 / g_out)^2 * vn * mult) + t(Z0) %*% Ki %*% diag(vn/mult) %*% Ki %*% Z0
+    nu <- loo_err/N
+  }
   
-  nu <- 1/N * ((crossprod(Z - beta0) - crossprod((Z0 - beta0) * mult, Z0 - beta0))/g_out + psi_0)
   
   # # Get hessian of our cost function/
   # if (is.null(known[["theta"]])) {
@@ -350,7 +486,7 @@ mleHomGP <- function(X, Z, lower = NULL, upper = NULL, known = NULL,
   res <- list(theta = theta_out, g = g_out, nu_hat = as.numeric(nu), ll = out$value, nit_opt = out$counts,
               beta0 = beta0, trendtype = trendtype, covtype = covtype, msg = out$message, eps = eps,
               X0 = X0, Z0 = Z0, Z = Z, mult = mult, call = match.call(),
-              used_args = list(lower = lower, upper = upper, known = known, noiseControl = noiseControl),
+              used_args = list(lower = lower, upper = upper, known = known, noiseControl = noiseControl, method = settings$method),
               time = proc.time()[3] - tic) # hess = hess)
   
   if(settings$return.Ki) res <- c(res, list(Ki = Ki))
@@ -382,8 +518,12 @@ print.summary.homGP <- function(x, ...){
   }else{
     cat("Estimated constant trend value: ", x$beta0, "\n")
   }
-  
-  cat("MLE optimization: \n", "Log-likelihood = ", x$ll, "; Nb of evaluations (obj, gradient) by L-BFGS-B: ", x$nit_opt, "; message: ", x$msg, "\n")
+  if(x$used_args$method == "MLE"){
+    cat("MLE optimization: \n", "Log-likelihood = ", x$ll, "; Nb of evaluations (obj, gradient) by L-BFGS-B: ", x$nit_opt, "; message: ", x$msg, "\n")
+  }else{
+    cat("LOO optimization: \n", "LOO = ", x$ll, "; Nb of evaluations (obj, gradient) by L-BFGS-B: ", x$nit_opt, "; message: ", x$msg, "\n")
+    
+  }
 }
 
 #' @method print homGP
@@ -439,6 +579,8 @@ predict.homGP <- function(object, x, xprime = NULL, ...){
   
   if(is.null(object$Ki))
     object$Ki <- chol2inv(chol(add_diag(cov_gen(X1 = object$X0, theta = object$theta, type = object$covtype), object$g/object$mult + object$eps)))
+  
+  if(!is.null(list(...)$nugs.only) && list(...)$nugs.only) return(list(nugs = rep(object$nu_hat * object$g, nrow(x))))
   
   object$Ki <- object$Ki/object$nu_hat
   
@@ -1537,12 +1679,12 @@ mleHetGP <- function(X, Z, lower = NULL, upper = NULL,
       nugs_est <- (Z - rep(predHom, times = mult))^2 #squared deviation from the homoskedastic prediction mean to the actual observations
       nugs_est <-  nugs_est / modHom$nu_hat  # to be homegeneous with Delta
       
-      if(logN){
-        nugs_est <- pmax(nugs_est, .Machine$double.eps) # to avoid problems on deterministic test functions
-        nugs_est <- log(nugs_est)
-      }
-      
       nugs_est0 <- drop(fast_tUY2(mult, nugs_est))/mult # average
+      
+      if(logN){
+        nugs_est0 <- pmax(nugs_est0, .Machine$double.eps) # to avoid problems on deterministic test functions
+        nugs_est0 <- log(nugs_est0)
+      }
       
     }else{
       nugs_est0 <- init$Delta

@@ -93,4 +93,25 @@ double qEI_cpp(NumericVector mu, NumericVector s, NumericMatrix cor, double thre
   return(v1cpp(threshold, v1, 0.0000001, sqrt(v2), 0) - threshold);
 }
 
+// [[Rcpp::export]]
+NumericMatrix hyperSharperP(NumericMatrix A, NumericVector l, NumericVector u){
+  double plu = 1;
+  for(int i = 0; i < A.ncol(); i++){
+    plu *= u(i) - l(i);
+  }
 
+  NumericMatrix P(A.nrow(), A.nrow());
+  double tmp;
+
+  for(int i = 0; i < A.nrow(); i++){
+    for(int j = i; j < A.nrow(); j++){
+      tmp = 1;
+      for(int k = 0; k < A.ncol(); k++){
+        tmp *= (u(k) - std::max(A(i,k), A(j,k)));
+      }
+      P(i,j) = P(j,i) = tmp/plu;
+    }
+  }
+
+  return(P);
+}

@@ -1133,5 +1133,144 @@ LOO_preds <- function(model, ids = NULL){
   return(list(mean = ys, sd2 = sds))
 }
 
+#' Fast updated prediction formulas (fixed hyperparameters)
+#' @title Prediction update with new designs and observations
+#' @param x optional matrix of designs locations to predict at (one point per row). If not provided, the prediction is at \code{Xnew}.
+#' @param Xnew matrix of new design location(s)
+#' @param Znew optional averaged observations at \code{Xnew}. If not provided, only the MSPE is returned
+#' @param multnew number of replicates at each design in \code{Xnew}
+#' @param model a fitted \code{"hetGP"}-class or \code{"homGP"}-class object as output from one of the main fitting functions, e.g., \code{\link{mleHetGP}} and \code{\link{mleHomGP}}. TP variants are not yet supported.
+#' @param covreturn boolean to return the predicte covariance matrix
+#' @param forceSym boolean to enforce the return of a symmetric predictive covariance matrix (default to \code{TRUE})
+#' @details 
+#' This is alpha functionality at this time. Note that the \code{nu_hat} parameter is not updated.
+#' @references
+#' Gramacy, R. B. Surrogates: Gaussian Process Modeling, Design, and Optimization for the Applied Sciences
+#' CRC Press, 2020\cr \cr
+#' 
+#' Chevalier, C., Ginsbourger, D., & Emery, X. (2013). Corrected kriging update formulae for batch-sequential data assimilation. In Mathematics of Planet Earth: Proceedings of the 15th Annual Conference of the International Association for Mathematical Geosciences (pp. 119-122). Berlin, Heidelberg: Springer Berlin Heidelberg. \cr \cr
+#' 
+#' Lyu, X., Binois, M. & Ludkovski, M. (2021). Evaluating Gaussian Process Metamodels and Sequential Designs for Noisy Level Set Estimation. Statistics and Computing, 31(4), 43. arXiv:1807.06712.
+#' 
+#' @examples
+#' \dontrun{
+#' ##------------------------------------------------------------
+#' ## Illustration of the update procedure
+#' ##------------------------------------------------------------
+#' set.seed(1)
+#' 
+#' nvar <- 2
+#' 
+#' ## test function
+#' obj_fun <- function(x) return(sin(2 * x[1] * pi) + cos(2 * x[2] * pi))
+#' noise_fun <- function(x, a = 0.1) return(a * sqrt(sum(x)))
+#' ftest <- function(x) return(obj_fun(x) + rnorm(1, sd = noise_fun(x)))
+#' 
+#' n.grid <- 51
+#' xgrid <- seq(0, 1, length.out = n.grid)
+#' Xgrid <- as.matrix(expand.grid(xgrid, xgrid))
+#' Yref <- apply(Xgrid, 1, obj_fun)
+#' contour(xgrid, xgrid, matrix(Yref, n.grid))
+#' 
+#' ## Unique (randomly chosen) design locations
+#' n <- 25
+#' Xu <- matrix(runif(n * 2), n)
+#' 
+#' ## Select replication sites randomly
+#' X <- Xu[sample(1:n, 20*n, replace = TRUE),]
+#' 
+#' ## obtain training data response at design locations X
+#' Z <- apply(X, 1, ftest)
+#' 
+#' ## Formating of data for model creation (find replicated observations) 
+#' prdata <- find_reps(X, Z)
+#' 
+#' ## Model fitting
+#' model <- mleHetGP(X = list(X0 = prdata$X0, Z0 = prdata$Z0, mult = prdata$mult), Z = prdata$Z,
+#'               lower = rep(0.01, nvar), upper = rep(5, nvar), covtype = "Matern5_2")
+#'               
+#' predictions <- predict(x = Xgrid, object =  model)
+#' 
+#' ## Suppose that a new point is added, with some replicates
+#' nnew <- 5
+#' 
+#' # i) a new unique design 
+#' Xnew1 <- matrix(runif(2), 1)
+#' Znew1 <- apply(Xnew1[rep(1, nnew),, drop = FALSE], 1, ftest)
+#' 
+#' prednew1 <- update_pred(model = model, x = Xgrid, Xnew = Xnew1, Znew = mean(Znew1), multnew = nnew)
+#' prednew1_sd2_only <- update_pred(model = model, x = Xgrid, Xnew = Xnew1, multnew = nnew)
+#' 
+#' # Verification
+#' new_nug1 <- log(predict(x = Xnew1, model)$nugs/model$nu_hat)
+#' model_v1 <- mleHetGP(X = list(X0 = rbind(prdata$X0, Xnew1), 
+#'                               Z0 = c(prdata$Z0, mean(Znew1)),mult = c(prdata$mult, nnew)), 
+#'                               Z = c(prdata$Z, Znew1),
+#'                      lower = rep(0.01, nvar), upper = rep(5, nvar),
+#'               known = list(theta = model$theta, k_theta_g = model$k_theta_g, 
+#'                            theta_g = model$theta_g, g = model$g,
+#'                            Delta = c(model$Delta, new_nug1)),
+#'               covtype = "Matern5_2")
+#' pred_v1 <- predict(x = Xgrid, object = model_v1)
+#' 
+#' print(max(abs(pred_v1$mean - prednew1$mean)))
+#' print(max(abs(pred_v1$sd2 - prednew1$sd2)))
+#' print(max(abs(predictions$nugs - prednew1$nugs)))
+#' 
+#' 
+#' }
+#' @export
+update_pred <- function(model, Xnew, x = NULL, Znew = NULL, 
+                        multnew = rep(1, nrow(Xnew)), covreturn = TRUE, forceSym = TRUE){
+  
+  if(is.null(dim(Xnew))) Xnew <- matrix(Xnew, 1)
+  if(!is.null(x) && is.null(dim(x))) x <- matrix(x, 1)
+  
+  mean_new <- cov_new <- NULL
+  
+    pred_old_x_new <- predict(x = Xnew, object = model, xprime = Xnew)
+    Ki_new <- chol2inv(chol(add_diag(pred_old_x_new$cov, model$eps + pred_old_x_new$nugs/multnew)))
 
+    if(is.null(x)){
+      if(!is.null(Znew)) 
+        mean_new <- pred_old_x_new$mean + pred_old_x_new$cov %*% (Ki_new %*% (Znew - pred_old_x_new$mean))
+      sd2_new <- pred_old_x_new$sd2 - fast_diag(pred_old_x_new$cov, tcrossprod(Ki_new, pred_old_x_new$cov))
+      if(covreturn){
+        if(nrow(Xnew) > 1){
+          cov_new <- pred_old_x_new$cov - pred_old_x_new$cov %*% tcrossprod(Ki_new, pred_old_x_new$cov)
+        } else{
+          cov_new <- sd2_new
+        }
+      }
+      pnugs <- pred_old_x_new$nugs
+    }else{
+      pred_old_x <- predict(x = x, object = model, xprime = Xnew)
+      pred_old_xx <- predict(x = x, object = model, xprime = x)
+      
+      if(!is.null(Znew)) 
+        mean_new <- pred_old_x$mean + pred_old_x$cov %*% (Ki_new %*% (Znew - pred_old_x_new$mean))
+      sd2_new <- pred_old_x$sd2 - fast_diag(pred_old_x$cov, tcrossprod(Ki_new, pred_old_x$cov))
+      if(covreturn){
+        if(nrow(x) > 1){
+          cov_new <- pred_old_xx$cov - pred_old_x$cov %*% tcrossprod(Ki_new, pred_old_x$cov)
+        } else{
+          cov_new <- sd2_new
+        }
+      } 
+      pnugs <- pred_old_x$nugs
+    }
+
+  if(covreturn && forceSym) cov_new <- (cov_new + t(cov_new)) / 2
+  
+  # if(is(model, "hetTP") || is(model, "homTP")){
+  #   # now update psi
+  #   psi_n1 <- model$psi + model$nu/(model$nu - 2)
+  #   
+  #   # now rescale with updated psi
+  #   sd2_new <- (model$nu + psi_n1 - 2) / (model$nu + length(model$Z) + sum(multnew) - 2) * sd2_new
+  #   cov_new <- (model$nu + psi_n1 - 2) / (model$nu + length(model$Z) + sum(multnew) - 2) * cov_new
+  # }
+  
+  return(list(mean = drop(mean_new), sd2 = sd2_new, nugs = pnugs, cov = cov_new))
+}
 

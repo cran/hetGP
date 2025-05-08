@@ -2,8 +2,8 @@ Package: hetGP
 Type: Package
 Title: Heteroskedastic Gaussian Process Modeling and Design under
         Replication
-Version: 1.1.7
-Date: 2024-09-04
+Version: 1.1.8
+Date: 2025-05-04
 Authors@R: c(person(given = "Mickael",
                         family = "Binois",
                         role = c("aut", "cre"),
@@ -15,15 +15,15 @@ Description: Performs Gaussian process regression with heteroskedastic noise fol
 License: LGPL
 LazyData: FALSE
 Depends: R (>= 2.10),
-Imports: Rcpp (>= 0.12.3), MASS, methods, DiceDesign
+Imports: Rcpp (>= 0.12.3), MASS, methods, DiceDesign, mco, quadprog
 LinkingTo: Rcpp
 Suggests: knitr, monomvn, lhs, colorspace
 VignetteBuilder: knitr
 RoxygenNote: 7.3.2
 NeedsCompilation: yes
-Packaged: 2024-09-04 10:43:08 UTC; mbinois
+Packaged: 2025-05-07 15:54:24 UTC; mickael
 Author: Mickael Binois [aut, cre],
   Robert B. Gramacy [aut]
 Maintainer: Mickael Binois <mickael.binois@inria.fr>
 Repository: CRAN
-Date/Publication: 2024-09-04 13:40:02 UTC
+Date/Publication: 2025-05-08 11:40:02 UTC

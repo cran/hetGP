@@ -157,6 +157,66 @@ partial_d_dist_dX1_i1_i2_X2 <- function(X1, X2, i1, i2) {
     .Call(`_hetGP_partial_d_dist_dX1_i1_i2_X2`, X1, X2, i1, i2)
 }
 
+#' @param i_begin, i_end first index in the matrix to consider
+#' @param ptr_mat pointer to matrix with dimensions:
+#' @param nobj,nr number of columns and rows
+#' @noRd
+NULL
+
+#' Non dominated indices of a matrix
+#' @param mat matrix of objective values, of size n x nobj
+#' @return indices of non-dominated points
+#' @details Use Kung non-domination sorting
+#' @noRd
+#' @references
+#' Kung, H. T., Luccio, F., & Preparata, F. P. (1975). On finding the maxima of a set of vectors. Journal of the ACM (JACM), 22(4), 469-476.
+#' @examples
+#' d <- 6
+#' n <- 1000
+#' test <- matrix(runif(d * n), n)
+#' library(emoa)
+#' test <- test[order(test[,1]),]
+#' indPF_ref <- which(!is_dominated(t(test)))
+#' indPF <- nonDomInd(test)
+#' all(indPF == indPF_ref)
+#'
+#' library(microbenchmark)
+#' microbenchmark(is_dominated(t(test)), nonDomInd(test))
+nonDomInd_cpp <- function(mat) {
+    .Call(`_hetGP_nonDomInd_cpp`, mat)
+}
+
+#' Determines which elements in a set are dominated by reference points
+#' @title Non-dominated points with respect to a reference
+#' @param points matrix (one point per row) that are compared to a reference \code{ref} (i.e., not between themselves)
+#' @param ref matrix (one point per row) of reference (faster if they are already Pareto optimal)
+#' @noRd
+#' @examples
+#' \dontrun{
+#' d <- 6
+#' n <- 1000
+#' n2 <- 1000
+#'
+#' test <- matrix(runif(d * n), n)
+#' ref <- matrix(runif(d * n), n)
+#' indPF <- nonDom(ref)
+#'
+#' system.time(res <- nonDomSet(test, ref[indPF,,drop = FALSE]))
+#'
+#' res2 <- rep(NA, n2)
+#' library(emoa)
+#' t0 <- Sys.time()
+#' for(i in 1:n2){
+#'   res2[i] <- !is_dominated(t(rbind(test[i,, drop = FALSE], ref[indPF,])))[1]
+#' }
+#' print(Sys.time() - t0)
+#'
+#' all(res == res2)
+#' }
+nonDomSet <- function(points, ref) {
+    .Call(`_hetGP_nonDomSet`, points, ref)
+}
+
 fast_diag <- function(A, B) {
     .Call(`_hetGP_fast_diag`, A, B)
 }
@@ -195,5 +255,9 @@ r_cpp <- function(mu1, mu2, s1, s2, rho, rho1, rho2) {
 
 qEI_cpp <- function(mu, s, cor, threshold) {
     .Call(`_hetGP_qEI_cpp`, mu, s, cor, threshold)
+}
+
+hyperSharperP <- function(A, l, u) {
+    .Call(`_hetGP_hyperSharperP`, A, l, u)
 }
 

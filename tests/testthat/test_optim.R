@@ -81,6 +81,13 @@ test_that("optim",{
   grads_ei <- hetGP:::deriv_crit_EI(Xgrid, model, cst = -30)
   expect_equal(grads_ei, grads_ei_ref, tol = 1e-8)
   
+  ### Test of deriv_crit_logEI
+  eis <- apply(Xgrid, 1, crit_EI, model = model, cst = -30)
+  leis <- apply(Xgrid, 1, crit_logEI, model = model, cst = -30)
+  grads_logei_ref <- t(apply(Xgrid, 1, grad, func = crit_logEI, model = model, cst = -30))
+  grads_logei <- t(apply(Xgrid, 1, deriv_crit_logEI, model = model, cst = -30))
+  expect_equal(grads_logei, grads_logei_ref, tol = 1e-6)
+  
   
   ## Same for TPs
   ## Model fitting
@@ -106,6 +113,13 @@ test_that("optim",{
   grads_ei <- deriv_crit_EI(Xgrid, model, cst = -30)
   expect_equal(grads_ei, grads_ei_ref, tol = 1e-6)
   
+  ### Test of deriv_crit_logEI
+  eis <- apply(Xgrid, 1, crit_EI, model = model, cst = -30)
+  leis <- apply(Xgrid, 1, crit_logEI, model = model, cst = -30)
+  grads_logei_ref <- t(apply(Xgrid, 1, grad, func = crit_logEI, model = model, cst = -30))
+  grads_logei <- t(apply(Xgrid, 1, deriv_crit_logEI, model = model, cst = -30))
+  expect_equal(grads_logei, grads_logei_ref, tol = 1e-6)
+  
   ## Eventually, qEI verification
   # nq <- 100
   # qEIs1 <- qEIs2 <- qEIs3 <- matrix(NA, nq)
@@ -120,6 +134,7 @@ test_that("optim",{
   #   qEIs2[i] <- mean(apply(cst - simus, 1, function(x) max(c(x, 0))))
   # }
   
+
 })
 
 test_that("derivGP",{

@@ -1,3 +1,9 @@
+## hetGP 1.1.8
+  * add an update_pred function for prediction update formulas
+  * add gradient of logEI function
+  * average then log-transform empirical variances in hetGP initialization, thanks to P. Vijay
+  * add batch BO loops with qEI and a qHSRI
+
 ## hetGP 1.1.7
   * Add plot method for CRNGP
   * Add logEI optimization criterion
