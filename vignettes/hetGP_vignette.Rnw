@@ -127,7 +127,7 @@ finding. Reproducible illustrations are provided throughout. }
   250 Drillfield Drive\\
   Blacksburg, VA 24061, United States of America\\
   E-mail: \email{rbg@vt.edu}\\
-  URL: \url{http://bobby.gramacy.com/} 
+  URL: \url{https://bobby.gramacy.com/} 
 }
 
 \begin{document}
@@ -1718,7 +1718,7 @@ Y <- c(Y, Ynew)
 mod <- update(mod, Xnew = opt$par, Znew = Ynew, ginit = mod$g * 1.01)
 @
 
-That is the basic idea.  Let us continue and gather a total of 500 samples in
+That is the basic idea.  Let us continue and gather a total of 150\footnote{The initial size was 500 but for vignette building speed it has been reduced, possibly modifying the results.} samples in
 this way, in order to explore the aggregate nature of the sequential design so
 constructed.  Periodically (every 25 iterations in the code below), it can be
 beneficial to restart the MLE calculations to help ``unstick'' any solutions
@@ -1728,7 +1728,7 @@ visualization.
 
 
 <<forr500>>=
-for(i in 1:489) {
+for(i in 1:139) {
   opt <- IMSPE_optim(mod, h = 5)
   X <- c(X, opt$par)
   Ynew <- fr(opt$par)
@@ -1746,7 +1746,7 @@ for(i in 1:489) {
 nrow(mod$X0)
 @
 
-Of the total of $N=500$, the final design contained $n=\Sexpr{nrow(mod$X0)}$
+Of the total of $N=150$, the final design contained $n=\Sexpr{nrow(mod$X0)}$
 unique locations.  To help visualize and assess the quality of the final
 surface with that design, the code below gathers predictive quantities on a
 dense grid in the input space.
@@ -1820,13 +1820,13 @@ instead.  First, reinitialize the design.
 X <- seq(0, 1, length = 10)
 Y <- fr(X)
 mod.a <- mleHetGP(X = X, Z = Y, lower = 0.0001, upper = 1)
-h <- rep(NA, 500)
+h <- rep(NA, 140)
 @
 
-Next, loop to obtain $N=500$ observations under the adaptive horizon scheme.
+Next, loop to obtain $N=200$ observations under the adaptive horizon scheme.
 
 <<adapt2>>=
-for(i in 1:490) {
+for(i in 1:140) {
   h[i] <- horizon(mod.a)
   opt <- IMSPE_optim(mod.a, h = h[i])
   X <- c(X, opt$par)
@@ -2055,15 +2055,16 @@ Y <- -fr(X)
 mod <- mleHetGP(X = X, Z = Y)
 @
 
-We have 500 sequential design iterations as before, but this
+We have 500 total evaluations as before, but this
 time with EI.  Parallel evaluation is possible via \code{mclapply}
 from \pkg{parallel} \cite{RCore2019}.
 
 <<EIahead2>>=
 library("parallel")
 ncores <- 1 # or: detectCores()
-for(i in 1:470) {
-  opt <- crit_optim(mod, crit = "crit_EI", h = 5, ncores = ncores)
+for(i in 1:120) {
+  cst <- min(predict(mod, mod$X0)$mean)
+  opt <- crit_optim(mod, crit = "crit_EI", h = 5, ncores = ncores, cst = cst)
   X <- c(X, opt$par)
   Ynew <- -fr(opt$par)
   Y <- c(Y, Ynew)
@@ -2104,7 +2105,7 @@ in Section \ref{sec:imspe}. Observe that this lookahead-biased EI approach
 leads to substantial replication in the areas of interest, judiciously
 balancing exploration and exploitation in order to pin down the global minima
 of the mean surface. The actual number of unique locations is extracted as
-follows, which is a small fraction of the total budget of $N=500$.
+follows, which is a small fraction of the total budget of $N=200$.
 
 <<EIreps>>=
 nrow(mod$X0)
@@ -2156,7 +2157,7 @@ X <- c(X, X, X)
 Y <- fr(X)
 mod <- mleHetGP(X = X, Z = Y)
 
-for(i in 1:470) {
+for(i in 1:120) {
   opt <- crit_optim(mod, crit = "crit_cSUR", h = 5, ncores = ncores)
   X <- c(X, opt$par)
   Ynew <- fr(opt$par)

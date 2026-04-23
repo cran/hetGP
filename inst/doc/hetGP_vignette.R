@@ -298,7 +298,7 @@ Y <- c(Y, Ynew)
 mod <- update(mod, Xnew = opt$par, Znew = Ynew, ginit = mod$g * 1.01)
 
 ## ----forr500--------------------------------------------------------
-for(i in 1:489) {
+for(i in 1:139) {
   opt <- IMSPE_optim(mod, h = 5)
   X <- c(X, opt$par)
   Ynew <- fr(opt$par)
@@ -336,10 +336,10 @@ legend("top", c("truth", "estimate"), col = 1:2, lty = 1:2)
 X <- seq(0, 1, length = 10)
 Y <- fr(X)
 mod.a <- mleHetGP(X = X, Z = Y, lower = 0.0001, upper = 1)
-h <- rep(NA, 500)
+h <- rep(NA, 140)
 
 ## ----adapt2---------------------------------------------------------
-for(i in 1:490) {
+for(i in 1:140) {
   h[i] <- horizon(mod.a)
   opt <- IMSPE_optim(mod.a, h = h[i])
   X <- c(X, opt$par)
@@ -414,8 +414,9 @@ mod <- mleHetGP(X = X, Z = Y)
 ## ----EIahead2-------------------------------------------------------
 library("parallel")
 ncores <- 1 # or: detectCores()
-for(i in 1:470) {
-  opt <- crit_optim(mod, crit = "crit_EI", h = 5, ncores = ncores)
+for(i in 1:120) {
+  cst <- min(predict(mod, mod$X0)$mean)
+  opt <- crit_optim(mod, crit = "crit_EI", h = 5, ncores = ncores, cst = cst)
   X <- c(X, opt$par)
   Ynew <- -fr(opt$par)
   Y <- c(Y, Ynew)
@@ -453,7 +454,7 @@ X <- c(X, X, X)
 Y <- fr(X)
 mod <- mleHetGP(X = X, Z = Y)
 
-for(i in 1:470) {
+for(i in 1:120) {
   opt <- crit_optim(mod, crit = "crit_cSUR", h = 5, ncores = ncores)
   X <- c(X, opt$par)
   Ynew <- fr(opt$par)

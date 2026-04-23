@@ -176,7 +176,7 @@ dLOOHom <- function(X0, Z0, Z, mult, theta, g, beta0 = NULL, covtype = "Gaussian
       p1 <- 1/2 * sum(rep((1/g * (mult-1) / mult + diKi/mult^2)^(-2) * mult^(-2) * diag(Ki %*% dC_dthetak %*% Ki), times = mult) * (Z/g + rep(-Z0/g + Ki %*% Z0/mult, times = mult))^2)
       
       p2 <- -sum(rep((1/g * (mult-1) / mult + diKi/mult^2)^(-1) * mult^(-1) * drop(Ki %*% (dC_dthetak) %*% Ki %*% Z0), times = mult) * (Z/g + rep(-Z0/g + Ki %*% Z0/mult, times = mult)))
-
+      
       p4 <- sum(rep((1/g * (mult-1) / mult + diKi/mult^2)^(-1) *mult^(-2) * diag(Ki %*% dC_dthetak %*% Ki), times = mult))
       
       tmp1 <- 2 * (p1 + p2) + p4
@@ -202,7 +202,7 @@ dLOOHom <- function(X0, Z0, Z, mult, theta, g, beta0 = NULL, covtype = "Gaussian
     p1 <- sum(1/2*rep((1/g * (mult-1) / mult + diKi/mult^2)^(-2) * (1/g^2 - 1/(mult * g^2) + diag(Ki %*% diag(1/mult)%*% Ki)/ mult^2), times = mult) * (Z/g + rep(-Z0/g + Ki %*% Z0/mult, times = mult))^2)
     
     p2 <- -sum(rep((1/g * (mult-1) / mult + diKi/mult^2)^(-1), times = mult) * (Z/g + rep(-Z0/g + Ki %*% Z0/mult, times = mult)) * (Z/g + rep(-Z0/g + Ki %*% (Ki %*% Z0*g/mult)/mult, times = mult))/g)
-
+    
     p4 <- sum(rep((1/g * (mult-1) / mult + diKi/mult^2)^(-1) * (1/g^2 - 1/(mult * g^2) + diag(Ki %*% diag(1/mult)%*% Ki) / mult^2), times= mult))
     
     tmp2 <- 2*(p1 + p2) + p4
@@ -1248,7 +1248,9 @@ compareGP <- function(model1, model2){
 #' Level \code{2} gives more details. Level \code{3} additionaly displays all details about initialization of hyperparameters.
 #' \item \code{return.matrices} boolean to include the inverse covariance matrix in the object for further use (e.g., prediction).
 #' \item \code{return.hom} boolean to include homoskedastic GP models used for initialization (i.e., \code{modHom} and \code{modNugs}).
-#' \item \code{factr} (default to 1e9) and \code{pgtol} are available to be passed to \code{control} for L-BFGS-B in \code{\link[stats]{optim}}.   
+#' \item \code{factr} (default to 1e9) and \code{pgtol} are available to be passed to \code{control} for L-BFGS-B in \code{\link[stats]{optim}}.
+#' \item \code{rescaleLogNoiseInit} (default to \code{TRUE}): from Jensen inequality, averaging after the log transform underestimates the variance. 
+#' When this is set to \code{TRUE} (default), we rescale the values to match the log of the average.
 #' }
 #' @param eps jitter used in the inversion of the covariance matrix for numerical stability
 #' @param init,known optional lists of starting values for mle optimization or that should not be optimized over, respectively.
@@ -1430,7 +1432,7 @@ compareGP <- function(model1, model2){
 #'
 #' ## Model fitting
 #' model <- mleHetGP(X = list(X0 = prdata$X0, Z0 = prdata$Z0, mult = prdata$mult), Z = prdata$Z,
-#'                   lower = rep(0.01, nvar), upper = rep(10, nvar),
+#'                   lower = rep(0.01, nvar), upper = rep(0.5, nvar),
 #'                   covtype = "Matern5_2")
 #'
 #' ## a quick view into the data stored in the "hetGP"-class object
@@ -1458,7 +1460,7 @@ compareGP <- function(model1, model2){
 mleHetGP <- function(X, Z, lower = NULL, upper = NULL,
                      noiseControl = list(k_theta_g_bounds = c(1, 100), g_max = 1e2, g_bounds = c(1e-6, 1)),
                      settings = list(linkThetas = 'joint', logN = TRUE, initStrategy = 'residuals', checkHom = TRUE,
-                                     penalty = TRUE, trace = 0, return.matrices = TRUE, return.hom = FALSE, factr = 1e9), 
+                                     penalty = TRUE, trace = 0, return.matrices = TRUE, return.hom = FALSE, factr = 1e9, rescaleLogNoiseInit=TRUE), 
                      covtype = c("Gaussian", "Matern5_2", "Matern3_2"), maxit = 100, known = NULL, init = NULL, eps = sqrt(.Machine$double.eps)){
   
   if(typeof(X)=="list"){
@@ -1529,6 +1531,9 @@ mleHetGP <- function(X, Z, lower = NULL, upper = NULL,
   
   if(is.null(settings$factr))
     settings$factr <- 1e9
+  
+  if(is.null(settings$rescaleLogNoiseInit))
+    settings$rescaleLogNoiseInit <- TRUE
   
   penalty <- TRUE
   if(!is.null(settings$penalty))
@@ -1678,13 +1683,19 @@ mleHetGP <- function(X, Z, lower = NULL, upper = NULL,
       predHom <- suppressWarnings(predict(x = X0, object = modHom)$mean)
       nugs_est <- (Z - rep(predHom, times = mult))^2 #squared deviation from the homoskedastic prediction mean to the actual observations
       nugs_est <-  nugs_est / modHom$nu_hat  # to be homegeneous with Delta
-      
-      nugs_est0 <- drop(fast_tUY2(mult, nugs_est))/mult # average
-      
+      nugs_est0 <- drop(fast_tUY2(mult, nugs_est))/mult # average       
+
       if(logN){
-        nugs_est0 <- pmax(nugs_est0, .Machine$double.eps) # to avoid problems on deterministic test functions
-        nugs_est0 <- log(nugs_est0)
+        nugs_est <- pmax(nugs_est, .Machine$double.eps) # to avoid problems on deterministic test functions
+        nugs_est <- log(nugs_est)
+        if(settings$rescaleLogNoiseInit){
+          nugs_est00 <- drop(fast_tUY2(mult, nugs_est))/mult # average after log transform
+          # From Jensen inequality, nugs_est00 underestimates the variance, so we rescale nugs_est and nugstest00 such that the means matches the one of log(E(nugs_est))
+          nugs_est <- nugs_est - mean(nugs_est00) + mean(log(nugs_est0))
+        }
+        nugs_est0 <- drop(fast_tUY2(mult, nugs_est))/mult # average       
       }
+   
       
     }else{
       nugs_est0 <- init$Delta
